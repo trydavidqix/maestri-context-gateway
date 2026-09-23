@@ -60,23 +60,27 @@
 
 **Files:** inspect only initially: `src/codex-usage.mjs`, `src/dashboard.mjs`, `src/dashboard-ui.mjs`, `src/context/compiler.mjs`, `src/context/cache.mjs`, `src/executor.mjs`, `src/core.mjs`, `test/codex-usage.test.mjs`, `test/dashboard.test.mjs`, `docs/ARCHITECTURE.md`; later modify only the relevant owner files.
 
-- [ ] Record current `git status`, diff of overlapping files, Node/Codex versions, existing dashboard port, API response shape, and current test baseline. Do not stage or discard any pre-existing edit.
-- [ ] Capture a privacy-safe baseline on representative existing tasks: provider-reported input, cached input, output, reasoning breakdown, tool calls, tool-output bytes, model turns, duration, task success, retries, and context compaction/overflow where observable. Mark unavailable fields unavailable.
-- [ ] Verify current Codex JSONL schema and the installed configuration schema from official Codex sources/documentation. Do not infer ChatGPT allowance or cost from JSONL usage.
-- [ ] Add/adjust contract tests that enumerate exactly the 13 view keys and verify every view has source, timestamp, and one of `exact | estimated | unavailable`, while preserving each view's existing payload fields.
-- [ ] Run `node --test test/dashboard.test.mjs test/codex-usage.test.mjs test/metrics.test.mjs`; record baseline failures separately from changes in this plan.
+- [x] Record current `git status`, diff of overlapping files, Node/Codex versions, existing dashboard port, API response shape, and current test baseline. Do not stage or discard any pre-existing edit.
+- [x] Record the available privacy-safe local usage baseline below. Machine-level/task-level fields not present in local evidence remain explicitly unavailable; aggregate estimates are not presented as provider measurements.
+- [x] Verify Codex `codex exec --json` event and config fields against the official SDK event types and official Codex config source. Do not infer ChatGPT allowance or cost from JSONL usage.
+- [x] Add/adjust contract tests that enumerate exactly the 13 view keys and verify every view has source, timestamp, and one of `exact | estimated | unavailable`, while preserving each view's existing payload fields.
+- [x] Run `node --test test/dashboard.test.mjs test/codex-usage.test.mjs test/metrics.test.mjs`; record baseline failures separately from changes in this plan.
 
 **Done when:** baseline and data contract are documented with no user settings changed; all existing local edits remain present.
+
+**Captured baseline (2026-09-23):** Node `v24.19.0`; Codex CLI `0.155.1`; local Codex model `gpt-5.6-sol`, reasoning effort `medium`; no global `tool_output_token_limit` configured (left unchanged). `node bin/mcg.mjs stats --tokens` observed 9 tasks (8 Codex, 1 Antigravity), 37,229 source chars, 21,422 delivered chars, 15,807 chars avoided. Derived using the existing `chars / 4` estimate only: 9,308 original tokens, 5,356 delivered, 3,952 estimated avoided, 42.46% reduction. This is not provider-exact usage or billing. Exact input/cached/output/reasoning tokens, tool calls/output bytes, model turns, duration, success/retries and context overflow/compaction are unavailable from these aggregates; six old task records lack their exact event/result evidence. MCP/IDE attribution is unavailable. Initial full test baseline before Jules changes: 43/43 passed. Initial branch was clean at `d4fe78e`; dashboard default is `127.0.0.1:7435`, override remains `--port`, and `/api/views` is the 13-view read-only payload contract.
+
+**Official schema check:** [Codex SDK `events.ts`](https://github.com/openai/codex/blob/main/sdk/typescript/src/events.ts) defines `turn.completed.usage` with input, cached input, cache-write input, output, and reasoning-output fields; it does not define `total_tokens` or a per-turn ID. The usage guide confirms cached tokens are included in input, reasoning is included in output, and missing usage is not zero. [Codex config source](https://github.com/openai/codex/blob/main/codex-rs/config/src/config_toml.rs) defines `tool_output_token_limit` as an optional token budget for tool/function outputs. Thus multi-event aggregates in this parser cannot be safely deduplicated from documented event IDs and must remain estimated; no global setting was changed.
 
 ### Task 2 — Make Codex usage totals correct and auditable
 
 **Files:** `src/codex-usage.mjs`, `test/codex-usage.test.mjs`, and narrowly scoped usage consumers `src/eval-runner.mjs` / `src/replay.mjs` only if their current assumptions require adjustment.
 
-- [ ] Add failing fixtures for `total_tokens` supplied by provider, absent `total_tokens`, reasoning included as a breakdown, cached input, multiple turn events, malformed lines, and duplicate event/turn identifiers when present.
-- [ ] Define the invariant: retain provider `total_tokens` exactly if present; otherwise compute only from non-overlapping input/output fields. Keep `reasoning_tokens` separately as a breakdown and never add it twice. Keep `cached_input_tokens` as a subset of input, not an extra sum.
-- [ ] Parse per-turn and per-task usage with stable source IDs; deduplicate repeated final events when the JSONL exposes an identifier. When no identifier exists, state the limitation and avoid claiming a deduplicated exact aggregate.
-- [ ] Return field-level provenance and `measurement_type`; distinguish provider-exact values from unavailable fields. Preserve backward compatibility for existing consumers or update those consumers/tests together.
-- [ ] Run `node --test test/codex-usage.test.mjs test/metrics.test.mjs` and verify expected sums manually from the fixtures.
+- [x] Add failing fixtures for `total_tokens` supplied by provider, absent `total_tokens`, reasoning included as a breakdown, cached input, multiple turn events, malformed lines, and duplicate event/turn identifiers when present.
+- [x] Define the invariant: retain provider `total_tokens` exactly if present; otherwise compute only from non-overlapping input/output fields. Keep `reasoning_tokens` separately as a breakdown and never add it twice. Keep `cached_input_tokens` as a subset of input, not an extra sum.
+- [x] Aggregate `turn.completed` usage. Official event schema has no per-turn identifier, so multi-event aggregates are explicitly estimated and identical events are not unsafely deduplicated.
+- [x] Return per-field provenance and `measurement_type`; distinguish present values from unavailable fields. Preserve backward compatibility for existing consumers or update those consumers/tests together.
+- [x] Run `node --test test/codex-usage.test.mjs test/metrics.test.mjs` and verify expected sums manually from the fixtures.
 
 **Done when:** tests prove input/cache/output/reasoning/total relationships; the dashboard never adds reasoning twice or claims an exact total from incomplete evidence.
 
