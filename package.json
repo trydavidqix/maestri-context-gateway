@@ -3,10 +3,22 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./context/compiler": "./src/context/compiler.mjs",
-    "./dashboard": "./src/dashboard.mjs",
-    "./telemetry": "./src/telemetry.mjs",
-    "./traces": "./src/traces.mjs"
+    "./context/compiler": {
+      "types": "./types/context/compiler.d.ts",
+      "import": "./src/context/compiler.mjs"
+    },
+    "./dashboard": {
+      "types": "./types/dashboard.d.ts",
+      "import": "./src/dashboard.mjs"
+    },
+    "./telemetry": {
+      "types": "./types/telemetry.d.ts",
+      "import": "./src/telemetry.mjs"
+    },
+    "./traces": {
+      "types": "./types/traces.d.ts",
+      "import": "./src/traces.mjs"
+    }
   },
   "engines": {
     "node": ">=22"
