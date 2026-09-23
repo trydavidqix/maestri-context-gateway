@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile, appendFile, readdir, rm, stat } from 'node:fs/promises';
 import { existsSync, watch } from 'node:fs';
 import { dirname, join, resolve, relative } from 'node:path';
-import { homedir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { recordTelemetry } from './telemetry.mjs';
 import { createTrace, startSpan, finishSpan } from './traces.mjs';
@@ -11,7 +11,7 @@ import { cacheContext } from './context/cache.mjs';
 import { recordHistory } from './history/store.mjs';
 import { assertContract } from './contracts.mjs';
 
-export const ROOT = process.env.MCG_ROOT || join(homedir(), '.lumenva', 'maestri-context-gateway');
+export const ROOT = process.env.MCG_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '..', '.mcg-state');
 export const TASKS = join(ROOT, 'tasks');
 export const INBOX = join(ROOT, 'events', 'inbox');
 export const TERMINAL = new Set(['DONE', 'BLOCKED_OWNER']);

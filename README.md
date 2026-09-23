@@ -6,7 +6,7 @@ its read-only dashboard. It is distributed as source and runs on Node.js 22+.
 
 ## Runtime data
 
-MCG stores runtime data outside Git. Set `MCG_ROOT` to a local state directory before running the CLI. The repository excludes generated runtime state, tasks, logs, event inbox data, PID files, Wire credentials, and backups.
+MCG stores runtime data in the ignored `.mcg-state/` directory by default. Set `MCG_ROOT` to another local state directory to override it. The repository excludes generated runtime state, tasks, logs, event inbox data, PID files, Wire credentials, and backups.
 
 ## CLI
 

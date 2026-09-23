@@ -12,6 +12,14 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 - Sensitive-data/path scan: pass on the extracted tree.
 - New repository CI: pass on the initial extraction commit.
 
+## Local runtime-root candidate — 2026-09-23
+
+- The standalone checkout is the dedicated `Projetos/maestri-context-gateway` folder; runtime data defaults to its ignored `.mcg-state/` directory. `MCG_ROOT` remains the explicit override.
+- Candidate branch `codex/project-local-runtime-root`, commit `99ffa31`, is pushed to origin and is not merged into `main`.
+- Candidate verification: unit suite 40/40, syntax/import 31 modules, sensitive-data/path scan PASS.
+- Existing `.mcg-state/` data was preserved; no state migration or deletion was performed.
+- A legacy empty directory outside the Projects checkout is not the repository and is not used as the default runtime path.
+
 ## Remaining work
 
 - Benchmark the provider discovery/probe path across additional Windows user profiles and current official client releases.

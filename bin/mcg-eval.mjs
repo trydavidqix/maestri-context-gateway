@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runValidationSuite } from '../src/eval-runner.mjs';
-const root = process.env.MCG_ROOT || join(homedir(), '.lumenva', 'maestri-context-gateway');
+const root = process.env.MCG_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '..', '.mcg-state');
 const binary = process.env.CODEX_BIN || join(homedir(), '.codex', 'packages', 'standalone', 'current', 'bin', 'codex.exe');
 const mode = process.argv[2] || 'smoke';
 const dataset = fileURLToPath(new URL(mode === 'validation' ? '../evals/datasets/validation.jsonl' : '../evals/datasets/smoke.jsonl', import.meta.url));

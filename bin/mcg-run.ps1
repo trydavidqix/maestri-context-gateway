@@ -18,8 +18,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$root  = "$HOME\.lumenva\maestri-context-gateway"
-$mcg   = "$root\bin\mcg.mjs"
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$root = if($env:MCG_ROOT) { $env:MCG_ROOT } else { Join-Path $repoRoot ".mcg-state" }
+$mcg = Join-Path $repoRoot "bin\mcg.mjs"
 
 $codex = "$HOME\.codex\packages\standalone\current\bin\codex.exe"
 $agy   = "$env:LOCALAPPDATA\agy\bin\agy.exe"
@@ -142,7 +143,7 @@ try {
 
         $exitCode = $LASTEXITCODE
 
-        $usageJson = & node "$root\bin\parse-codex-usage.mjs" $stdoutFile
+        $usageJson = & node (Join-Path $repoRoot "bin\parse-codex-usage.mjs") $stdoutFile
         if($usageJson) {
             $parsed = $usageJson | ConvertFrom-Json
             $usage = $parsed.usage

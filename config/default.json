@@ -1,5 +1,5 @@
 {
-  "root": "~/.lumenva/maestri-context-gateway",
+  "root": ".mcg-state",
   "mode": "observe",
   "maestri": {
     "cli": "maestri",
