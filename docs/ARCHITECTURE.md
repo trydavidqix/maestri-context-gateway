@@ -13,6 +13,8 @@ budgets, alerts, and validation records. `dashboard.mjs` is read-only: it
 serves APIs, SSE snapshots, and an interface which renders covered sources
 only. `evals/` holds immutable run inputs and graders.
 
+`provider-discovery.mjs` reads the canonical global/project MCP config locations for Claude Code, Codex, and Antigravity. `mcg mcp probe` performs explicit, read-only MCP discovery and `tools/list` requests, stores observed results in the local registry, and does not call server tools.
+
 ## Measurement policy
 
 Provider usage is `exact`; compatible tokenizer or chars/4 is `estimated`;

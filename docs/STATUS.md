@@ -14,8 +14,15 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 
 ## Remaining work
 
-- Discover and validate real configuration/catalogs for supported providers.
-- Probe actual tool and MCP health/capabilities; do not mark static catalog entries healthy without observations.
+- Benchmark the provider discovery/probe path across additional Windows user profiles and current official client releases.
+- Add richer telemetry for MCP request errors and protocol-level capability sets when servers expose them.
 - Keep rates, latency, and usage unavailable until backed by observed telemetry.
 
-No deployment or provider configuration is performed by the extraction itself.
+## Provider discovery and MCP probes
+
+- `mcg mcp discover` reads global and project MCP configuration for Claude Code, Codex, and Antigravity and returns metadata only; secret values are never serialized.
+- `mcg mcp probe` makes read-only `server/discover` and `tools/list` requests, with legacy initialization fallback for stdio and Streamable HTTP. It never invokes `tools/call`.
+- Package download/runner commands (`npx`, `npm`, `pnpm`, `uvx`, etc.) are reported as unprobed by default; they are not executed and cannot install packages during a health check.
+- OAuth managed inside a provider client is not exported or read by MCG; a remote endpoint that needs such auth remains unverified here rather than having credentials copied into MCG.
+- HTTP endpoints require HTTPS except loopback. Probe results are persisted locally in the ignored `state/registry/mcps.json` file.
+- Health and tool names are observed; usage and success/failure rates stay unavailable until telemetry exists.
