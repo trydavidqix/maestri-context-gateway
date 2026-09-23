@@ -18,7 +18,13 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 - Graceful stop uses an authenticated loopback control endpoint; the daemon does not kill arbitrary processes by PID.
 - Windows current-user autostart is installed as a limited-privilege Scheduled Task at logon. The dashboard itself remains manually launched.
 - Dashboard CLI accepts `--port` so this checkout can run beside an older MCG dashboard instance without replacing it.
-- Validation: 42/42 tests pass; syntax/import smoke (32 modules), PowerShell parser, and sensitive-data scan pass. The Scheduled Task is registered and verified for the current user with an at-logon trigger, Interactive logon, Limited run level, IgnoreNew duplicate policy, and three restart attempts.
+- Validation (latest branch run, 2026-09-23): 44/44 tests pass; syntax/import smoke parses 33 modules; PowerShell parser and sensitive-data scan pass. The Scheduled Task is registered and verified for the current user with an at-logon trigger, Interactive logon, Limited run level, IgnoreNew duplicate policy, and three restart attempts.
+
+## Dashboard reports and Token Firewall follow-up — 2026-09-23
+
+- Canonical implementation tracker: [`superpowers/plans/2026-09-23-dashboard-reports-token-firewall.md`](superpowers/plans/2026-09-23-dashboard-reports-token-firewall.md).
+- Progress is **2/6 tasks accepted (33%)**. Tasks 1–2 are complete; Task 3 is paused in Jules session `6700594731787502098`; Tasks 4–6 are not accepted. The paused session and unreviewed Task 3 drafts are not included in the tested branch changes.
+- This status is not a declaration that the full dashboard/token-firewall plan is complete. Resume Task 3 only when the owner asks to continue; proceed one task at a time.
 
 ## Local runtime-root candidate — 2026-09-23
 

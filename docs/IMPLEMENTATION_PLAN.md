@@ -2,6 +2,8 @@
 
 > This checklist records the original implementation plan from the Lumenva monorepo. It is retained as project history, not as the current task tracker. See [`STATUS.md`](STATUS.md) for the extracted repository's verified state and remaining work.
 
+> **Scope clarification (2026-09-23):** The push/merge restriction below belongs to this historical checklist. The active dashboard reports/Token Firewall work is tracked separately in [`superpowers/plans/2026-09-23-dashboard-reports-token-firewall.md`](superpowers/plans/2026-09-23-dashboard-reports-token-firewall.md), whose current owner instruction authorizes integrating the verified current branch into `main`. That authorization does not mark its six tasks complete or include unrelated branches, deployments, or daemon restarts.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build real local telemetry, discovery, alerts, validation, and dashboard evidence.
