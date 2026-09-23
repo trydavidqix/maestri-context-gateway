@@ -1,0 +1,26 @@
+name: MCG gates
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  mcg:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: MCG unit tests
+        run: node --test test/*.test.mjs
+      - name: Import and syntax smoke
+        run: node scripts/check-syntax.mjs
+      - name: Secret, path and personal-data scan
+        run: node scripts/scan-sensitive.mjs
+      - name: Dashboard smoke
+        run: node --test test/dashboard.test.mjs
+      - name: Contracts smoke
+        run: node --test test/contracts.test.mjs
