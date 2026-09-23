@@ -2,6 +2,24 @@
   "name": "@lumenva/maestri-context-gateway",
   "private": true,
   "type": "module",
+  "exports": {
+    "./context/compiler": {
+      "types": "./types/context/compiler.d.ts",
+      "import": "./src/context/compiler.mjs"
+    },
+    "./dashboard": {
+      "types": "./types/dashboard.d.ts",
+      "import": "./src/dashboard.mjs"
+    },
+    "./telemetry": {
+      "types": "./types/telemetry.d.ts",
+      "import": "./src/telemetry.mjs"
+    },
+    "./traces": {
+      "types": "./types/traces.d.ts",
+      "import": "./src/traces.mjs"
+    }
+  },
   "engines": {
     "node": ">=22"
   },
@@ -14,6 +32,7 @@
     "smoke:dashboard": "node --test test/dashboard.test.mjs",
     "smoke:contracts": "node --test test/contracts.test.mjs",
     "eval:smoke": "node bin/mcg-eval.mjs smoke",
-    "eval:validation": "node bin/mcg-eval.mjs validation"
+    "eval:validation": "node bin/mcg-eval.mjs validation",
+    "eval:validation-v2": "node bin/mcg-eval.mjs validation-v2"
   }
 }

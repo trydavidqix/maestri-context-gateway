@@ -26,6 +26,14 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 - Progress is **2/6 tasks accepted (33%)**. Tasks 1–2 are complete; Task 3 is paused in Jules session `6700594731787502098`; Tasks 4–6 are not accepted. The paused session and unreviewed Task 3 drafts are not included in the tested branch changes.
 - This status is not a declaration that the full dashboard/token-firewall plan is complete. Resume Task 3 only when the owner asks to continue; proceed one task at a time.
 
+## Lumenva branch extraction reconciliation — 2026-09-23
+
+- Ported the portable MCG changes found on Lumenva `vps`: deterministic duplicate-fragment removal before budgeting; separately measured context tokens; context-savings qualification in paired evals; historical context-usage recovery from local raw Codex JSONL; W3C `traceparent` persistence; the 30-case `validation-v2` corpus; and a read-only dashboard **Execuções** view with optional loopback-only Core feed.
+- Missing usage fields remain `null`/`unavailable`; this port deliberately does not copy the source branch's assumption that absent cached usage equals zero.
+- `npm test`: 46/46 pass. `npm run check:syntax`: 33 modules pass. `npm run scan:sensitive`: PASS (91 files). `validation-v2.jsonl`: 30 valid unique cases across 30 categories; provider execution was not started.
+- The original MCG implementation plan and design are preserved as historical snapshots in [`archive/`](archive/).
+- The Lumenva-only rollout guard and Maestri V3 plans remain in Lumenva; they are not part of the standalone MCG product. The two VPS source trees no longer track the MCG package or its old dedicated plan/spec. Lumenva's runtime adapter still needs migration from deleted relative imports to this standalone package before its Core suite is green.
+
 ## Local runtime-root candidate — 2026-09-23
 
 - The standalone checkout is the dedicated `Projetos/maestri-context-gateway` folder; runtime data defaults to its ignored `.mcg-state/` directory. `MCG_ROOT` remains the explicit override.

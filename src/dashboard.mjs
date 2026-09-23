@@ -347,9 +347,35 @@ async function validationView(root) {
   };
 }
 
-export async function dashboardViews(root = ROOT, { graphView, registryOptions = {} } = {}) {
-  const [stats, history, traces, cache, memory, validation, registries] = await Promise.all([
-    dashboardStats(root), historyView(root), listTraces(root), cacheView(root), memoryView(root), validationView(root), refreshRegistries(root, registryOptions)
+export function createCoreExecutionFeed(baseUrl = process.env.LUMENVA_CORE_URL) {
+  if (!baseUrl) return null;
+  const origin = new URL(baseUrl);
+  if (origin.protocol !== 'http:' || !['127.0.0.1', 'localhost', '::1'].includes(origin.hostname)) throw new Error('Core API must be loopback HTTP');
+  return async () => {
+    const response = await fetch(new URL('/executions', origin), { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw new Error(`Core execution feed HTTP ${response.status}`);
+    const body = await response.json();
+    return Array.isArray(body?.executions) ? body.executions : [];
+  };
+}
+
+export async function executionEvidence(executionFeed) {
+  const source = 'Core GET /executions; read-only execution feed';
+  const unavailableUsage = { input_tokens: null, cached_tokens: null, output_tokens: null, duration_ms: null, cost_usd: null, measurement_type: 'unavailable', source: 'Core GET /executions usage' };
+  if (!executionFeed) return { status: 'UNAVAILABLE', count: null, executions: null, usage: unavailableUsage, measurement_type: 'unavailable', source, timestamp: new Date().toISOString() };
+  try {
+    const raw = await executionFeed();
+    const executions = Array.isArray(raw) ? raw : Array.isArray(raw?.executions) ? raw.executions : [];
+    const usageRows = executions.map(execution => execution?.result?.usage).filter(usage => usage && Number.isFinite(usage.input_tokens) && Number.isFinite(usage.output_tokens));
+    const sumObserved = field => usageRows.length && usageRows.every(usage => Number.isFinite(usage[field])) ? usageRows.reduce((sum, usage) => sum + usage[field], 0) : null;
+    const usage = usageRows.length ? { input_tokens: sumObserved('input_tokens'), cached_tokens: sumObserved('cached_tokens'), output_tokens: sumObserved('output_tokens'), duration_ms: sumObserved('duration_ms'), cost_usd: sumObserved('cost_usd'), measurement_type: 'exact', source: 'Core GET /executions usage' } : unavailableUsage;
+    return { status: executions.length ? 'OBSERVED' : 'UNAVAILABLE', count: executions.length || null, executions: executions.length ? executions : null, usage, measurement_type: executions.length ? 'exact' : 'unavailable', source, timestamp: new Date().toISOString() };
+  } catch { return { status: 'UNAVAILABLE', count: null, executions: null, usage: unavailableUsage, measurement_type: 'unavailable', source, timestamp: new Date().toISOString() }; }
+}
+
+export async function dashboardViews(root = ROOT, { graphView, executionFeed, registryOptions = {} } = {}) {
+  const [stats, history, traces, cache, memory, validation, registries, executionEvidenceView] = await Promise.all([
+    dashboardStats(root), historyView(root), listTraces(root), cacheView(root), memoryView(root), validationView(root), refreshRegistries(root, registryOptions), executionEvidence(executionFeed)
   ]);
   const unavailable = (source) => ({ status: 'UNAVAILABLE', observations: null, measurement_type: 'unavailable', source, timestamp: new Date().toISOString() });
   const registryView = (rows, source) => {
@@ -370,6 +396,7 @@ export async function dashboardViews(root = ROOT, { graphView, registryOptions =
     Plugins: registryView(registries.plugins, 'state/registry/plugins.json + telemetry discovery'),
     MCPs: registryView(registries.mcps, 'state/registry/mcps.json + telemetry discovery'),
     Graph: graphView ? { ...await graphView(), measurement_type: 'exact', source: 'Core GET /graph; read-only', timestamp: new Date().toISOString() } : unavailable('Core GET /graph; graph provider not configured'),
+    Executions: executionEvidenceView,
     Cache: cache,
     Memory: memory,
     Validation: validation,
@@ -388,7 +415,7 @@ async function load(){const [stats,tasks,health]=await Promise.all(['/api/stats'
 </script></body></html>`;
 
 const dashboardNav = '<section class="grid"><div class="panel"><h2>Command Center</h2><nav class="view-tabs" aria-label="Dashboard views" role="tablist">' +
-  ['Overview', 'History', 'Traces', 'Tasks', 'Agents', 'Tools', 'Plugins', 'MCPs', 'Graph', 'Cache', 'Memory', 'Validation', 'Alerts']
+  ['Overview', 'History', 'Traces', 'Tasks', 'Agents', 'Tools', 'Plugins', 'MCPs', 'Graph', 'Executions', 'Cache', 'Memory', 'Validation', 'Alerts']
     .map((view, index) => `<button class="view-tab" type="button" role="tab" data-view="${view}" aria-selected="${index === 0 ? 'true' : 'false'}" aria-controls="view-panel">${view}</button>`)
     .join('') +
   '</nav><div id="view-panel" role="tabpanel" tabindex="0"><p class="empty">Carregando views observadas.</p></div></div></section>';
@@ -433,7 +460,7 @@ const legacyDashboardHtml = html
 
 function sendJson(res, body) { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); }
 
-export function createDashboardServer({ root = ROOT, port = PORT, wireProbe, graphView, registryOptions = {} } = {}) {
+export function createDashboardServer({ root = ROOT, port = PORT, wireProbe, graphView, executionFeed, registryOptions = {} } = {}) {
   const clients = new Set(); let previous = '';
   const registryResponse = async (type, key, source) => {
     const rows = (await refreshRegistries(root, registryOptions))[type];
@@ -455,7 +482,8 @@ export function createDashboardServer({ root = ROOT, port = PORT, wireProbe, gra
       if (req.url === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); return res.end(dashboardHtml); }
       if (req.url === '/api/events') { res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive', 'Cache-Control': 'no-cache' }); clients.add(res); await publish(); req.on('close', () => clients.delete(res)); return; }
       if (req.url === '/api/stats') return sendJson(res, await dashboardStats(root));
-      if (req.url === '/api/views') return sendJson(res, { views: await dashboardViews(root, { graphView, registryOptions }), source: 'dashboard view registry', measurement_type: 'exact', timestamp: new Date().toISOString() });
+      if (req.url === '/api/views') return sendJson(res, { views: await dashboardViews(root, { graphView, executionFeed, registryOptions }), source: 'dashboard view registry', measurement_type: 'exact', timestamp: new Date().toISOString() });
+      if (req.url === '/api/executions') return sendJson(res, await executionEvidence(executionFeed));
       if (req.url === '/api/graph') return graphView ? sendJson(res, await graphView()) : sendJson(res, { error: 'GRAPH_UNAVAILABLE', readOnly: true, measurement_type: 'unavailable', source: 'Core GET /graph' });
       if (req.url === '/api/history') return sendJson(res, await historyView(root));
       if (req.url === '/api/cache') return sendJson(res, await cacheView(root));

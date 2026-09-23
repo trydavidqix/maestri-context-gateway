@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { request } from 'node:http';
-import { createDashboardServer } from '../src/dashboard.mjs';
+import { createCoreExecutionFeed, createDashboardServer } from '../src/dashboard.mjs';
 import { recordHistory } from '../src/history/store.mjs';
 import { recordTelemetry } from '../src/telemetry.mjs';
 
@@ -215,14 +215,16 @@ test('dashboard exposes every M0.12 view without fake zero observations', async 
   const response = await get(server.address().port, '/api/views');
   assert.equal(response.status, 200);
   const views = JSON.parse(response.body).views;
-  assert.deepEqual(Object.keys(views), ['Overview','History','Traces','Tasks','Agents','Tools','Plugins','MCPs','Graph','Cache','Memory','Validation','Alerts']);
+  assert.deepEqual(Object.keys(views), ['Overview','History','Traces','Tasks','Agents','Tools','Plugins','MCPs','Graph','Executions','Cache','Memory','Validation','Alerts']);
   assert.equal(views.Cache.status, 'UNAVAILABLE');
   assert.equal(views.Cache.samples, null);
   assert.equal(views.Memory.records, null);
   assert.equal(views.Validation.paired_runs, null);
   assert.equal(views.Validation.status, 'UNVALIDATED');
+  assert.equal(views.Executions.status, 'UNAVAILABLE');
+  assert.equal(views.Executions.usage.input_tokens, null);
   assert.equal(response.body.includes('NaN'), false);
-  const expectedKeys = ['Overview', 'History', 'Traces', 'Tasks', 'Agents', 'Tools', 'Plugins', 'MCPs', 'Graph', 'Cache', 'Memory', 'Validation', 'Alerts'];
+  const expectedKeys = ['Overview', 'History', 'Traces', 'Tasks', 'Agents', 'Tools', 'Plugins', 'MCPs', 'Graph', 'Executions', 'Cache', 'Memory', 'Validation', 'Alerts'];
   assert.deepEqual(Object.keys(views).sort(), [...expectedKeys].sort(), 'The view catalog must contain exactly the 13 documented views');
   for (const key of expectedKeys) {
     const view = views[key];
@@ -271,6 +273,21 @@ test('dashboard exposes read-only graph view and source drill-down', async t => 
   assert.equal(JSON.parse(graph.body).readOnly, true);
   assert.match((await get(server.address().port, '/')).body, /data-view="Graph"/);
   assert.match((await get(server.address().port, '/')).body, /Graph/);
+});
+
+test('dashboard exposes persisted execution evidence and observed usage read-only', async t => {
+  const execution = { id: 'execution-1', status: 'success', result: { usage: { input_tokens: 10, cached_tokens: 3, output_tokens: 4, duration_ms: 50, cost_usd: 0.01 } } };
+  const server = await createDashboardServer({ root: process.cwd(), port: 0, executionFeed: async () => [execution] });
+  t.after(() => server.close());
+  const views = JSON.parse((await get(server.address().port, '/api/views')).body).views;
+  assert.equal(views.Executions.status, 'OBSERVED');
+  assert.deepEqual(views.Executions.usage, { input_tokens: 10, cached_tokens: 3, output_tokens: 4, duration_ms: 50, cost_usd: 0.01, measurement_type: 'exact', source: 'Core GET /executions usage' });
+  assert.match((await get(server.address().port, '/')).body, /data-view="Executions"/);
+});
+
+test('core execution feed accepts loopback HTTP only', async () => {
+  assert.throws(() => createCoreExecutionFeed('https://example.com'), /loopback HTTP/);
+  assert.throws(() => createCoreExecutionFeed('http://example.com'), /loopback HTTP/);
 });
 
 test('dashboard periods stay unavailable when no context compile was observed', async t => {
