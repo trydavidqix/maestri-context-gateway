@@ -2,6 +2,12 @@
   "name": "@lumenva/maestri-context-gateway",
   "private": true,
   "type": "module",
+  "exports": {
+    "./context/compiler": "./src/context/compiler.mjs",
+    "./dashboard": "./src/dashboard.mjs",
+    "./telemetry": "./src/telemetry.mjs",
+    "./traces": "./src/traces.mjs"
+  },
   "engines": {
     "node": ">=22"
   },

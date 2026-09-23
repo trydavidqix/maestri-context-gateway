@@ -4,6 +4,10 @@ Maestri Context Gateway (MCG) is a local-first gateway for task execution,
 context compilation, provider telemetry, evidence, registries, scheduling, and
 its read-only dashboard. It is distributed as source and runs on Node.js 22+.
 
+The original Lumenva MCG implementation plan and design are preserved under
+[`docs/archive/`](docs/archive/) as historical snapshots. Current progress is
+tracked in [`docs/STATUS.md`](docs/STATUS.md), not in those archived checklists.
+
 ## Runtime data
 
 MCG stores runtime data in the ignored `.mcg-state/` directory by default. Set `MCG_ROOT` to another local state directory to override it. The repository excludes generated runtime state, tasks, logs, event inbox data, PID files, Wire credentials, and backups.
