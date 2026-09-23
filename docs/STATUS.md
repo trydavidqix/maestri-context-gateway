@@ -12,6 +12,14 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 - Sensitive-data/path scan: pass on the extracted tree.
 - New repository CI: pass on the initial extraction commit.
 
+## Dashboard and daemon lifecycle — 2026-09-23
+
+- Daemon integration tests exercise inbox processing, restart recovery, dashboard health, duplicate-start rejection, stale PID recovery, and graceful stop on Windows.
+- Graceful stop uses an authenticated loopback control endpoint; the daemon does not kill arbitrary processes by PID.
+- Windows current-user autostart is installed as a limited-privilege Scheduled Task at logon. The dashboard itself remains manually launched.
+- Dashboard CLI accepts `--port` so this checkout can run beside an older MCG dashboard instance without replacing it.
+- Validation: 42/42 tests pass; syntax/import smoke (32 modules), PowerShell parser, and sensitive-data scan pass. The Scheduled Task is registered and verified for the current user with an at-logon trigger, Interactive logon, Limited run level, IgnoreNew duplicate policy, and three restart attempts.
+
 ## Local runtime-root candidate — 2026-09-23
 
 - The standalone checkout is the dedicated `Projetos/maestri-context-gateway` folder; runtime data defaults to its ignored `.mcg-state/` directory. `MCG_ROOT` remains the explicit override.

@@ -12,6 +12,8 @@ import { efficiencyScore, regressionWatch } from './scores.mjs';
 import { getHistoryStore, HISTORY_TYPES } from './history/store.mjs';
 import { MEMORY_LAYERS, MEMORY_NAMESPACES, memoryEvents, retrievalHistory } from './context/memory.mjs';
 import { refreshRegistries } from './registry.mjs';
+import { probeDaemon } from './daemon-control.mjs';
+import { dashboardHtml } from './dashboard-ui.mjs';
 
 const HOST = '127.0.0.1';
 const PORT = 7435;
@@ -136,9 +138,9 @@ async function wireHealth(root, wireProbe) {
   } catch { return { online: false, workspace: 'Lumenva' }; }
 }
 
-export async function health(root = ROOT, wireProbe) {
-  let daemon = false; try { process.kill(Number((await readFile(join(root, 'state', 'daemon.pid'), 'utf8')).trim()), 0); daemon = true; } catch {}
-  const wire = await wireHealth(root, wireProbe); return { dashboard: { host: HOST, port: PORT }, daemon: daemon ? 'ONLINE' : 'OFFLINE', wire: wire.online ? 'ONLINE' : 'OFFLINE', workspace: wire.workspace || 'Lumenva', workspace_online: wire.online, source: 'daemon.pid + Maestri Wire', measurement_type: 'exact', timestamp: new Date().toISOString() };
+export async function health(root = ROOT, wireProbe, port = PORT) {
+  const daemon = await probeDaemon(root);
+  const wire = await wireHealth(root, wireProbe); return { dashboard: { host: HOST, port }, daemon: daemon ? 'ONLINE' : 'OFFLINE', wire: wire.online ? 'ONLINE' : 'OFFLINE', workspace: wire.workspace || 'Lumenva', workspace_online: wire.online, source: 'authenticated daemon control endpoint + Maestri Wire', measurement_type: 'exact', timestamp: new Date().toISOString() };
 }
 
 export async function dashboardStats(root = ROOT) {
@@ -376,7 +378,7 @@ export async function dashboardViews(root = ROOT, { graphView, registryOptions =
 }
 
 const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lumenva Context Gateway</title><style>
-:root{color-scheme:dark;--bg:#09090B;--head:#0D0D0F;--section:#111113;--card:#161619;--inner:#1C1C20;--hover:#232328;--line:#2B2B31;--strong:#3A3A42;--muted:#787880;--sub:#A1A1AA;--text:#E4E4E7;--white:#FAFAFA;--green:#5EEAD4;--orange:#FBBF24;--red:#FB7185;--blue:#60A5FA}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#18181B 0%,#09090B 42%);color:var(--text);font:14px/1.45 ui-sans-serif,system-ui,sans-serif}main{max-width:1500px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;align-items:end;padding:0 0 22px;border-bottom:1px solid var(--line)}h1,h2,h3,p{margin:0}h1{font-size:24px;letter-spacing:.08em;color:var(--white)}h2{font-size:12px;letter-spacing:.12em;color:var(--sub);text-transform:uppercase;margin-bottom:12px}.sub{margin-top:5px;color:var(--sub)}.live{font-size:12px;color:var(--green)}.grid{display:grid;gap:12px;margin-top:18px}.kpis{grid-template-columns:repeat(6,minmax(120px,1fr))}.trio{grid-template-columns:repeat(3,1fr)}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.card,.panel{border:1px solid var(--line);border-radius:10px;background:linear-gradient(145deg,#1C1C20 0%,#111113 100%)}.card{padding:15px}.panel{padding:18px}.label{color:var(--muted);font-size:11px;letter-spacing:.08em}.value{font-size:25px;font-weight:750;margin-top:5px}.good{color:var(--green)}.important{color:var(--orange)}.muted{color:var(--muted)}.health{display:flex;gap:16px;flex-wrap:wrap;color:var(--sub)}.health b{color:var(--text)}.dot{color:var(--green)}table{width:100%;border-collapse:collapse;font-size:12px;min-width:1060px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:500}.scroll{overflow:auto}.badge{font-size:10px;border:1px solid currentColor;border-radius:999px;padding:2px 6px;white-space:nowrap}.exact{color:var(--green)}.estimated{color:var(--orange)}.unavailable{color:var(--muted)}.resource{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}.resource .card{background:var(--inner)}.empty{color:var(--muted);padding:4px 0}.bar{height:8px;border-radius:8px;background:var(--line);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:var(--green)}@media(max-width:1000px){main{padding:16px}.kpis,.trio,.two{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.kpis,.trio,.two{grid-template-columns:1fr}header{align-items:start;gap:10px;flex-direction:column}}
+:root{color-scheme:dark;--bg:#09090B;--head:#0D0D0F;--section:#111113;--card:#161619;--inner:#1C1C20;--hover:#232328;--line:#2B2B31;--strong:#3A3A42;--muted:#787880;--sub:#A1A1AA;--text:#E4E4E7;--white:#FAFAFA;--green:#5EEAD4;--orange:#FBBF24;--red:#FB7185;--blue:#60A5FA}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top right,#18181B 0%,#09090B 42%);color:var(--text);font:14px/1.45 ui-sans-serif,system-ui,sans-serif}main{max-width:1500px;margin:auto;padding:24px;min-width:0}header{display:flex;justify-content:space-between;align-items:end;padding:0 0 22px;border-bottom:1px solid var(--line);min-width:0}h1,h2,h3,p{margin:0}h1{font-size:24px;letter-spacing:.08em;color:var(--white)}h2{font-size:12px;letter-spacing:.12em;color:var(--sub);text-transform:uppercase;margin-bottom:12px}.sub{margin-top:5px;color:var(--sub)}.live{font-size:12px;color:var(--green)}.grid{display:grid;gap:12px;margin-top:18px;min-width:0}.kpis{grid-template-columns:repeat(6,minmax(120px,1fr))}.trio{grid-template-columns:repeat(3,minmax(0,1fr))}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.card,.panel{border:1px solid var(--line);border-radius:10px;background:linear-gradient(145deg,#1C1C20 0%,#111113 100%);min-width:0}.card{padding:15px}.panel{padding:18px;min-width:0}#view-panel{min-width:0;max-width:100%;overflow-x:auto}.view-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:thin}.view-tab{flex:0 0 auto;border:1px solid var(--line);border-radius:7px;background:var(--inner);color:var(--text);padding:7px 11px;font:inherit;cursor:pointer}.view-tab[aria-selected="true"]{border-color:var(--blue);color:var(--white);background:#172554}.view-tab:focus-visible{outline:2px solid var(--blue);outline-offset:2px}.view-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 10px}.view-json{max-width:100%;margin:0;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:12px/1.5 ui-monospace,monospace;color:var(--sub)}.label{color:var(--muted);font-size:11px;letter-spacing:.08em}.value{font-size:25px;font-weight:750;margin-top:5px}.good{color:var(--green)}.important{color:var(--orange)}.muted{color:var(--muted)}.health{display:flex;gap:16px;flex-wrap:wrap;color:var(--sub)}.health b{color:var(--text)}.dot{color:var(--green)}table{width:100%;border-collapse:collapse;font-size:12px;min-width:1060px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:500}.scroll{overflow:auto}.badge{font-size:10px;border:1px solid currentColor;border-radius:999px;padding:2px 6px;white-space:nowrap}.exact{color:var(--green)}.estimated{color:var(--orange)}.unavailable{color:var(--muted)}.resource{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}.resource .card{background:var(--inner)}.empty{color:var(--muted);padding:4px 0}.bar{height:8px;border-radius:8px;background:var(--line);overflow:hidden;margin-top:8px}.bar i{display:block;height:100%;background:var(--green)}@media(max-width:1000px){main{padding:16px}.kpis,.trio,.two{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.kpis,.trio,.two{grid-template-columns:1fr}header{align-items:start;gap:10px;flex-direction:column}}
 </style></head><body><main><header><div><h1>LUMENVA CONTEXT GATEWAY</h1><p class="sub">Workspace: <b>Lumenva</b></p></div><div class="live" id="live">● CONECTANDO</div></header><section class="grid kpis" id="kpis"></section><section class="grid"><div class="panel"><div class="health" id="health"></div></div></section><section class="grid trio" id="periods"></section><section class="grid two"><div class="panel"><h2>Volume de contexto</h2><div id="volume"></div></div><div class="panel"><h2>Contexto evitado por executor (estimado)</h2><div id="executors"></div></div></section><section class="grid two"><div class="panel"><h2>Maiores consumidores</h2><div id="tools"></div></div><div class="panel"><h2>Agentes ativos</h2><div id="agents"></div></div></section><section class="grid"><div class="panel"><h2>Tasks recentes</h2><div class="scroll" id="tasks"></div></div></section><section class="grid"><div class="panel"><h2>Cobertura de telemetria</h2><div class="resource" id="coverage"></div></div></section><section class="grid"><div class="panel"><h2>MCG TRUST SCORE</h2><div id="trust"></div></div></section><section class="grid"><div class="panel"><h2>Alertas globais e CEO</h2><div id="alerts"></div></div></section></main><script>
 const $=id=>document.getElementById(id),n=value=>Number.isFinite(value)?value.toLocaleString('pt-BR'):'—',p=value=>Number.isFinite(value)?value.toFixed(2)+'%':'—',e=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])),tag=type=>'<span class="badge '+type+'">'+({exact:'EXATO',estimated:'ESTIMADO',unavailable:'INDISPONÍVEL'}[type]||'INDISPONÍVEL')+'</span>',state={DONE:'CONCLUÍDA',RUNNING:'EM EXECUÇÃO',DISPATCHED:'ENVIADA',BLOCKED:'BLOQUEADA',FAILED:'FALHOU',CANCELLED:'CANCELADA',INCOMPLETE:'INCOMPLETA'};
 function cards(target,items){$(target).innerHTML=items.map(item=>'<div class="card"><div class="label">'+item[0]+'</div><div class="value '+(item[2]||'')+'">'+(item[3]==='percent'?p(item[1]):n(item[1]))+'</div></div>').join('')}
@@ -395,7 +397,7 @@ const dashboardScript = `<script>
 const viewData = {};
 const viewPanel = document.getElementById('view-panel');
 const viewTabs = [...document.querySelectorAll('[data-view]')];
-const viewValue = value => value === null || value === undefined ? 'INDISPONÍVEL' : typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+const viewValue = value => value === null || value === undefined ? 'INDISPONÍVEL' : typeof value === 'object' ? value : String(value);
 function renderView(name) {
   const view = viewData[name];
   viewTabs.forEach(tab => tab.setAttribute('aria-selected', String(tab.dataset.view === name)));
@@ -425,8 +427,8 @@ viewTabs.forEach(tab => tab.addEventListener('click', () => renderView(tab.datas
 loadViewRegistry();
 </script>`;
 
-const dashboardHtml = html
-  .replace('</header><section class="grid kpis"', `${dashboardNav}</header><section class="grid kpis"`)
+const legacyDashboardHtml = html
+  .replace('</header><section class="grid kpis"', `</header>${dashboardNav}<section class="grid kpis"`)
   .replace('</script></body></html>', `</script>${dashboardScript}</body></html>`);
 
 function sendJson(res, body) { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(body)); }
@@ -442,7 +444,7 @@ export function createDashboardServer({ root = ROOT, port = PORT, wireProbe, gra
       : measurements.includes('estimated') ? 'estimated' : 'exact';
     return { [key]: rows, source, measurement_type, timestamp: new Date().toISOString() };
   };
-  const snapshot = async () => ({ stats: await dashboardStats(root), health: await health(root, wireProbe) });
+  const snapshot = async () => ({ stats: await dashboardStats(root), health: await health(root, wireProbe, actualPort()) });
   const publish = async () => { const data = await snapshot(); const encoded = JSON.stringify(data); if (encoded === previous) return; previous = encoded; for (const client of clients) client.write(`event: update\ndata: ${encoded}\n\n`); };
   const unsubscribe = getEventBus(root).subscribe(() => { publish().catch(() => {}); });
   let eventWatcher; try { eventWatcher = watch(join(root, 'state', 'events', 'events.jsonl'), () => { publish().catch(() => {}); }); } catch { /* polling remains fallback */ }
@@ -460,7 +462,7 @@ export function createDashboardServer({ root = ROOT, port = PORT, wireProbe, gra
       if (req.url === '/api/memory') return sendJson(res, await memoryView(root));
       if (req.url === '/api/validation') return sendJson(res, await validationView(root));
       if (req.url === '/api/tasks') return sendJson(res, { tasks: await taskStats(root), source: 'tasks/*/state.json + evidence', measurement_type: 'estimated', timestamp: new Date().toISOString() });
-      if (req.url === '/api/health') return sendJson(res, await health(root, wireProbe));
+      if (req.url === '/api/health') return sendJson(res, await health(root, wireProbe, actualPort()));
       if (req.url === '/api/trust') return sendJson(res, (await dashboardStats(root)).trust);
       if (req.url === '/api/traces') return sendJson(res, { traces: await listTraces(root), source: 'state/telemetry/traces/*.jsonl', measurement_type: 'exact', timestamp: new Date().toISOString() });
       if (req.url.startsWith('/api/traces/')) {
@@ -485,6 +487,7 @@ export function createDashboardServer({ root = ROOT, port = PORT, wireProbe, gra
       res.writeHead(404); res.end('Not Found');
     } catch { sendJson(res, { error: 'falha ao ler dashboard', measurement_type: 'unavailable', source: 'dashboard', timestamp: new Date().toISOString() }); }
   });
+  const actualPort = () => server.address()?.port ?? port;
   server.on('close', () => { clearInterval(timer); eventWatcher?.close(); unsubscribe(); for (const client of clients) client.end(); clients.clear(); });
   return new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, HOST, () => resolve(server)); });
 }

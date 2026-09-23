@@ -11,6 +11,7 @@ import { createDashboardServer } from '../src/dashboard.mjs';
 import { replayTask, compareReplay } from '../src/replay.mjs';
 import { discoverProviderConfigs } from '../src/provider-discovery.mjs';
 import { refreshRegistries } from '../src/registry.mjs';
+import { startDaemonControl, stopDaemon } from '../src/daemon-control.mjs';
 
 const args = process.argv.slice(2);
 const command = args.shift();
@@ -43,11 +44,24 @@ const monitorWire = async (silent = false) => {
   if (!silent) process.stdout.write(JSON.stringify({ connected: true, workspace: workspace.name }) + '\n');
   return connection;
 };
-const monitorWireLoop = async () => {
-  while (true) {
-    try { const connection = await monitorWire(true); await connection.closed; }
-    catch (error) { process.stderr.write(`mcg wire: ${error.message}\n`); }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+const waitForWireOrAbort = (connection, signal) => new Promise(resolve => {
+  const finish = () => { signal.removeEventListener('abort', finish); resolve(); };
+  signal.addEventListener('abort', finish, { once: true });
+  connection.closed.then(finish, finish);
+});
+const monitorWireLoop = async signal => {
+  while (!signal.aborted) {
+    let connection;
+    try {
+      connection = await monitorWire(true);
+      await waitForWireOrAbort(connection, signal);
+    } catch (error) { if (!signal.aborted) process.stderr.write(`mcg wire: ${error.message}\n`); }
+    connection?.close();
+    if (!signal.aborted) await new Promise(resolve => {
+      const timer = setTimeout(done, 1000);
+      function done() { clearTimeout(timer); signal.removeEventListener('abort', done); resolve(); }
+      signal.addEventListener('abort', done, { once: true });
+    });
   }
 };
 
@@ -101,8 +115,10 @@ try {
   } else if (command === 'stats') {
     print(await stats(ROOT, { tokens: args.includes('--tokens') }));
   } else if (command === 'dashboard') {
-    const server = await createDashboardServer();
-    const url = 'http://127.0.0.1:7435';
+    const port = Number(value('--port') || 7435);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('dashboard port must be an integer from 1 to 65535');
+    const server = await createDashboardServer({ port });
+    const url = `http://127.0.0.1:${port}`;
     process.stdout.write(`MCG dashboard: ${url}\n`);
     if (!args.includes('--no-open')) spawnSync('cmd.exe', ['/c', 'start', '', url], { windowsHide: true, stdio: 'ignore' });
     const close = () => server.close(() => process.exit(0));
@@ -123,13 +139,25 @@ try {
   } else if (command === 'cancel') {
     const state = await loadState(args[0]); state.internal_state = 'CANCELLED'; state.updated_at = new Date().toISOString(); await (await import('../src/core.mjs')).saveState(state); print({ task_id: state.task_id, state: state.internal_state });
   } else if (command === 'daemon') {
+    const action = args.shift() || 'start';
+    if (action === 'stop') {
+      await stopDaemon(ROOT);
+      print({ daemon: 'STOPPED' });
+    } else if (action !== 'start') {
+      throw new Error('mcg daemon commands: start | stop');
+    } else {
     const { watch } = await import('node:fs');
     const { readdir, readFile, unlink, open } = await import('node:fs/promises');
     const inbox = `${ROOT}/events/inbox`;
     const lockPath = `${ROOT}/state/daemon.pid`;
     let lock;
     try { lock = await open(lockPath, 'wx', 0o600); } catch {
-      try { const previousPid = Number((await readFile(lockPath, 'utf8')).trim()); process.kill(previousPid, 0); } catch (error) { if (error.code !== 'ESRCH') throw new Error('daemon already running'); await unlink(lockPath).catch(() => {}); lock = await open(lockPath, 'wx', 0o600); }
+      let previousPidIsAlive = false;
+      try { const previousPid = Number((await readFile(lockPath, 'utf8')).trim()); process.kill(previousPid, 0); previousPidIsAlive = true; }
+      catch (error) { if (error.code !== 'ESRCH') throw new Error('daemon already running'); }
+      if (previousPidIsAlive) throw new Error('daemon already running');
+      await unlink(lockPath).catch(() => {});
+      lock = await open(lockPath, 'wx', 0o600);
     }
     await lock.writeFile(`${process.pid}\n`);
     const consume = async () => {
@@ -140,16 +168,35 @@ try {
       }
     };
     await consume();
+    let watcher;
+    let control;
+    let shuttingDown = false;
+    const wireController = new AbortController();
     let wireLoop;
     if (existsSync(`${ROOT}/config/wire.json`)) {
-      wireLoop = monitorWireLoop();
+      wireLoop = monitorWireLoop(wireController.signal);
     }
-    let watcher;
-    const shutdown = async (code = 0) => { watcher?.close(); void wireLoop; await lock.close(); await unlink(lockPath).catch(() => {}); process.exit(code); };
-    try { watcher = watch(inbox, () => { void consume(); }); } catch (error) { await shutdown(1); throw error; }
+    const controlPath = `${ROOT}/state/daemon.control.json`;
+    const shutdown = async (code = 0) => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      watcher?.close();
+      wireController.abort();
+      if (wireLoop) await Promise.race([wireLoop, new Promise(resolve => setTimeout(resolve, 2000))]);
+      await control?.close();
+      await lock.close();
+      await unlink(lockPath).catch(() => {});
+      await unlink(controlPath).catch(() => {});
+      process.exit(code);
+    };
+    try {
+      control = await startDaemonControl(ROOT, () => shutdown());
+      watcher = watch(inbox, () => { void consume(); });
+    } catch (error) { await shutdown(1); throw error; }
     watcher.on('error', error => { process.stderr.write(`mcg daemon: ${error.message}\n`); void shutdown(1); });
     process.on('SIGTERM', () => { void shutdown(); });
     process.on('SIGINT', () => { void shutdown(); });
     await new Promise(() => {});
+    }
   } else { print('mcg commands: doctor wire mcp daemon status stats dashboard dispatch wait result evidence cancel ingest'); process.exitCode = 2; }
 } catch (error) { process.stderr.write(`mcg: ${error.message}\n`); process.exitCode = 1; }

@@ -25,7 +25,7 @@ test('dashboard serves read-only local endpoints', async t => {
   const tasks = await get(port, '/api/tasks');
   const health = await get(port, '/api/health');
   assert.equal(home.status, 200);
-  assert.match(home.body, /TOKENS CONTEXTO EVITADOS/);
+  assert.match(home.body, /Tokens economizados/);
   assert.equal(stats.status, 200);
   assert.equal(tasks.status, 200);
   assert.equal(health.status, 200);
@@ -33,6 +33,7 @@ test('dashboard serves read-only local endpoints', async t => {
   assert.equal(typeof JSON.parse(stats.body).observed_tokens.measurement_type, 'string');
   assert.equal(JSON.parse(tasks.body).tasks instanceof Array, true);
   assert.equal(JSON.parse(health.body).dashboard.host, '127.0.0.1');
+  assert.equal(JSON.parse(health.body).dashboard.port, port);
   assert.equal(`${stats.body}${tasks.body}${health.body}`.includes('securityKeyHex'), false);
   assert.equal(`${stats.body}${tasks.body}${health.body}`.includes('b16c59355e'), false);
   assert.equal((await get(port, '/api/write')).status, 404);
@@ -43,12 +44,30 @@ test('dashboard exposes keyboard-accessible view navigation', async t => {
   const server = await createDashboardServer({ root: process.cwd(), port: 0 });
   t.after(() => server.close());
   const home = await get(server.address().port, '/');
-  assert.match(home.body, /aria-label="Dashboard views"/);
+  assert.match(home.body, /aria-label="Navegação principal"/);
+  assert.ok(home.body.indexOf('class="sidebar"') < home.body.indexOf('class="main"'), 'navigation must remain in the sidebar');
+  assert.match(home.body, /\.view-json\{[^}]*overflow-wrap:anywhere/);
   for (const label of ['Overview', 'History', 'Traces', 'Tasks', 'Agents', 'Tools', 'Plugins', 'MCPs', 'Graph', 'Cache', 'Memory', 'Validation', 'Alerts']) {
     assert.match(home.body, new RegExp(`data-view="${label}"`));
   }
-  assert.match(home.body, /role="tablist"/);
-  assert.match(home.body, /role="tabpanel"/);
+  assert.match(home.body, /aria-current="page"/);
+  assert.match(home.body, /detail-content" class="detail" hidden/);
+});
+
+test('dashboard renders the observability layout shell and reference sections', async t => {
+  const server = await createDashboardServer({ root: process.cwd(), port: 0 });
+  t.after(() => server.close());
+  const home = await get(server.address().port, '/');
+  assert.match(home.body, /class="app-shell"/);
+  assert.match(home.body, /aria-label="Navegação principal"/);
+  for (const id of ['kpis', 'health', 'volume', 'executors', 'tools', 'agents', 'tasks', 'alerts', 'trust']) {
+    assert.match(home.body, new RegExp(`id="${id}"`), `${id} must be present in the dashboard shell`);
+  }
+  assert.match(home.body, /data-view="Overview"/);
+  assert.match(home.body, /data-view="Validation"/);
+  assert.match(home.body, /data-view="Graph"/);
+  assert.match(home.body, /prefers-reduced-motion/);
+  assert.match(home.body, /Skip to main content|Pular para o conteúdo/);
 });
 
 test('dashboard exposes real telemetry resources from its configured root', async t => {
@@ -102,11 +121,11 @@ test('dashboard hides paths and unavailable placeholders', async t => {
   const server = await createDashboardServer({ root: process.cwd(), port: 0 });
   t.after(() => server.close());
   const home = await get(server.address().port, '/');
-  assert.match(home.body, /#09090B/i);
+  assert.match(home.body, /--bg:#080d18/i);
   assert.equal(home.body.includes('Gateway path'), false);
   assert.equal(home.body.includes('Métrica indisponível'), false);
   assert.equal(home.body.includes('Unknown'), false);
-  assert.match(home.body, /MCG TRUST SCORE/);
+  assert.match(home.body, /Validação MCG/);
   const trust = await get(server.address().port, '/api/trust');
   assert.equal(trust.status, 200);
   assert.equal(typeof JSON.parse(trust.body).status, 'string');

@@ -20,6 +20,24 @@ node bin/mcg.mjs mcp probe --project-root C:\path\to\project
 
 Wire integration requires a local `config/wire.json`. Copy `config/wire.example.json` and provide local credentials outside Git. Never commit credentials or runtime data.
 
+## Windows daemon lifecycle
+
+Start the daemon with `node bin/mcg.mjs daemon` and stop it gracefully with `node bin/mcg.mjs daemon stop`. The dashboard reports the daemon online only when its authenticated loopback health endpoint responds. A stale PID lock is recovered on the next start; the daemon never terminates an unrelated process by PID.
+
+The dashboard defaults to `http://127.0.0.1:7435`; use `node bin/mcg.mjs dashboard --port 7436 --no-open` if another MCG checkout already owns that port.
+
+To register a current-user, limited-privilege Scheduled Task that starts the daemon at logon, run from the repository root:
+
+```powershell
+.\scripts\install-mcg-daemon-autostart.ps1
+```
+
+The installer is safe to rerun and refuses to replace a task with a conflicting action. It does not start the dashboard. To remove only this checkout's task:
+
+```powershell
+.\scripts\install-mcg-daemon-autostart.ps1 -Uninstall
+```
+
 `mcp discover` reads the global and project MCP catalogs for Claude Code, Codex, and Antigravity and prints metadata only (never auth values). `mcp probe` starts configured stdio MCP servers and sends only MCP discovery/list requests; it does not call tools. It records observed health and tool names in local `state/registry/mcps.json`. Use `--provider claude|codex|antigravity` or `--scope global|project` to limit a probe. HTTP endpoints require HTTPS, except loopback.
 
 ## Tests
