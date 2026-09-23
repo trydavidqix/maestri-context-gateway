@@ -24,7 +24,7 @@ async function collect(target) {
   if (!entries) return [absolute];
   const files = [];
   for (const entry of entries) {
-    if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === 'state') continue;
+    if (entry.name === '.git' || entry.name === 'node_modules' || entry.name === 'state' || entry.name === 'tasks' || entry.name === 'logs' || entry.name === '.mcg-state') continue;
     const child = join(absolute, entry.name);
     if (entry.isDirectory()) files.push(...await collect(relative(repoRoot, child)));
     else if (entry.isFile() && textExtensions.has(extname(entry.name))) files.push(child);
