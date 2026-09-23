@@ -1,11 +1,11 @@
 const views = [
   ['Overview', 'Visão geral'], ['History', 'Histórico'], ['Traces', 'Traces'],
   ['Tasks', 'Tarefas'], ['Agents', 'Agentes'], ['Tools', 'Ferramentas'],
-  ['Plugins', 'Plugins / Skills'], ['MCPs', 'MCPs'], ['Graph', 'Contexto / Graph'],
+  ['Plugins', 'Plugins / Skills'], ['MCPs', 'MCPs'], ['Graph', 'Contexto / Graph'], ['Executions', 'Execuções'],
   ['Cache', 'Cache'], ['Memory', 'Memória'], ['Validation', 'Validação MCG'], ['Alerts', 'Alertas']
 ];
 
-const navGlyphs = { Overview: '▦', History: '◷', Traces: '⌁', Tasks: '✓', Agents: '◎', Tools: '⌘', Plugins: '⊞', MCPs: '⇄', Graph: '⌘', Cache: '◒', Memory: '≋', Validation: '✓', Alerts: '!' };
+const navGlyphs = { Overview: '▦', History: '◷', Traces: '⌁', Tasks: '✓', Agents: '◎', Tools: '⌘', Plugins: '⊞', MCPs: '⇄', Graph: '⌘', Executions: '▤', Cache: '◒', Memory: '≋', Validation: '✓', Alerts: '!' };
 const navigation = views.map(([key, label]) => `<button class="nav-item" type="button" data-view="${key}" aria-current="${key === 'Overview' ? 'page' : 'false'}"><span class="nav-mark" aria-hidden="true">${navGlyphs[key]}</span><span>${label}</span></button>`).join('');
 
 export const dashboardHtml = `<!doctype html>

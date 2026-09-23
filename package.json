@@ -14,6 +14,7 @@
     "smoke:dashboard": "node --test test/dashboard.test.mjs",
     "smoke:contracts": "node --test test/contracts.test.mjs",
     "eval:smoke": "node bin/mcg-eval.mjs smoke",
-    "eval:validation": "node bin/mcg-eval.mjs validation"
+    "eval:validation": "node bin/mcg-eval.mjs validation",
+    "eval:validation-v2": "node bin/mcg-eval.mjs validation-v2"
   }
 }

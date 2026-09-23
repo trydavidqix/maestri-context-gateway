@@ -20,6 +20,14 @@ node bin/mcg.mjs mcp probe --project-root C:\path\to\project
 
 Wire integration requires a local `config/wire.json`. Copy `config/wire.example.json` and provide local credentials outside Git. Never commit credentials or runtime data.
 
+## Usage and evaluation evidence
+
+Codex usage reports keep `context_tokens` separate from total input/output tokens. Context usage is unavailable unless both input and cached-input fields are observed; missing fields are never treated as zero. Historical evaluation records may recover context usage from their local raw JSONL evidence.
+
+The dashboard's **Execuções** view is read-only. An execution feed can be injected by the host; the optional Core HTTP adapter accepts loopback URLs only. Missing execution or usage evidence remains `UNAVAILABLE` with `null` measurements.
+
+Run the expanded 30-case paired validation corpus with `npm run eval:validation-v2`. This invokes the configured Codex CLI with read-only sandboxing and may consume provider quota; the dataset itself is local and can be inspected without running the provider.
+
 ## Windows daemon lifecycle
 
 Start the daemon with `node bin/mcg.mjs daemon` and stop it gracefully with `node bin/mcg.mjs daemon stop`. The dashboard reports the daemon online only when its authenticated loopback health endpoint responds. A stale PID lock is recovered on the next start; the daemon never terminates an unrelated process by PID.

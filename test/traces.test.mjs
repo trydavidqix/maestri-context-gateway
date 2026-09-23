@@ -8,7 +8,7 @@ const root = await mkdtemp(join(tmpdir(), 'mcg-trace-'));
 try {
   await assert.rejects(startSpan(root, {}, { source: 'test' }), /trace contract invalid/);
   const trace = await createTrace(root, { task_id: 'trace-task', source: 'test' });
-  const parent = await startSpan(root, trace, { operation_type: 'context.compile', source: 'test' });
+  const parent = await startSpan(root, trace, { operation_type: 'context.compile', traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01', source: 'test' });
   const child = await startSpan(root, trace, { operation_type: 'tool.call', parent_span_id: parent.span_id, tool_name: 'test-tool', source: 'test' });
   await finishSpan(root, trace, child.span_id, { status: 'completed', output_chars: 12 });
   await finishSpan(root, trace, parent.span_id, { status: 'completed' });
@@ -17,5 +17,6 @@ try {
   assert.equal(loaded.spans.length, 2);
   assert.equal(loaded.spans.find(span => span.span_id === child.span_id).parent_span_id, parent.span_id);
   assert.equal(loaded.spans.find(span => span.span_id === child.span_id).status, 'completed');
+  assert.equal(loaded.spans.find(span => span.span_id === parent.span_id).traceparent, '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01');
 } finally { await rm(root, { recursive: true, force: true }); }
 console.log('trace tests: 1 passed');

@@ -13,6 +13,13 @@ assert.equal(gradeHallucinations('What is the CEO birthday?', 'The CEO birthday 
 const saving = qualityPreservingSavings({ task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 100 }, { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 70 });
 assert.equal(saving.qualified, true);
 assert.equal(saving.percent, 30);
+const contextSaving = qualityPreservingSavings(
+  { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 100, context_tokens: 80 },
+  { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 110, context_tokens: 40 }
+);
+assert.equal(contextSaving.context_percent, 50);
+assert.equal(contextSaving.percent, -10);
+assert.equal(contextSaving.qualified, true);
 assert.equal(qualityPreservingSavings({ task_success: 100, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 100 }, { task_success: 100, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 95 }).qualified, true);
 assert.equal(trustScore({ baseline: { task_success: 100, total_tokens: 100, real_executor: true }, mcg: { task_success: 100, total_tokens: 70, real_executor: true }, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, dataset_size: 30 }).status, 'VALIDATED');
 assert.equal(trustScore({ baseline: { task_success: 100, total_tokens: 100, real_executor: true }, mcg: { task_success: 100, total_tokens: 70, real_executor: true }, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, dataset_size: 1 }).status, 'VALIDATING');
@@ -34,8 +41,8 @@ try {
       run_id: `pair-${i}`,
       kind: 'A/B',
       category: 'context-recall',
-      baseline: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 100, real_executor: true, measurement_type: 'exact', model: null, effort: 'same', workspace: root },
-      mcg: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 70, real_executor: true, measurement_type: 'exact', model: null, effort: 'same', workspace: root }
+      baseline: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 100, context_tokens: 80, real_executor: true, measurement_type: 'exact', model: null, effort: 'same', workspace: root },
+      mcg: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 70, context_tokens: 40, real_executor: true, measurement_type: 'exact', model: null, effort: 'same', workspace: root }
     });
   }
   await saveEvaluation(root, {
@@ -46,14 +53,21 @@ try {
   });
   await saveEvaluation(root, {
     run_id: 'pair-scoped', dataset: 'dataset-a', kind: 'A/B', category: 'coding',
-    baseline: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 100, real_executor: true, measurement_type: 'exact', model: 'gpt-6-luna', effort: 'medium', workspace: root, workspace_snapshot: 'snapshot-a', tools: [], policy: {} },
-    mcg: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 90, real_executor: true, measurement_type: 'exact', model: 'gpt-6-luna', effort: 'medium', workspace: root, workspace_snapshot: 'snapshot-a', tools: [], policy: {} }
+    baseline: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 100, context_tokens: 80, real_executor: true, measurement_type: 'exact', model: 'gpt-6-luna', effort: 'medium', workspace: root, workspace_snapshot: 'snapshot-a', tools: [], policy: {} },
+    mcg: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 90, context_tokens: 40, real_executor: true, measurement_type: 'exact', model: 'gpt-6-luna', effort: 'medium', workspace: root, workspace_snapshot: 'snapshot-a', tools: [], policy: {} }
+  });
+  await saveEvaluation(root, {
+    run_id: 'pair-routing', kind: 'A/B', category: 'routing',
+    baseline: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 100, context_tokens: 80, real_executor: true, measurement_type: 'exact', model: null, effort: 'same', workspace: root },
+    mcg: { task_success: true, context_recall: 100, evidence_grounding: 100, hallucination_rate: 0, total_tokens: 70, context_tokens: 40, real_executor: true, measurement_type: 'exact', model: null, effort: 'same', workspace: root }
   });
   const aggregate = await aggregatePairedEvaluations(root);
-  assert.equal(aggregate.dataset_size, 3);
-  assert.deepEqual(aggregate.valid_run_ids, ['pair-0', 'pair-1', 'pair-scoped']);
-  assert.equal(aggregate.baseline.total_tokens, 300);
-  assert.equal(aggregate.mcg.total_tokens, 230);
+  assert.equal(aggregate.dataset_size, 4);
+  assert.deepEqual([...aggregate.valid_run_ids].sort(), ['pair-0', 'pair-1', 'pair-routing', 'pair-scoped']);
+  assert.equal(aggregate.baseline.total_tokens, 400);
+  assert.equal(aggregate.baseline.context_tokens, 320);
+  assert.equal(aggregate.mcg.total_tokens, 300);
+  assert.equal(aggregate.mcg.context_tokens, 160);
   assert.equal(aggregate.mcg.task_success, 100);
   const scoped = await aggregatePairedEvaluations(root, { dataset: 'dataset-a', model: 'gpt-6-luna', effort: 'medium' });
   assert.equal(scoped.dataset_size, 1);

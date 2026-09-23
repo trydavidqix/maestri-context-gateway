@@ -30,6 +30,10 @@
         "null"
       ]
     },
+    "traceparent": {
+      "type": ["string", "null"],
+      "maxLength": 200
+    },
     "status": {
       "type": [
         "string",
