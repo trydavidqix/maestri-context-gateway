@@ -76,7 +76,7 @@
 
 **Files:** `src/codex-usage.mjs`, `test/codex-usage.test.mjs`, and narrowly scoped usage consumers `src/eval-runner.mjs` / `src/replay.mjs` only if their current assumptions require adjustment.
 
-- [x] Add failing fixtures for `total_tokens` supplied by provider, absent `total_tokens`, reasoning included as a breakdown, cached input, multiple turn events, malformed lines, and duplicate event/turn identifiers when present.
+- [x] Add fixtures for provider-supplied/absent totals, missing output, reasoning as a breakdown, cached input, multiple indistinguishable turn events, and malformed lines.
 - [x] Define the invariant: retain provider `total_tokens` exactly if present; otherwise compute only from non-overlapping input/output fields. Keep `reasoning_tokens` separately as a breakdown and never add it twice. Keep `cached_input_tokens` as a subset of input, not an extra sum.
 - [x] Aggregate `turn.completed` usage. Official event schema has no per-turn identifier, so multi-event aggregates are explicitly estimated and identical events are not unsafely deduplicated.
 - [x] Return per-field provenance and `measurement_type`; distinguish present values from unavailable fields. Preserve backward compatibility for existing consumers or update those consumers/tests together.
