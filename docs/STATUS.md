@@ -32,7 +32,7 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 - Missing usage fields remain `null`/`unavailable`; this port deliberately does not copy the source branch's assumption that absent cached usage equals zero.
 - `npm test`: 46/46 pass. `npm run check:syntax`: 33 modules pass. `npm run scan:sensitive`: PASS (91 files). `validation-v2.jsonl`: 30 valid unique cases across 30 categories; provider execution was not started.
 - The original MCG implementation plan and design are preserved as historical snapshots in [`archive/`](archive/).
-- The Lumenva-only rollout guard and Maestri V3 plans remain in Lumenva; they are not part of the standalone MCG product. The two VPS source trees no longer track the MCG package or its old dedicated plan/spec. Lumenva's runtime adapter still needs migration from deleted relative imports to this standalone package before its Core suite is green.
+- The Lumenva-only rollout guard and Maestri V3 plans remain in Lumenva; they are not part of the standalone MCG product. Both VPS branches no longer track the embedded MCG source package or its dedicated old plan/spec; those plan/design snapshots are archived in this repository. Lumenva Core consumes the standalone package through typed exports pinned to merge `b3b5c8808b6f476654cce266f9d2cafd93a99193`. Lumenva Core validation passed: 44/44 tests and typecheck. The separate Lumenva PR #25 still contains only two `operating-core` paths.
 
 ## Local runtime-root candidate — 2026-09-23
 
