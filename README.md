@@ -14,9 +14,13 @@ MCG stores runtime data outside Git. Set `MCG_ROOT` to a local state directory b
 $env:MCG_ROOT = Join-Path (Get-Location) '.mcg-state'
 node bin/mcg.mjs doctor
 node bin/mcg.mjs status --json
+node bin/mcg.mjs mcp discover --project-root C:\path\to\project
+node bin/mcg.mjs mcp probe --project-root C:\path\to\project
 ```
 
 Wire integration requires a local `config/wire.json`. Copy `config/wire.example.json` and provide local credentials outside Git. Never commit credentials or runtime data.
+
+`mcp discover` reads the global and project MCP catalogs for Claude Code, Codex, and Antigravity and prints metadata only (never auth values). `mcp probe` starts configured stdio MCP servers and sends only MCP discovery/list requests; it does not call tools. It records observed health and tool names in local `state/registry/mcps.json`. Use `--provider claude|codex|antigravity` or `--scope global|project` to limit a probe. HTTP endpoints require HTTPS, except loopback.
 
 ## Tests
 

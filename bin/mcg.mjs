@@ -9,6 +9,8 @@ import { dispatch, ensureLayout, ingest, loadState, listTasks, compactResult, re
 import { acceptWireMutation, loadWireConfig, openWireFeed, summarizeWireSnapshot, wireRequest, wireSnapshot } from '../src/wire.mjs';
 import { createDashboardServer } from '../src/dashboard.mjs';
 import { replayTask, compareReplay } from '../src/replay.mjs';
+import { discoverProviderConfigs } from '../src/provider-discovery.mjs';
+import { refreshRegistries } from '../src/registry.mjs';
 
 const args = process.argv.slice(2);
 const command = args.shift();
@@ -63,6 +65,20 @@ try {
     if (action === 'status') print(await wireStatus());
     else if (action === 'feed') { const connection = await monitorWire(); await new Promise(() => {}); connection.close(); }
     else throw new Error('mcg wire commands: status feed');
+  } else if (command === 'mcp') {
+    const action = args.shift();
+    const projectRoot = value('--project-root') || process.cwd();
+    const provider = value('--provider');
+    const scope = value('--scope');
+    if (provider && !['claude', 'codex', 'antigravity'].includes(provider)) throw new Error('providers: claude, codex, antigravity');
+    if (scope && !['global', 'project'].includes(scope)) throw new Error('scopes: global, project');
+    if (action === 'discover') {
+      const entries = await discoverProviderConfigs({ cwd: projectRoot });
+      print(entries.filter(entry => (!provider || entry.provider === provider) && (!scope || entry.scope === scope)));
+    } else if (action === 'probe') {
+      const registries = await refreshRegistries(ROOT, { include_processes: false, probe_mcps: true, cwd: projectRoot, provider, scope });
+      print(registries.mcps.filter(entry => entry.source === 'mcp-read-only-probe' && (!provider || entry.provider === provider) && (!scope || entry.scope === scope)));
+    } else throw new Error('mcg mcp commands: discover [--project-root PATH] [--provider claude|codex|antigravity] [--scope global|project]; probe [--project-root PATH] [--provider claude|codex|antigravity] [--scope global|project]');
   } else if (command === 'dispatch') {
     const file = value('--file');
     const input = file ? JSON.parse(await readFile(file, 'utf8')) : JSON.parse(await new Promise((resolve, reject) => { let s = ''; process.stdin.on('data', d => s += d); process.stdin.on('end', () => resolve(s)); process.stdin.on('error', reject); }));
@@ -135,5 +151,5 @@ try {
     process.on('SIGTERM', () => { void shutdown(); });
     process.on('SIGINT', () => { void shutdown(); });
     await new Promise(() => {});
-  } else { print('mcg commands: doctor wire daemon status stats dashboard dispatch wait result evidence cancel ingest'); process.exitCode = 2; }
+  } else { print('mcg commands: doctor wire mcp daemon status stats dashboard dispatch wait result evidence cancel ingest'); process.exitCode = 2; }
 } catch (error) { process.stderr.write(`mcg: ${error.message}\n`); process.exitCode = 1; }

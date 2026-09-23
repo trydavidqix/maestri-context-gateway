@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { telemetryEvents, discoverLocalProcesses } from './telemetry.mjs';
 import { validateContract } from './contracts.mjs';
+import { probeConfiguredMcpServers } from './provider-discovery.mjs';
 
 export const REGISTRY_TYPES=Object.freeze(['agents','tools','plugins','mcps','runtimes','models']);
 const SET=new Set(REGISTRY_TYPES);
@@ -57,8 +58,12 @@ export function validateRegistryEntry(type,entry){
   const contract=contractFor[type]?validateContract(contractFor[type],specialize(type,entry)):{valid:true,errors:[]};
   return {valid:errors.length===0&&contract.valid,errors:[...errors,...contract.errors]};
 }
-export async function refreshRegistries(root,{include_processes=true}={}){
-  const [events,processes]=await Promise.all([telemetryEvents(root,{includeExpired:true}),include_processes?discoverLocalProcesses():Promise.resolve([])]);
+export async function refreshRegistries(root,{include_processes=true,probe_mcps=false,home,cwd,provider,scope}={}){
+  const [events,processes,probedMcps]=await Promise.all([
+    telemetryEvents(root,{includeExpired:true}),
+    include_processes?discoverLocalProcesses():Promise.resolve([]),
+    probe_mcps?probeConfiguredMcpServers({home,cwd,provider,scope}):Promise.resolve([]),
+  ]);
   const seen=observed(events);
   for(const process of processes){
     seen.agents.set(process.name,{...base({id:slug(`agents-${process.name}`),name:process.name,source:process.source,measurement_type:process.measurement_type,last_seen:process.last_seen}),status:process.status,role:process.role,runtime:process.runtime});
@@ -67,6 +72,13 @@ export async function refreshRegistries(root,{include_processes=true}={}){
   const result={};await mkdir(join(root,'state','registry'),{recursive:true,mode:0o700});
   for(const type of REGISTRY_TYPES){
     const rows=merge(await readJson(join(STATIC,`${type}.json`),[]),seen[type],type);
+    if(type==='mcps')for(const probe of probedMcps){
+      rows.push({id:probe.id,name:`${probe.name} (${probe.provider}/${probe.scope})`,mcp_name:probe.name,version:null,
+        capabilities:probe.capabilities,health:probe.health,last_seen:probe.last_seen,success_rate:null,failure_rate:null,
+        latency:probe.latency_ms,usage:null,measurement_type:probe.measurement_type,source:probe.source,
+        provider:probe.provider,scope:probe.scope,transport:probe.transport,tool_count:probe.tool_count,protocol_version:probe.protocol_version,
+        ...(probe.error?{probe_error:probe.error}:{})});
+    }
     for(const row of rows){const v=validateRegistryEntry(type,row);if(!v.valid)throw new Error(`${type} registry invalid for ${row.id}: ${v.errors.join(', ')}`);}
     await writeFile(join(root,'state','registry',`${type}.json`),`${JSON.stringify(rows,null,2)}\n`,{mode:0o600});result[type]=rows;
   }
