@@ -1,5 +1,5 @@
-import { readFile, readdir, realpath, stat } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { open, readFile, readdir, realpath, stat } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
 import { createConnection } from "node:net";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import type { RuntimeCommand, RuntimeCorrelation } from "./contracts.js";
@@ -14,6 +14,7 @@ export interface ExecutorResult<T> {
 
 export type ReadOnlyBatchOperation =
   | { id: string; kind: "read"; path: string }
+  | { id: string; kind: "read-if-changed"; path: string; expectedSha256?: string }
   | { id: string; kind: "search"; query: string }
   | { id: string; kind: "git-status"; correlation: RuntimeCorrelation }
   | { id: string; kind: "git-diff"; correlation: RuntimeCorrelation }
@@ -52,6 +53,7 @@ const MAX_BATCH_TIMEOUT_MS = 10_000;
 
 const BATCH_FIELDS: Record<ReadOnlyBatchOperation["kind"], readonly string[]> = {
   read: ["id", "kind", "path"],
+  "read-if-changed": ["id", "kind", "path", "expectedSha256"],
   search: ["id", "kind", "query"],
   "git-status": ["id", "kind", "correlation"],
   "git-diff": ["id", "kind", "correlation"],
@@ -92,6 +94,7 @@ function assertBatchOperations(value: readonly ReadOnlyBatchOperation[]): void {
     const validText = (text: unknown, maxLength = MAX_BATCH_FIELD_LENGTH): text is string => typeof text === "string" && text.length > 0 && text.length <= maxLength;
     const validTimeout = (timeout: unknown): boolean => timeout === undefined || (Number.isInteger(timeout) && Number(timeout) >= 1 && Number(timeout) <= MAX_BATCH_TIMEOUT_MS);
     if ("path" in operation && !validText(operation.path)) throw new Error("runtime_batch_operation_invalid");
+    if ("expectedSha256" in operation && (typeof operation.expectedSha256 !== "string" || !/^[a-f0-9]{64}$/i.test(operation.expectedSha256))) throw new Error("runtime_batch_operation_invalid");
     if ("query" in operation && !validText(operation.query, 1_000)) throw new Error("runtime_batch_operation_invalid");
     if ("url" in operation && (!validText(operation.url, 2_048) || !/^https?:\/\//i.test(operation.url))) throw new Error("runtime_batch_operation_invalid");
     if ("host" in operation && !validText(operation.host, 253)) throw new Error("runtime_batch_operation_invalid");
@@ -140,6 +143,43 @@ export class ReadOnlyLocalExecutor {
     if (!info.isFile()) throw new Error("runtime_not_file");
     if (info.size > this.maxFileBytes) throw new Error("runtime_file_too_large");
     return this.result("fs.read", await readFile(file, "utf8"));
+  }
+
+  private async readIfChanged(path: string, expectedSha256?: string): Promise<ExecutorResult<{ sha256: string; unchanged: boolean; content?: string }>> {
+    const root = await realpath(this.options.workspaceRoot);
+    const file = await this.resolveAllowed(path);
+    const handle = await open(file, "r");
+    try {
+      const opened = await handle.stat();
+      if (!opened.isFile()) throw new Error("runtime_not_file");
+      const readLimit = Math.min(this.maxFileBytes, MAX_BATCH_OUTPUT_BYTES);
+      if (opened.size > readLimit) throw new Error("runtime_file_too_large");
+
+      const currentPath = await realpath(file);
+      if (!isContained(root, currentPath)) throw new Error("runtime_path_denied");
+      const current = await stat(currentPath);
+      if (opened.dev !== current.dev || opened.ino !== current.ino) throw new Error("runtime_path_changed");
+
+      const buffer = Buffer.alloc(readLimit + 1);
+      let bytesRead = 0;
+      while (bytesRead < buffer.byteLength) {
+        const next = await handle.read(buffer, bytesRead, buffer.byteLength - bytesRead, bytesRead);
+        if (next.bytesRead === 0) break;
+        bytesRead += next.bytesRead;
+      }
+      const afterRead = await handle.stat();
+      if (bytesRead > readLimit || afterRead.size > readLimit) throw new Error("runtime_file_too_large");
+      const content = buffer.subarray(0, bytesRead);
+      const sha256 = createHash("sha256").update(content).digest("hex");
+      const unchanged = expectedSha256 === sha256;
+      return this.result("fs.read.digest", {
+        sha256,
+        unchanged,
+        ...(unchanged ? {} : { content: content.toString("utf8") }),
+      });
+    } finally {
+      await handle.close();
+    }
   }
 
   async search(query: string): Promise<ExecutorResult<readonly string[]>> {
@@ -226,6 +266,7 @@ export class ReadOnlyLocalExecutor {
     const execute = async (operation: ReadOnlyBatchOperation): Promise<ExecutorResult<unknown>> => {
       switch (operation.kind) {
         case "read": return this.read(operation.path);
+        case "read-if-changed": return this.readIfChanged(operation.path, operation.expectedSha256);
         case "search": return this.search(operation.query);
         case "git-status": return this.gitStatus(operation.correlation);
         case "git-diff": return this.gitDiff(operation.correlation);

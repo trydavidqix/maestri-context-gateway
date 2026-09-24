@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, symlink, unlink, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -135,5 +136,51 @@ describe("ReadOnlyLocalExecutor", () => {
     ]);
     expect(JSON.stringify(result)).not.toContain("secret-marker-");
     expect(JSON.stringify(result)).not.toContain(removedPath);
+  });
+
+  it("returns only a verified hash reference when a previously read file is unchanged", async () => {
+    const root = await mkdtemp(join(tmpdir(), "lumenva-read-hash-"));
+    const original = "stable project instruction";
+    await writeFile(join(root, "instructions.md"), original);
+    const expectedSha256 = createHash("sha256").update(original).digest("hex");
+    const runner = new SafeCommandRunner({ workspaceRoots: [root], allowedExecutables: [] });
+    const executor = new ReadOnlyLocalExecutor({ workspaceRoot: root, commandRunner: runner });
+
+    const first = await executor.batch([{ id: "first-read", kind: "read-if-changed", path: "instructions.md" }]);
+    expect(first.results[0]).toMatchObject({
+      status: "succeeded",
+      value: { capabilityId: "fs.read.digest", value: { sha256: expectedSha256, unchanged: false, content: original } },
+    });
+
+    const unchanged = await executor.batch([{ id: "verify-unchanged", kind: "read-if-changed", path: "instructions.md", expectedSha256 }]);
+    expect(unchanged.results[0]).toMatchObject({
+      status: "succeeded",
+      value: { value: { sha256: expectedSha256, unchanged: true } },
+    });
+    expect(JSON.stringify(unchanged)).not.toContain(original);
+  });
+
+  it("returns new content on a hash mismatch and rejects malformed expected hashes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "lumenva-read-hash-change-"));
+    await writeFile(join(root, "plan.md"), "changed plan content");
+    const runner = new SafeCommandRunner({ workspaceRoots: [root], allowedExecutables: [] });
+    const executor = new ReadOnlyLocalExecutor({ workspaceRoot: root, commandRunner: runner });
+    const result = await executor.batch([{ id: "changed", kind: "read-if-changed", path: "plan.md", expectedSha256: "0".repeat(64) }]);
+    expect(result.results[0]).toMatchObject({
+      status: "succeeded",
+      value: { value: { sha256: createHash("sha256").update("changed plan content").digest("hex"), unchanged: false, content: "changed plan content" } },
+    });
+    await expect(executor.batch([{ id: "bad-hash", kind: "read-if-changed", path: "plan.md", expectedSha256: "not-a-hash" }]))
+      .rejects.toThrow("runtime_batch_operation_invalid");
+  });
+
+  it("keeps hash reads inside the batch hard file-size limit", async () => {
+    const root = await mkdtemp(join(tmpdir(), "lumenva-read-hash-limit-"));
+    await writeFile(join(root, "too-large.txt"), Buffer.alloc(256_001, 120));
+    const runner = new SafeCommandRunner({ workspaceRoots: [root], allowedExecutables: [] });
+    const executor = new ReadOnlyLocalExecutor({ workspaceRoot: root, commandRunner: runner, maxFileBytes: 1_000_000 });
+    const result = await executor.batch([{ id: "too-large", kind: "read-if-changed", path: "too-large.txt" }]);
+    expect(result.results[0]).toMatchObject({ status: "failed", errorCode: "runtime_file_too_large" });
+    expect(JSON.stringify(result)).not.toContain("xxxx");
   });
 });
