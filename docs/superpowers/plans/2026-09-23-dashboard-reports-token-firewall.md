@@ -1,6 +1,10 @@
 # Lumenva Dashboard Reports & Codex Token Firewall Implementation Plan
 
+> **SUPERSEDED (2026-09-24):** This file is preserved as the detailed historical plan and evidence. Do not use it as an active checklist. The single active cross-blueprint plan is [`../../MASTER_BLUEPRINT_CANONICAL.md`](../../MASTER_BLUEPRINT_CANONICAL.md); verified MCG progress remains in [`../../STATUS.md`](../../STATUS.md).
+
 > **Current execution rule (2026-09-23):** Work strictly one task at a time. Use no subagents and no parallel Jules sessions. The owner asked to stop for today; Jules Task 3 session `6700594731787502098` is confirmed `PAUSED`. Do not resume or start another session until the owner resumes work. Tasks 1–2 are accepted; Tasks 3–6 remain open as tracked below. The owner has now explicitly requested that the verified current branch changes and reconciled documentation be integrated into `main`; this authorizes only the tested, reviewed changes in this repository, not deployment, daemon restart, global Codex configuration changes, or unrelated worktree/branch merges.
+
+> **Implementation update (2026-09-24):** The active tracker is `MASTER_BLUEPRINT_CANONICAL.md` §49. F4 reports are implemented for all 13 views but still partial pending metric-specific semantics/accessibility/stale-state checks. F5 exact light/dark palettes, persistent System/Light/Dark selector, matching theme-color metadata, and isolated browser smoke (13 views, both modes, 390px no horizontal overflow) are implemented but not accepted pending visual-reference and accessibility review. Task 3 Token Firewall remains partial; F6 paired benchmark/evaluation/release remains pending. The overall MCG acceptance denominator therefore remains 3/7 = 43%; no new phase has been accepted by this update.
 
 **Goal:** Bring the existing Lumenva Context Gateway dashboard in line with the supplied visual references, provide clear evidence-based reports in all 13 dashboard areas, and measure then reduce avoidable Codex context/tool overhead without changing the permanent CEO/CTO session model.
 

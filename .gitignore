@@ -12,3 +12,5 @@ config/wire.json
 
 # Editor and recovery backups stay outside Git.
 *.bak-*
+node_modules/
+**/node_modules/
