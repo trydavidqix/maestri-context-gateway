@@ -1,12 +1,21 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { runProcess } from '../src/executor.mjs';
 
 test('executor captures output and classifies success', async () => {
-  const result = await runProcess({ command: process.execPath, args: ['-e', "process.stdout.write('ok')"], job_class: 'TINY' });
+  const result = await runProcess({ command: process.execPath, args: ['-e', "process.stdout.write('é🙂')"], job_class: 'TINY' });
   assert.equal(result.classification, 'SUCCESS');
-  assert.equal(result.stdout, 'ok');
+  assert.equal(result.stdout, 'é🙂');
   assert.equal(result.code, 0);
+  assert.match(result.operation.operation_id, /^op-/);
+  assert.equal(result.operation.status, 'SUCCESS');
+  assert.equal(result.operation.output.stdout.bytes, Buffer.byteLength('é🙂', 'utf8'));
+  assert.equal(result.operation.output.stdout.bytes, 6);
+  assert.equal(result.operation.output.stdout.sha256, createHash('sha256').update('é🙂').digest('hex'));
+  assert.equal(result.operation.output.stderr.bytes, 0);
+  assert.equal(result.operation.output.measurement_type, 'exact');
+  assert.equal(result.operation.source, 'mcg.executor');
 });
 
 test('executor times out with configurable policy', async () => {

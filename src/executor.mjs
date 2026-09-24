@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createHash, randomUUID } from 'node:crypto';
 
 export const EXECUTION_CLASSES = Object.freeze({
   TINY: { timeout_ms: 30_000 },
@@ -42,6 +43,7 @@ export function runProcess({
 } = {}) {
   if (!command) throw new Error('command is required');
   const policy = resolveExecutionPolicy({ job_class, timeout_ms, heartbeat_ms, grace_ms });
+  const operation_id = `op-${randomUUID()}`;
 
   return new Promise(resolve => {
     const startedAtMs = Date.now();
@@ -69,13 +71,23 @@ export function runProcess({
       if (signal) signal.removeEventListener('abort', abortHandler);
       const finishedAtMs = Date.now();
       const classification = classifyExit({ code, signal: exitSignal, timed_out, cancelled, spawn_error });
+      const stdoutBuffer = Buffer.concat(stdout);
+      const stderrBuffer = Buffer.concat(stderr);
+      const finished_at = new Date(finishedAtMs).toISOString();
+      const digest = buffer => createHash('sha256').update(buffer).digest('hex');
+      const output = {
+        stdout: { bytes: stdoutBuffer.length, sha256: digest(stdoutBuffer) },
+        stderr: { bytes: stderrBuffer.length, sha256: digest(stderrBuffer) },
+        total_bytes: stdoutBuffer.length + stderrBuffer.length,
+        measurement_type: 'exact'
+      };
       resolve({
         code,
         signal: exitSignal,
-        stdout: Buffer.concat(stdout).toString('utf8'),
-        stderr: Buffer.concat(stderr).toString('utf8'),
+        stdout: stdoutBuffer.toString('utf8'),
+        stderr: stderrBuffer.toString('utf8'),
         started_at,
-        finished_at: new Date(finishedAtMs).toISOString(),
+        finished_at,
         duration_ms: finishedAtMs - startedAtMs,
         last_activity_at,
         last_heartbeat_at,
@@ -84,7 +96,17 @@ export function runProcess({
         cancelled,
         spawn_error: spawn_error ? String(spawn_error.message || spawn_error) : null,
         classification,
-        policy
+        policy,
+        operation: {
+          operation_id,
+          status: classification,
+          started_at,
+          finished_at,
+          duration_ms: finishedAtMs - startedAtMs,
+          output,
+          source: 'mcg.executor',
+          evidence_provenance: 'exact byte counts and SHA-256 digests of captured stdout/stderr buffers'
+        }
       });
     };
 
