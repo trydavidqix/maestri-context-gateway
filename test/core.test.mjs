@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { dispatch, ingest, loadState } from '../src/core.mjs';
+import { dispatch, ingest, loadState, sliceEvidence } from '../src/core.mjs';
 import { telemetryEvents } from '../src/telemetry.mjs';
 
 const root = await mkdtemp(join(tmpdir(), 'mcg-core-'));
@@ -25,5 +25,13 @@ try {
   await ingest({ task_id: failedTask.task_id, event_id: 'failed', sequence: 1, state: 'FAILED_FINAL' }, root);
   const failedTelemetry = (await telemetryEvents(root)).find(event => event.task_id === failedTask.task_id && event.operation === 'ingest');
   assert.equal(failedTelemetry.outcome, 'failure');
+  const drilldownTask = await dispatch({ task_id: 'evidence-drilldown', executor: 'codex' }, root);
+  const secretBearingResult = 'full-output-marker\nAuthorization: Bearer abcdefghijklmnopqrstuvwxyz0123456789\nghp_abcdefghijklmnopqrstuvwxyz0123456789\nresult-page-two';
+  await ingest({ task_id: drilldownTask.task_id, event_id: 'drilldown-done', sequence: 1, state: 'DONE', result: secretBearingResult }, root);
+  const safeResult = await sliceEvidence(drilldownTask.task_id, 'result', 80, root);
+  assert.match(safeResult, /full-output-marker/);
+  assert.doesNotMatch(safeResult, /abcdefghijklmnopqrstuvwxyz0123456789/);
+  assert.match(safeResult, /\[REDACTED\]/);
+  assert.match(await sliceEvidence(drilldownTask.task_id, 'result', 1, root, 3), /result-page-two/);
 } finally { await rm(root, { recursive: true, force: true }); }
 console.log('core tests: 1 passed');

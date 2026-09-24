@@ -22,7 +22,11 @@ node bin/mcg.mjs doctor
 node bin/mcg.mjs status --json
 node bin/mcg.mjs mcp discover --project-root C:\path\to\project
 node bin/mcg.mjs mcp probe --project-root C:\path\to\project
+node bin/mcg.mjs result <task-id>
+node bin/mcg.mjs evidence <task-id> --type result --lines 80 --offset 0
 ```
+
+`result` returns a compact completion digest. When more detail is needed, `evidence --type result` reads the locally retained, secret-redacted result on demand; use `--offset` to continue through long output in chunks of up to 200 lines.
 
 Wire integration requires a local `config/wire.json`. Copy `config/wire.example.json` and provide local credentials outside Git. Never commit credentials or runtime data.
 

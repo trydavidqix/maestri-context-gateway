@@ -129,7 +129,7 @@ try {
   } else if (command === 'wait') {
     print(await waitForTerminal(args[0]));
   } else if (command === 'evidence') {
-    print(await sliceEvidence(args[0], value('--type'), Number(value('--lines') || 80)));
+    print(await sliceEvidence(args[0], value('--type'), Number(value('--lines') || 80), ROOT, Number(value('--offset') || 0)));
   } else if (command === 'replay') {
     const taskId = args.shift(); const variant = args.includes('--mcg') ? 'mcg' : 'baseline';
     const binary = process.env.CODEX_BIN || join(homedir(), '.codex', 'packages', 'standalone', 'current', 'bin', 'codex.exe');
