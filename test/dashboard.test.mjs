@@ -18,6 +18,19 @@ function get(port, path) {
   });
 }
 
+function relativeLuminance(color) {
+  const rgb = color.startsWith('#')
+    ? color.length === 4 ? color.slice(1).split('').map(channel => parseInt(channel + channel, 16)) : color.slice(1).match(/../g).map(channel => parseInt(channel, 16))
+    : color.match(/\d+/g).slice(0, 3).map(Number);
+  const channels = rgb.map(channel => channel / 255).map(channel => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatio(foreground, background) {
+  const a = relativeLuminance(foreground); const b = relativeLuminance(background);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
 test('dashboard serves read-only local endpoints', async t => {
   const server = await createDashboardServer({ root: process.cwd(), port: 0 });
   t.after(() => server.close());
@@ -107,6 +120,25 @@ test('dashboard renders the observability layout shell and reference sections', 
   assert.match(home.body, /data-view="Graph"/);
   assert.match(home.body, /prefers-reduced-motion/);
   assert.match(home.body, /Skip to main content|Pular para o conteúdo/);
+});
+
+test('dashboard text and keyboard focus palette tokens meet WCAG AA contrast', async t => {
+  const server = await createDashboardServer({ root: process.cwd(), port: 0 });
+  t.after(() => server.close());
+  const home = await get(server.address().port, '/');
+  const themes = [...home.body.matchAll(/:root(?:\[data-theme="light"\])?\{([^}]+)\}/g)].slice(0, 2).map(match => Object.fromEntries([...match[1].matchAll(/--([a-z-]+):([^;]+)/g)].map(([, key, value]) => [key, value])));
+  assert.equal(themes.length, 2, 'dark and light theme token sets are available');
+  for (const [index, theme] of themes.entries()) {
+    for (const foreground of ['text', 'sub']) {
+      for (const background of ['bg', 'sidebar', 'surface', 'card']) {
+        assert.ok(contrastRatio(theme[foreground], theme[background]) >= 4.5, `theme ${index} ${foreground}/${background} must meet 4.5:1`);
+      }
+    }
+    for (const background of ['bg', 'sidebar', 'surface', 'card']) {
+      assert.ok(contrastRatio(theme.focus, theme[background]) >= 3, `theme ${index} focus/${background} must meet 3:1`);
+    }
+  }
+  assert.match(home.body, /prefers-reduced-motion:reduce/);
 });
 
 test('dashboard exposes real telemetry resources from its configured root', async t => {
