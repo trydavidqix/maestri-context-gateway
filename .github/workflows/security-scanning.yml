@@ -115,6 +115,7 @@ jobs:
         env:
           ZAP_IMAGE: ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
         run: |
+          sudo chown 1000:1000 "$RUNNER_TEMP/zap-reports"
           docker run --rm --network host \
             --volume "$RUNNER_TEMP/zap-reports:/zap/wrk/:rw" \
             "$ZAP_IMAGE" zap-baseline.py \
@@ -123,6 +124,11 @@ jobs:
             -r zap-baseline.html \
             -J zap-baseline.json \
             -I
+
+      - name: Verify ZAP reports were generated
+        run: |
+          test -s "$RUNNER_TEMP/zap-reports/zap-baseline.html"
+          test -s "$RUNNER_TEMP/zap-reports/zap-baseline.json"
 
       - name: Stop isolated dashboard
         if: always()
