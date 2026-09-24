@@ -34,6 +34,26 @@ test('dashboard serves read-only local endpoints', async t => {
   assert.equal(JSON.parse(tasks.body).tasks instanceof Array, true);
   assert.equal(JSON.parse(health.body).dashboard.host, '127.0.0.1');
   assert.equal(JSON.parse(health.body).dashboard.port, port);
+  assert.match(home.body, /renderReportValue/);
+  assert.match(home.body, /Detalhes do relatório/);
+  assert.match(home.body, /id="theme-select"/);
+  assert.match(home.body, /name="theme-color" content="rgb\(0, 0, 0\)"/);
+  assert.match(home.body, /rgb\(242, 242, 247\)/);
+  assert.match(home.body, /rgb\(0, 230, 118\)/);
+  assert.match(home.body, /rgb\(255, 56, 60\)/);
+  assert.match(home.body, /prefers-color-scheme: dark/);
+  for (const token of [
+    'rgb(229, 229, 234)', 'rgb(248, 248, 250)', 'rgb(209, 209, 214)', 'rgb(199, 199, 204)',
+    'rgb(174, 174, 178)', 'rgb(142, 142, 147)', 'rgb(48, 209, 88)', 'rgb(233, 21, 45)',
+    'rgb(16, 16, 17)', 'rgb(20, 20, 20)', 'rgb(25, 25, 25)', 'rgb(31, 31, 31)',
+    'rgb(43, 43, 43)', 'rgb(48, 48, 48)', 'rgb(64, 64, 64)', 'rgb(119, 119, 119)',
+    'rgb(0, 255, 106)', 'rgb(255, 18, 48)', 'rgba(25, 25, 25, 0.72)',
+    'rgba(255, 255, 255, 0.10)', 'rgba(255, 255, 255, 0.06)', 'rgba(0, 0, 0, 0.45)',
+    'rgba(0, 255, 106, 0.30)', 'rgba(255, 18, 48, 0.30)'
+  ]) assert.ok(home.body.includes(token), `theme token ${token} must be present`);
+  const clientScript = [...home.body.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)?.[1];
+  assert.ok(clientScript, 'dashboard client script is present');
+  assert.doesNotThrow(() => new Function(clientScript), 'dashboard client script parses');
   assert.equal(`${stats.body}${tasks.body}${health.body}`.includes('securityKeyHex'), false);
   assert.equal(`${stats.body}${tasks.body}${health.body}`.includes('b16c59355e'), false);
   assert.equal((await get(port, '/api/write')).status, 404);
@@ -121,7 +141,7 @@ test('dashboard hides paths and unavailable placeholders', async t => {
   const server = await createDashboardServer({ root: process.cwd(), port: 0 });
   t.after(() => server.close());
   const home = await get(server.address().port, '/');
-  assert.match(home.body, /--bg:#080d18/i);
+  assert.match(home.body, /--bg:rgb\(0, 0, 0\)/i);
   assert.equal(home.body.includes('Gateway path'), false);
   assert.equal(home.body.includes('Métrica indisponível'), false);
   assert.equal(home.body.includes('Unknown'), false);
