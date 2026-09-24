@@ -2,7 +2,7 @@
 
 **Target branch:** `main` (`75a67e62dc80e3b72ea2e53f7e2ddaa7a9b10ddf`, latest verified HEAD; payload merged by PR #5, audit reconciliation by PR #7, dashboard accessibility by PR #8, report freshness by PR #9)
 
-**Migration branch:** `migration/lumenva-maestri-import-20260924` (at `c7514fe502abe56b9c2938af84fa46d8c0dc35c7`, behind `main` by six commits with no unique commits; re-sync pending)
+**Migration branch:** `migration/lumenva-maestri-import-20260924` (last audit found tip `c7514fe502abe56b9c2938af84fa46d8c0dc35c7` with no unique commits and six commits behind `main`; retained as a compatibility pointer and fast-forwarded only after confirming it has no unique work)
 **Source repository:** `trydavidqix/Lumenva`  
 **Rule:** import only Maestri-owned material. Do not merge whole monorepo branches. Do not touch source worktrees or CRM/voice/Meta/business paths.
 
