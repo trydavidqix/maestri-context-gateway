@@ -19,7 +19,9 @@ O baseline usa spider/passive checks e não executa active scan. Não rode activ
 
 ## Fuzzing
 
-OSS-Fuzz/ClusterFuzzLite não foram adicionados: os projetos dependem de Docker e não há alvo de fuzzing nativo definido neste repositório. Não instale Docker para habilitá-los.
+O GitHub Actions executa **Jazzer.js** no `src/redaction.mjs`, com 30 segundos por PR e 120 segundos na execução semanal, e só envia artefatos de crash se houver falha. O pacote fica travado no lockfile e o workflow usa permissões mínimas; não instala Docker no Windows.
+
+O alvo atual valida redaction estruturada/textual de credenciais, não substitui fuzzing de todos os módulos. ClusterFuzzLite exige integração de build libFuzzer/container e a lista oficial atual de linguagens não inclui JavaScript; o OSS-Fuzz aceita JavaScript via Jazzer.js, mas requer uma integração e aprovação no serviço upstream. Não declarar esses serviços como ativos até essa submissão ser aceita.
 
 ## Operação
 
