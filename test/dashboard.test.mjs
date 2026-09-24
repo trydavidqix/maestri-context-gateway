@@ -72,6 +72,18 @@ test('dashboard exposes keyboard-accessible view navigation', async t => {
   }
   assert.match(home.body, /aria-current="page"/);
   assert.match(home.body, /detail-content" class="detail" hidden/);
+  assert.equal([...home.body.matchAll(/function renderView\(/g)].length, 1, 'there must be one canonical report renderer');
+  assert.match(home.body, /<h2 id="detail-title" tabindex="-1">/);
+  assert.match(home.body, /id="view-status" class="visually-hidden" role="status" aria-live="polite"/);
+  assert.match(home.body, /id="view-panel" tabindex="-1" role="region" aria-labelledby="detail-title"/);
+  assert.match(home.body, /\$\('detail-title'\)\.focus\(/);
+  assert.match(home.body, /Relatório carregado:/);
+  assert.match(home.body, /Falha ao carregar o relatório:/);
+  assert.match(home.body, /id="tasks" role="region" aria-label="Tabela de tarefas recentes" tabindex="0"/);
+  assert.match(home.body, /const requestId=\+\+viewLoadId/);
+  assert.match(home.body, /if\(requestId!==viewLoadId\)return/);
+  assert.match(home.body, /<caption class="visually-hidden">Tarefas recentes<\/caption>/);
+  assert.equal([...home.body.matchAll(/<th scope="col">/g)].length, 7, 'task table headers must identify their columns');
 });
 
 test('dashboard renders the observability layout shell and reference sections', async t => {
