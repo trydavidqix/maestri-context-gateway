@@ -7501,9 +7501,10 @@ Do not migrate apps/crm, apps/social-brain-*, Meta provider/webhook, Supabase te
 ## 54.2 Worktree and date safety
 
 - vps worktree is clean but still attached; retain its ref until its owner/session is confirmed released.
-- codex/command-center-dashboard is 50 commits ahead/21 behind and has dirty Maestri plus CRM/Meta files. Do not cherry-pick, reset, clean, merge or delete it.
-- feat/f1-identity-mapping worktree has dirty Cloud-job/Codex and CRM package changes plus untracked tests/docs. Preserve untouched; only the committed plan document may be extracted.
-- docs/jules-delegation-skill has an attached worktree; retain its ref until copied/reviewed and released.
+- `codex/command-center-dashboard` is a local-only branch in the attached `command-center` worktree; it tracks `origin/lumenva-command-center`, is 50 commits ahead/21 behind that upstream, and has 22 dirty tracked/untracked paths mixing Maestri and CRM/Meta. Do not cherry-pick, reset, clean, merge or delete it.
+- `feat/f1-identity-mapping` worktree is one commit ahead and has dirty Cloud-job/Codex and CRM package changes plus untracked tests/docs. Preserve untouched; only the committed plan document may be extracted.
+- `vps`, `docs/jules-delegation-skill`, and `codex/mcg-ci-integration` worktrees were clean at the 2026-09-24 read-only check but remain attached; retain their refs until owners/sessions release them.
+- The Lumenva root worktree is dirty on `chore/upstream-migrations-0347-0380`, with project rules, Jules files, backups and scripts; do not use it as a migration source or alter it.
 - Local origin/main was stale relative to GitHub branch listing. Refresh exact SHAs before any ref operation.
 - Git refs do not give branch creation timestamps. Record first unique commit/date and authored-plan date as evidence, not exact creation date.
 
@@ -7617,7 +7618,9 @@ For each source branch record repo/ref/SHA/base SHA, first unique commit/date, s
 
 ## 60.3 Current cleanup decision
 
-**No source branch deletion is safe yet.** `codex/command-center-dashboard` and `feat/f1-identity-mapping` worktrees contain local changes and remain attached. A first selective local transfer is underway on `migration/lumenva-maestri-import-20260924`: VPS Core, Local Runtime, two Session Engine files, 61 TOKENS add-only Cloud Fabric modules, Council docs, the sanitized Codex Cloud plan, project-scoped Jules skill and non-active CEO/CIO templates. Core/Cloud Fabric strict typecheck passes and unit tests pass 69/69 (2 integration tests skipped); Local Runtime tests pass (14/14) and its typecheck passes. Provider-backed integration/full CI and Command Center ownership remain unresolved. Do not delete source refs until every selected workstream passes its gates.
+**No source branch deletion is safe yet.** `codex/command-center-dashboard` and `feat/f1-identity-mapping` worktrees contain local changes and remain attached. The first selective transfer was merged to standalone `main` by PR #5 (`4195fea8cde0edbd6b59e284a18141dab62701af`); PR #6 merged the status synchronization. The migration branch, `origin/main`, and `HEAD` were verified clean and equal at `c7514fe502abe56b9c2938af84fa46d8c0dc35c7`. Transferred payload: VPS Core, Local Runtime, two Session Engine files, 61 TOKENS add-only Cloud Fabric modules, Council docs, the sanitized Codex Cloud plan, project-scoped Jules skill and non-active CEO/CIO templates. Core/Cloud Fabric strict typecheck passes and unit tests pass 69/69 (2 integration tests skipped); Local Runtime tests pass (14/14) and its typecheck passes. Provider-backed integration/full CI and Command Center ownership remain unresolved. Do not delete source refs until every selected workstream passes its gates.
+
+Read-only refresh on 2026-09-24 confirmed all 12 listed remote source-ref tips still match the SHAs in §54. The merged PR #5 contains 179 files; PR #6 contains only the three status/ledger documents. This confirms the recorded transfer scope, not that every source capability is accepted or that any source branch is deletable.
 
 ## 60.4 Final separation gate
 
@@ -7650,7 +7653,7 @@ These sources are not separate active plans. Their unique scope is reconciled be
 
 ### 61.1 Current source-transfer accounting
 
-Plan reconciliation and the selected physical transfer are merged to standalone `main` via PR #5 (`4195fea8cde0edbd6b59e284a18141dab62701af`); the migration working branch is synced. See `docs/migration/LUMENVA_SOURCE_TRANSFER_LEDGER.md` for source SHAs and exact gates. MCG tests pass 46/46; Local Runtime typecheck and 14/14 tests pass; Maestri Core/Session Engine/Cloud Fabric strict typecheck and 69/69 unit tests pass (2 external integration tests skipped), with planning-domain types separated from canonical execution contracts. Syntax/import smoke parses 33 modules; sensitive scan passes (125 files). Provider-backed integrations/full workspace CI remain unverified. Council docs, sanitized Cloud plan, project Jules skill and non-active role templates are present. Command Center implementation code remains excluded pending proof of Maestri ownership because its branch mixes CRM/Meta changes and overlaps the MCG dashboard. Source worktrees and branches remain untouched and available; source cleanup and production acceptance are not complete.
+Plan reconciliation and the selected physical transfer are merged to standalone `main` via PR #5 (`4195fea8cde0edbd6b59e284a18141dab62701af`); PR #6 synchronized the status record at `c7514fe502abe56b9c2938af84fa46d8c0dc35c7`, verified as the current `main`/migration HEAD. See `docs/migration/LUMENVA_SOURCE_TRANSFER_LEDGER.md` for source SHAs and exact gates. MCG tests pass 46/46; Local Runtime typecheck and 14/14 tests pass; Maestri Core/Session Engine/Cloud Fabric strict typecheck and 69/69 unit tests pass (2 external integration tests skipped), with planning-domain types separated from canonical execution contracts. Syntax/import smoke parses 33 modules; sensitive scan passes (125 files). Provider-backed integrations/full workspace CI remain unverified. Council docs, sanitized Cloud plan, project Jules skill and non-active role templates are present. Command Center implementation code remains excluded pending proof of Maestri ownership because its branch mixes CRM/Meta changes and overlaps the MCG dashboard. Source worktrees and branches remain untouched and available; source cleanup and production acceptance are not complete.
 
 ### 61.2 TOKENS Cloud Fabric acceptance reconciliation
 
