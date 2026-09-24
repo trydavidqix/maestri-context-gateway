@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, symlink, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -102,5 +102,38 @@ describe("ReadOnlyLocalExecutor", () => {
     const result = await executor.batch([{ id: "settings", kind: "read", path: "settings.txt" }]);
     expect(result.results[0]).toMatchObject({ status: "succeeded", value: { value: "api_key=[REDACTED]" } });
     expect(JSON.stringify(result)).not.toContain("very-private-material");
+  });
+
+  it("keeps symlink targets outside the workspace denied in batch mode", async () => {
+    const root = await mkdtemp(join(tmpdir(), "lumenva-read-batch-scope-"));
+    const outside = await mkdtemp(join(tmpdir(), "lumenva-read-batch-outside-"));
+    await writeFile(join(outside, "private.txt"), "outside workspace");
+    await symlink(outside, join(root, "outside-link"), "junction");
+    const runner = new SafeCommandRunner({ workspaceRoots: [root], allowedExecutables: [] });
+    const executor = new ReadOnlyLocalExecutor({ workspaceRoot: root, commandRunner: runner });
+    const result = await executor.batch([{ id: "symlink-read", kind: "read", path: "outside-link/private.txt" }]);
+    expect(result.results[0]).toMatchObject({ status: "failed", errorCode: "runtime_path_denied" });
+    expect(JSON.stringify(result)).not.toContain(outside);
+  });
+
+  it("reports removed files safely and rejects oversized files without content", async () => {
+    const root = await mkdtemp(join(tmpdir(), "lumenva-read-batch-race-"));
+    const removedPath = join(root, "removed.txt");
+    const largePath = join(root, "large.txt");
+    await writeFile(removedPath, "will disappear");
+    await writeFile(largePath, "secret-marker-".repeat(20));
+    await unlink(removedPath);
+    const runner = new SafeCommandRunner({ workspaceRoots: [root], allowedExecutables: [] });
+    const executor = new ReadOnlyLocalExecutor({ workspaceRoot: root, commandRunner: runner, maxFileBytes: 32 });
+    const result = await executor.batch([
+      { id: "removed", kind: "read", path: "removed.txt" },
+      { id: "oversized", kind: "read", path: "large.txt" },
+    ]);
+    expect(result.results).toEqual([
+      { id: "removed", status: "failed", errorCode: "ENOENT" },
+      { id: "oversized", status: "failed", errorCode: "runtime_file_too_large" },
+    ]);
+    expect(JSON.stringify(result)).not.toContain("secret-marker-");
+    expect(JSON.stringify(result)).not.toContain(removedPath);
   });
 });
