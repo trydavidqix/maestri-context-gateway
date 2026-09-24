@@ -272,11 +272,13 @@ test('dashboard exposes every M0.12 view without fake zero observations', async 
   assert.equal(views.Executions.usage.input_tokens, null);
   assert.equal(response.body.includes('NaN'), false);
   const expectedKeys = ['Overview', 'History', 'Traces', 'Tasks', 'Agents', 'Tools', 'Plugins', 'MCPs', 'Graph', 'Executions', 'Cache', 'Memory', 'Validation', 'Alerts'];
-  assert.deepEqual(Object.keys(views).sort(), [...expectedKeys].sort(), 'The view catalog must contain exactly the 13 documented views');
+  assert.deepEqual(Object.keys(views).sort(), [...expectedKeys].sort(), 'The view catalog must contain exactly the 14 documented views');
   for (const key of expectedKeys) {
     const view = views[key];
     assert.ok(view.source, `View ${key} missing source`);
     assert.ok(view.timestamp, `View ${key} missing timestamp`);
+    assert.ok(typeof view.scope === 'string' && view.scope.length > 0, `View ${key} missing data scope`);
+    assert.ok(typeof view.limitations === 'string' && view.limitations.length > 0, `View ${key} missing data limitations`);
     assert.ok(['exact', 'estimated', 'unavailable'].includes(view.measurement_type), `View ${key} invalid measurement_type: ${view.measurement_type}`);
   }
 
