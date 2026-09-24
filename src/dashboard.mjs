@@ -282,6 +282,7 @@ async function cacheView(root) {
     period: 'ALL_TIME',
     record_limit: 5000,
     limit_reached: rows.length === 5000,
+    last_observed_at: latest?.timestamp || rows.at(-1)?.timestamp || null,
     latest: latest ? {
       cache_hits: Number.isFinite(latest.cache_hits) ? latest.cache_hits : null,
       cache_misses: Number.isFinite(latest.cache_misses) ? latest.cache_misses : null,
@@ -301,11 +302,11 @@ async function historyView(root) {
   const types = {};
   for (const type of HISTORY_TYPES) {
     if (!available.has(type)) {
-      types[type] = { status: 'UNAVAILABLE', records: null, period: 'ALL_TIME', record_limit: 5000, limit_reached: false, measurement_type: 'unavailable', source: `state/history/raw/${type}.jsonl` };
+      types[type] = { status: 'UNAVAILABLE', records: null, period: 'ALL_TIME', record_limit: 5000, limit_reached: false, last_observed_at: null, measurement_type: 'unavailable', source: `state/history/raw/${type}.jsonl` };
       continue;
     }
     const rows = await store.query(type, { period: 'ALL_TIME', limit: 5000 });
-    types[type] = { status: 'OBSERVED', records: rows.length, period: 'ALL_TIME', record_limit: 5000, limit_reached: rows.length === 5000, measurement_type: rows.every(row => row.measurement_type === 'exact') ? 'exact' : 'estimated', source: `state/history/raw/${type}.jsonl` };
+    types[type] = { status: 'OBSERVED', records: rows.length, period: 'ALL_TIME', record_limit: 5000, limit_reached: rows.length === 5000, last_observed_at: rows.at(-1)?.timestamp || null, measurement_type: rows.every(row => row.measurement_type === 'exact') ? 'exact' : 'estimated', source: `state/history/raw/${type}.jsonl` };
   }
   const measurements = Object.values(types).map(type => type.measurement_type);
   const measurement_type = measurements.includes('unavailable')
