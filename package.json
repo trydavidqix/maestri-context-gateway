@@ -34,5 +34,8 @@
     "eval:smoke": "node bin/mcg-eval.mjs smoke",
     "eval:validation": "node bin/mcg-eval.mjs validation",
     "eval:validation-v2": "node bin/mcg-eval.mjs validation-v2"
+  },
+  "devDependencies": {
+    "@jazzer.js/core": "4.0.0"
   }
 }

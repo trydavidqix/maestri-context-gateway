@@ -1,0 +1,60 @@
+name: Security fuzzing
+
+on:
+  pull_request:
+    paths:
+      - 'src/redaction.mjs'
+      - 'test/fuzz/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/security-fuzzing.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/redaction.mjs'
+      - 'test/fuzz/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/security-fuzzing.yml'
+  schedule:
+    - cron: '41 5 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-fuzzing-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  jazzer-redaction:
+    name: Jazzer.js redaction fuzzing
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FUZZ_SECONDS: ${{ github.event_name == 'schedule' && '120' || '30' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 9.15.9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Fuzz credential redaction
+        run: |
+          mkdir -p "$RUNNER_TEMP/jazzer-artifacts"
+          export JAZZER_FUZZER_OPTIONS="[\"-max_total_time=$FUZZ_SECONDS\",\"-max_len=4096\",\"-artifact_prefix=$RUNNER_TEMP/jazzer-artifacts/\"]"
+          pnpm exec jazzer test/fuzz/redaction.fuzz.mjs --sync
+      - name: Upload fuzz crash artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: jazzer-crashes
+          path: ${{ runner.temp }}/jazzer-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
