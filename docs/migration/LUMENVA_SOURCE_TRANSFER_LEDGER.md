@@ -1,10 +1,18 @@
 # Lumenva → Maestri Context Gateway transfer ledger
 
-**Target branch:** `main` (`4195fea8cde0edbd6b59e284a18141dab62701af`, PR #5)
+**Target branch:** `main` (`c7514fe502abe56b9c2938af84fa46d8c0dc35c7`, latest verified HEAD; transfer payload merged by PR #5 at `4195fea8cde0edbd6b59e284a18141dab62701af`, status synchronization merged by PR #6)
 
 **Synced working branch:** `migration/lumenva-maestri-import-20260924` (same HEAD as `main`)
 **Source repository:** `trydavidqix/Lumenva`  
 **Rule:** import only Maestri-owned material. Do not merge whole monorepo branches. Do not touch source worktrees or CRM/voice/Meta/business paths.
+
+## Read-only revalidation — 2026-09-24
+
+- GitHub's current tips for all 12 remote refs in master-plan §54 match the recorded source SHAs. PR #5 merged 179 selected files; PR #6 merged three status/ledger documents only.
+- The local-only `codex/command-center-dashboard` worktree has 22 dirty tracked/untracked paths, mixes Maestri with CRM/Meta, tracks `origin/lumenva-command-center`, and is 50 commits ahead/21 behind that upstream. It remains untouched and is not eligible for cleanup.
+- The `feat/f1-identity-mapping` worktree is one commit ahead and has dirty Cloud-job/Codex plus CRM package changes and untracked tests/docs. It remains untouched; only the committed Maestri Cloud plan is in the transfer scope.
+- The Lumenva root checkout is dirty on `chore/upstream-migrations-0347-0380`; its Jules/config/backups/scripts are not transfer inputs. The `vps`, Jules skill and MCG-CI worktrees were clean but attached at inspection. No source ref or worktree was changed.
+- This is a snapshot, not release/cleanup authorization. Recheck each worktree, session owner and remote SHA immediately before any proposed deletion.
 
 | Workstream | Source ref (audited SHA) | Transfer state | Evidence / next gate |
 |---|---|---|---|
@@ -26,7 +34,7 @@
 - The previous contract conflict was substantive: TOKENS workforce modules expected older task, execution, quota, context and evidence shapes. The local migration now keeps the single VPS `TaskContract`, `ExecutionPort`, `ExecutionResult` and `ContextPacket`; planning-domain `RiskLevel`, `TaskComplexity` and `MasterPlan` live in `workforce-types.ts`, with explicit risk conversion at execution boundaries. Strict typechecking and unit tests pass. Full workspace CI, provider-backed integrations, and dashboard ownership/behavior are not yet verified.
 - Next: run full workspace CI and safe integration tests with external services absent (no Docker); audit behavior against TOKENS acceptance criteria and record intentional adaptations; resolve Command Center ownership and import only Maestri-specific deltas after exact-path review.
 - Do not delete a ref until its allowlisted payload is in this repository, tests and security scans pass, source worktree is clean/released, and the user-approved cleanup list is checked against fresh remote SHAs.
-- PR #5 transferred the selected changes into standalone `main`; this does not mean all Maestri/Cloud Fabric acceptance gates or source-branch cleanup are complete.
+- PR #5 transferred the selected changes into standalone `main`; PR #6 merged the status synchronization. The verified target HEAD is `c7514fe502abe56b9c2938af84fa46d8c0dc35c7`. This does not mean all Maestri/Cloud Fabric acceptance gates or source-branch cleanup are complete.
 
 ## TOKENS Cloud Fabric — functional coverage audit (2026-09-24)
 
