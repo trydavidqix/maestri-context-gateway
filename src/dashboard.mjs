@@ -291,6 +291,8 @@ async function cacheView(root) {
       context_reused: typeof latest.context_reused === 'boolean' ? latest.context_reused : null
     } : null,
     measurement_type: latest?.measurement_type || 'unavailable',
+    scope: 'All retained cache_metrics history; up to 5,000 records',
+    limitations: rows.length === 5000 ? 'The 5,000-record query limit was reached; older records may be omitted.' : 'No source timestamp is inferred when history rows omit one.',
     source: 'HistoryStore cache_metrics',
     timestamp: new Date().toISOString()
   };
@@ -312,7 +314,7 @@ async function historyView(root) {
   const measurement_type = measurements.includes('unavailable')
     ? 'unavailable'
     : measurements.includes('estimated') ? 'estimated' : 'exact';
-  return { types, period: 'ALL_TIME', source: 'HistoryStore', measurement_type, timestamp: new Date().toISOString() };
+  return { types, period: 'ALL_TIME', scope: 'All retained records per history type; up to 5,000 records per type', limitations: 'Each subtype reports its own limit_reached and last_observed_at; missing sources remain unavailable.', source: 'HistoryStore', measurement_type, timestamp: new Date().toISOString() };
 }
 
 async function memoryView(root) {
@@ -323,6 +325,8 @@ async function memoryView(root) {
   const count = filter => records.filter(filter).length;
   return {
     status: events.length ? 'OBSERVED' : 'UNAVAILABLE',
+    scope: 'All retained memory events and retrieval records; record totals use latest event per memory ID',
+    limitations: 'No time-window or retention guarantee is provided by the local event files.',
     records: events.length ? records.length : null,
     event_count: events.length || null,
     retrieval_count: retrievals.length || null,
@@ -340,6 +344,8 @@ async function validationView(root) {
   const trust = trustScore({ ...aggregate, dataset_size: aggregate.dataset_size, last_validation: runs.at(-1)?.timestamp || null });
   return {
     status: trust.status,
+    scope: 'All paired evaluation runs currently readable by the evaluation store',
+    limitations: aggregate.dataset_size < trust.minimum_dataset ? `At least ${trust.minimum_dataset} valid pairs are required before the minimum sample gate is met.` : 'The sample gate does not replace interactive or provider-backed validation.',
     paired_runs: aggregate.dataset_size || null,
     minimum_dataset: trust.minimum_dataset,
     sample_coverage: aggregate.dataset_size > 0 && trust.minimum_dataset > 0 ? {
@@ -373,29 +379,29 @@ export function createCoreExecutionFeed(baseUrl = process.env.LUMENVA_CORE_URL) 
 export async function executionEvidence(executionFeed) {
   const source = 'Core GET /executions; read-only execution feed';
   const unavailableUsage = { input_tokens: null, cached_tokens: null, output_tokens: null, duration_ms: null, cost_usd: null, measurement_type: 'unavailable', source: 'Core GET /executions usage' };
-  if (!executionFeed) return { status: 'UNAVAILABLE', count: null, executions: null, usage: unavailableUsage, measurement_type: 'unavailable', source, timestamp: new Date().toISOString() };
+  if (!executionFeed) return { status: 'UNAVAILABLE', count: null, executions: null, usage: unavailableUsage, scope: 'No Core execution feed configured', limitations: 'Provider executions and usage are not observable from this dashboard.', measurement_type: 'unavailable', source, timestamp: new Date().toISOString() };
   try {
     const raw = await executionFeed();
     const executions = Array.isArray(raw) ? raw : Array.isArray(raw?.executions) ? raw.executions : [];
     const usageRows = executions.map(execution => execution?.result?.usage).filter(usage => usage && Number.isFinite(usage.input_tokens) && Number.isFinite(usage.output_tokens));
     const sumObserved = field => usageRows.length && usageRows.every(usage => Number.isFinite(usage[field])) ? usageRows.reduce((sum, usage) => sum + usage[field], 0) : null;
     const usage = usageRows.length ? { input_tokens: sumObserved('input_tokens'), cached_tokens: sumObserved('cached_tokens'), output_tokens: sumObserved('output_tokens'), duration_ms: sumObserved('duration_ms'), cost_usd: sumObserved('cost_usd'), measurement_type: 'exact', source: 'Core GET /executions usage' } : unavailableUsage;
-    return { status: executions.length ? 'OBSERVED' : 'UNAVAILABLE', count: executions.length || null, executions: executions.length ? executions : null, usage, measurement_type: executions.length ? 'exact' : 'unavailable', source, timestamp: new Date().toISOString() };
-  } catch { return { status: 'UNAVAILABLE', count: null, executions: null, usage: unavailableUsage, measurement_type: 'unavailable', source, timestamp: new Date().toISOString() }; }
+    return { status: executions.length ? 'OBSERVED' : 'UNAVAILABLE', count: executions.length || null, executions: executions.length ? executions : null, usage, scope: 'Entries returned by the configured Core GET /executions endpoint', limitations: 'Pagination and retention are defined by Core; missing usage values remain unavailable.', measurement_type: executions.length ? 'exact' : 'unavailable', source, timestamp: new Date().toISOString() };
+  } catch { return { status: 'UNAVAILABLE', count: null, executions: null, usage: unavailableUsage, scope: 'Configured Core GET /executions endpoint', limitations: 'Core endpoint request failed; no execution or usage values are inferred.', measurement_type: 'unavailable', source, timestamp: new Date().toISOString() }; }
 }
 
 export async function dashboardViews(root = ROOT, { graphView, executionFeed, registryOptions = {} } = {}) {
   const [stats, history, traces, cache, memory, validation, registries, executionEvidenceView] = await Promise.all([
     dashboardStats(root), historyView(root), listTraces(root), cacheView(root), memoryView(root), validationView(root), refreshRegistries(root, registryOptions), executionEvidence(executionFeed)
   ]);
-  const unavailable = (source) => ({ status: 'UNAVAILABLE', observations: null, measurement_type: 'unavailable', source, timestamp: new Date().toISOString() });
+  const unavailable = (source, limitations = 'The configured source is not available.') => ({ status: 'UNAVAILABLE', observations: null, scope: 'No source records observed', limitations, measurement_type: 'unavailable', source, timestamp: new Date().toISOString() });
   const registryView = (rows, source) => {
     const observed = rows.filter(row => row.health === 'OBSERVED');
     const measurements = observed.map(row => row.measurement_type);
     const measurement_type = !observed.length || measurements.includes('unavailable')
       ? 'unavailable'
       : measurements.includes('estimated') ? 'estimated' : 'exact';
-    return { status: observed.length ? 'OBSERVED' : 'UNAVAILABLE', count: observed.length || null, registered_count: rows.length || null, items: rows, measurement_type, source, timestamp: new Date().toISOString() };
+    return { status: observed.length ? 'OBSERVED' : 'UNAVAILABLE', count: observed.length || null, registered_count: rows.length || null, items: rows, scope: 'Current refreshed registry snapshot; observed count is separate from registered count', limitations: 'Registration does not imply a live health probe; fields unsupported by a source remain unavailable.', measurement_type, source, timestamp: new Date().toISOString() };
   };
   const tasksWithResult = stats.tasks.filter(task => task.measurable).length;
   const taskResultCoverage = stats.tasks.length ? {
@@ -405,20 +411,20 @@ export async function dashboardViews(root = ROOT, { graphView, executionFeed, re
     coverage_basis: 'result.json evidence exists'
   } : null;
   return {
-    Overview: { status: 'OBSERVED', tasks_processed: stats.tasks_processed, tasks_active: stats.tasks_active, metrics: stats.metrics, measurement_type: stats.telemetry.measurement_type, source: stats.telemetry.source, timestamp: new Date().toISOString() },
+    Overview: { status: 'OBSERVED', tasks_processed: stats.tasks_processed, tasks_active: stats.tasks_active, metrics: stats.metrics, scope: 'Telemetry from the last 7 days; task states from all locally retained task records', limitations: 'Telemetry outside the 7-day window is excluded; task metrics are estimates when derived from evidence bytes.', measurement_type: stats.telemetry.measurement_type, source: stats.telemetry.source, timestamp: new Date().toISOString() },
     History: history,
-    Traces: traces.length ? { status: 'OBSERVED', count: traces.length, traces, measurement_type: 'exact', source: 'state/telemetry/traces/*.jsonl', timestamp: new Date().toISOString() } : unavailable('state/telemetry/traces/*.jsonl'),
-    Tasks: { status: stats.tasks.length ? 'OBSERVED' : 'UNAVAILABLE', count: stats.tasks.length || null, period: 'ALL_TIME', result_coverage: taskResultCoverage, tasks: stats.tasks.length ? stats.tasks : null, measurement_type: stats.tasks.length ? 'estimated' : 'unavailable', source: 'tasks/*/state.json + evidence', timestamp: new Date().toISOString() },
+    Traces: traces.length ? { status: 'OBSERVED', count: traces.length, traces, scope: 'All readable trace files currently retained under state/telemetry/traces', limitations: 'Malformed or unreadable trace files are skipped; no retention window is configured here.', measurement_type: 'exact', source: 'state/telemetry/traces/*.jsonl', timestamp: new Date().toISOString() } : unavailable('state/telemetry/traces/*.jsonl', 'No readable trace files are currently available.'),
+    Tasks: { status: stats.tasks.length ? 'OBSERVED' : 'UNAVAILABLE', count: stats.tasks.length || null, period: 'ALL_TIME', scope: 'All task directories with a readable state.json', limitations: 'Directories without readable state.json are excluded; result coverage reports evidence availability separately.', result_coverage: taskResultCoverage, tasks: stats.tasks.length ? stats.tasks : null, measurement_type: stats.tasks.length ? 'estimated' : 'unavailable', source: 'tasks/*/state.json + evidence', timestamp: new Date().toISOString() },
     Agents: registryView(registries.agents, 'state/registry/agents.json + telemetry/process discovery'),
     Tools: registryView(registries.tools, 'state/registry/tools.json + telemetry discovery'),
     Plugins: registryView(registries.plugins, 'state/registry/plugins.json + telemetry discovery'),
     MCPs: registryView(registries.mcps, 'state/registry/mcps.json + telemetry discovery'),
-    Graph: graphView ? { ...await graphView(), measurement_type: 'exact', source: 'Core GET /graph; read-only', timestamp: new Date().toISOString() } : unavailable('Core GET /graph; graph provider not configured'),
+    Graph: graphView ? { ...await graphView(), scope: 'Read-only snapshot returned by Core GET /graph', limitations: 'Graph completeness and pagination depend on the configured Core provider.', measurement_type: 'exact', source: 'Core GET /graph; read-only', timestamp: new Date().toISOString() } : unavailable('Core GET /graph; graph provider not configured', 'Graph provider is not configured; no graph values are inferred.'),
     Executions: executionEvidenceView,
     Cache: cache,
     Memory: memory,
     Validation: validation,
-    Alerts: { status: stats.alerts.length || stats.ceo_inbox.length ? 'OBSERVED' : 'UNAVAILABLE', count: stats.alerts.length + stats.ceo_inbox.length || null, items: stats.alerts.length || stats.ceo_inbox.length ? [...stats.alerts, ...stats.ceo_inbox] : null, measurement_type: stats.alerts.length || stats.ceo_inbox.length ? 'estimated' : 'unavailable', source: 'state/alerts/*.jsonl', timestamp: new Date().toISOString() }
+    Alerts: { status: stats.alerts.length || stats.ceo_inbox.length ? 'OBSERVED' : 'UNAVAILABLE', count: stats.alerts.length + stats.ceo_inbox.length || null, scope: 'All alert-history and CEO-inbox records readable from local alert files', limitations: 'Alert delivery outside the local dashboard is not verified by these records.', items: stats.alerts.length || stats.ceo_inbox.length ? [...stats.alerts, ...stats.ceo_inbox] : null, measurement_type: stats.alerts.length || stats.ceo_inbox.length ? 'estimated' : 'unavailable', source: 'state/alerts/*.jsonl', timestamp: new Date().toISOString() }
   };
 }
 
