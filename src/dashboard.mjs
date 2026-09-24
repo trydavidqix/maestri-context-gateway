@@ -279,6 +279,9 @@ async function cacheView(root) {
   return {
     status: observed ? 'OBSERVED' : 'UNAVAILABLE',
     samples: observed ? rows.length : null,
+    period: 'ALL_TIME',
+    record_limit: 5000,
+    limit_reached: rows.length === 5000,
     latest: latest ? {
       cache_hits: Number.isFinite(latest.cache_hits) ? latest.cache_hits : null,
       cache_misses: Number.isFinite(latest.cache_misses) ? latest.cache_misses : null,
@@ -298,17 +301,17 @@ async function historyView(root) {
   const types = {};
   for (const type of HISTORY_TYPES) {
     if (!available.has(type)) {
-      types[type] = { status: 'UNAVAILABLE', records: null, measurement_type: 'unavailable', source: `state/history/raw/${type}.jsonl` };
+      types[type] = { status: 'UNAVAILABLE', records: null, period: 'ALL_TIME', record_limit: 5000, limit_reached: false, measurement_type: 'unavailable', source: `state/history/raw/${type}.jsonl` };
       continue;
     }
     const rows = await store.query(type, { period: 'ALL_TIME', limit: 5000 });
-    types[type] = { status: 'OBSERVED', records: rows.length, measurement_type: rows.every(row => row.measurement_type === 'exact') ? 'exact' : 'estimated', source: `state/history/raw/${type}.jsonl` };
+    types[type] = { status: 'OBSERVED', records: rows.length, period: 'ALL_TIME', record_limit: 5000, limit_reached: rows.length === 5000, measurement_type: rows.every(row => row.measurement_type === 'exact') ? 'exact' : 'estimated', source: `state/history/raw/${type}.jsonl` };
   }
   const measurements = Object.values(types).map(type => type.measurement_type);
   const measurement_type = measurements.includes('unavailable')
     ? 'unavailable'
     : measurements.includes('estimated') ? 'estimated' : 'exact';
-  return { types, source: 'HistoryStore', measurement_type, timestamp: new Date().toISOString() };
+  return { types, period: 'ALL_TIME', source: 'HistoryStore', measurement_type, timestamp: new Date().toISOString() };
 }
 
 async function memoryView(root) {
@@ -338,6 +341,13 @@ async function validationView(root) {
     status: trust.status,
     paired_runs: aggregate.dataset_size || null,
     minimum_dataset: trust.minimum_dataset,
+    sample_coverage: aggregate.dataset_size > 0 && trust.minimum_dataset > 0 ? {
+      observed_pairs: aggregate.dataset_size,
+      required_pairs: trust.minimum_dataset,
+      coverage_percent: Number((Math.min(aggregate.dataset_size / trust.minimum_dataset, 1) * 100).toFixed(2)),
+      minimum_met: aggregate.dataset_size >= trust.minimum_dataset,
+      coverage_scope: 'minimum benchmark pairs'
+    } : null,
     categories: Object.keys(aggregate.categories).length ? aggregate.categories : null,
     trust,
     latest_run_id: runs.at(-1)?.run_id || null,
