@@ -82,6 +82,8 @@ test('dashboard exposes keyboard-accessible view navigation', async t => {
   assert.match(home.body, /id="tasks" role="region" aria-label="Tabela de tarefas recentes" tabindex="0"/);
   assert.match(home.body, /const requestId=\+\+viewLoadId/);
   assert.match(home.body, /if\(requestId!==viewLoadId\)return/);
+  assert.match(home.body, /fetch\('\/api\/views',\{cache:'no-store'\}\)/);
+  assert.doesNotMatch(home.body, /viewDataLoaded/);
   assert.match(home.body, /<caption class="visually-hidden">Tarefas recentes<\/caption>/);
   assert.equal([...home.body.matchAll(/<th scope="col">/g)].length, 7, 'task table headers must identify their columns');
 });
