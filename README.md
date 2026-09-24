@@ -58,6 +58,39 @@ The installer is safe to rerun and refuses to replace a task with a conflicting 
 
 `mcp discover` reads the global and project MCP catalogs for Claude Code, Codex, and Antigravity and prints metadata only (never auth values). `mcp probe` starts configured stdio MCP servers and sends only MCP discovery/list requests; it does not call tools. It records observed health and tool names in local `state/registry/mcps.json`. Use `--provider claude|codex|antigravity` or `--scope global|project` to limit a probe. HTTP endpoints require HTTPS, except loopback.
 
+## Local Runtime MCP batch tool
+
+The optional Local Runtime stdio server exposes exactly one MCP tool, `mcg_read_batch`, for bounded read-only workspace inspection. It accepts up to 20 typed file-read, read-if-changed, search, or log-read operations in one request. Workspace paths are confined to the root supplied by `MAESTRI_RUNTIME_WORKSPACE_ROOT`; the server exposes no shell, write, network, or git operation. This provides a single-call batching boundary, but does not by itself prove fewer model turns or token savings.
+
+Requirements: Node.js 20+ and dependencies installed from the repository lockfile. To launch it manually from PowerShell:
+
+```powershell
+$env:MAESTRI_RUNTIME_WORKSPACE_ROOT = (Resolve-Path 'C:\path\to\workspace').Path
+pnpm --dir 'C:\path\to\maestri-context-gateway' --filter @maestri/local-runtime mcp:stdio
+```
+
+The process speaks MCP over stdin/stdout; diagnostics go to stderr. A client must launch it as a local stdio process and provide the workspace environment variable. Claude Code supports project-scoped stdio registration (`claude mcp add --scope project --transport stdio ...`); Codex supports project-local MCP configuration in a trusted repository. **No provider/global configuration is installed or changed by this package.** Registering it in a host, approving the project server, and testing inside the user’s Claude/Codex session remain explicit host-side setup steps. Use the [Claude Code MCP reference](https://code.claude.com/docs/en/mcp) and [Codex MCP configuration documentation](https://developers.openai.com/codex/mcp) for the host’s current syntax. Do not copy credentials into the MCP configuration; this server requires only the workspace-root path.
+
+Example project-scoped launch (replace both absolute paths; this only illustrates host configuration and is not run by the repository tests):
+
+```powershell
+# Claude Code: writes only this repository's .mcp.json when run from its root.
+claude mcp add --scope project --transport stdio maestri-local-runtime --env "MAESTRI_RUNTIME_WORKSPACE_ROOT=C:\path\to\workspace" -- pnpm --dir C:\path\to\maestri-context-gateway --filter @maestri/local-runtime mcp:stdio
+```
+
+Codex project-local equivalent for a trusted repository, in that repository’s `.codex/config.toml` (not the user profile):
+
+```toml
+[mcp_servers.maestri_local_runtime]
+command = "pnpm"
+args = ["--dir", "C:\\path\\to\\maestri-context-gateway", "--filter", "@maestri/local-runtime", "mcp:stdio"]
+cwd = "C:\\path\\to\\maestri-context-gateway"
+env = { MAESTRI_RUNTIME_WORKSPACE_ROOT = "C:\\path\\to\\workspace" }
+enabled_tools = ["mcg_read_batch"]
+```
+
+Both examples require the repository dependencies to be installed first. After registration, verify tool discovery and a read-only call in the client. Claude project servers require workspace trust/approval; Codex loads project `.codex/` configuration only for trusted projects. Neither client configuration is checked into this repository because the workspace root is machine-specific.
+
 ## Tests
 
 ```powershell

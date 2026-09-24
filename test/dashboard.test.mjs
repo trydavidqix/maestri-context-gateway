@@ -282,7 +282,7 @@ test('dashboard exposes every M0.12 view without fake zero observations', async 
   const os = await import('node:os');
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'mcg-dashboard-views-'));
   const server = await createDashboardServer({ root, port: 0, wireProbe: async () => ({ online: false, workspace: 'Lumenva' }) });
-  t.after(async () => { await new Promise(resolve => server.close(resolve)); await fs.rm(root, { recursive: true, force: true }); });
+  t.after(async () => { await new Promise(resolve => server.close(resolve)); await fs.rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); });
   const response = await get(server.address().port, '/api/views');
   assert.equal(response.status, 200);
   const views = JSON.parse(response.body).views;

@@ -11,9 +11,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
       - name: MCG unit tests
         run: node --test test/*.test.mjs
       - name: Import and syntax smoke
@@ -24,3 +30,11 @@ jobs:
         run: node --test test/dashboard.test.mjs
       - name: Contracts smoke
         run: node --test test/contracts.test.mjs
+      - name: Local Runtime typecheck and tests
+        run: |
+          pnpm --dir packages/local-runtime typecheck
+          pnpm --dir packages/local-runtime test:unit
+      - name: Operating Core typecheck and tests
+        run: |
+          pnpm --dir packages/operating-core typecheck
+          pnpm --dir packages/operating-core test:unit
