@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { request } from 'node:http';
 import { createCoreExecutionFeed, createDashboardServer } from '../src/dashboard.mjs';
 import { saveEvaluation } from '../src/evals.mjs';
+import { dispatch, ingest } from '../src/core.mjs';
 import { recordHistory } from '../src/history/store.mjs';
 import { recordTelemetry } from '../src/telemetry.mjs';
 
@@ -258,6 +259,8 @@ test('dashboard exposes every M0.12 view without fake zero observations', async 
   assert.equal(views.Cache.period, 'ALL_TIME');
   assert.equal(views.Cache.record_limit, 5000);
   assert.equal(views.Cache.limit_reached, false);
+  assert.equal(views.Tasks.period, 'ALL_TIME');
+  assert.equal(views.Tasks.result_coverage, null);
   assert.equal(views.Memory.records, null);
   assert.equal(views.Validation.paired_runs, null);
   assert.equal(views.Validation.sample_coverage, null);
@@ -291,6 +294,10 @@ test('dashboard exposes every M0.12 view without fake zero observations', async 
   assert.equal(observedViews.Cache.period, 'ALL_TIME');
   assert.equal(observedViews.Cache.limit_reached, false);
   assert.deepEqual(observedViews.Validation.sample_coverage, { observed_pairs: 1, required_pairs: 30, coverage_percent: 3.33, minimum_met: false, coverage_scope: 'minimum benchmark pairs' });
+  await dispatch({ task_id: 'dashboard-result-coverage', executor: 'codex' }, root);
+  await ingest({ task_id: 'dashboard-result-coverage', event_id: 'dashboard-result-done', sequence: 1, state: 'DONE', result: 'report result' }, root);
+  const taskViews = JSON.parse((await get(server.address().port, '/api/views')).body).views;
+  assert.deepEqual(taskViews.Tasks.result_coverage, { tasks_with_result: 1, total_tasks: 1, coverage_percent: 100, coverage_basis: 'result.json evidence exists' });
 });
 
 test('history aggregate is unavailable when any history subtype is unavailable', async t => {
