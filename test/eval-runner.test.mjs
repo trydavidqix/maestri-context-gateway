@@ -43,7 +43,8 @@ try {
       stdout: JSON.stringify({ item: { type: 'agent_message', text: `safe answer ${credential}` } }) + '\n',
       stderr: `Authorization: Bearer ${credential}`,
       classification: 'SUCCESS', code: 0, duration_ms: 2, last_activity_at: new Date().toISOString(), heartbeat_count: 0,
-      timed_out: false, cancelled: false, policy: { job_class: 'NORMAL' }
+      timed_out: false, cancelled: false, policy: { job_class: 'NORMAL' },
+      operation: { operation_id: 'op-eval-fixture', status: 'SUCCESS', output: { total_bytes: 100 }, source: 'mcg.executor' }
     })
   });
   const persistedStdout = await readFile(join(root, 'state', 'evals', 'runs', paired.run_id + '-mcg.jsonl'), 'utf8');
@@ -51,5 +52,6 @@ try {
   assert.equal(persistedStdout.includes(credential), false);
   assert.equal(persistedStderr.includes(credential), false);
   assert.match(persistedStdout, /\[REDACTED\]/);
+  assert.equal(paired.mcg.executor_result.operation.operation_id, 'op-eval-fixture');
 } finally { await rm(root,{recursive:true,force:true}); }
 console.log('eval runner tests: 1 passed');

@@ -88,7 +88,7 @@ export async function runPairedCase({ root, binary, workspace = root, test, mode
       model, effort, workspace, tools: test.tools || [], observed_tools: parseCodexTools(result.stdout),
       policy: { sandbox: 'read-only', approval: 'never', user_config: 'ignored', ephemeral: true },
       workspace_snapshot: test.workspace_snapshot || 'same-workspace-read-only', job_class: result.policy.job_class,
-      executor_result: { classification: result.classification, exit_code: result.code, duration_ms: result.duration_ms, last_activity_at: result.last_activity_at, heartbeat_count: result.heartbeat_count, timed_out: result.timed_out, cancelled: result.cancelled },
+      executor_result: { classification: result.classification, exit_code: result.code, duration_ms: result.duration_ms, last_activity_at: result.last_activity_at, heartbeat_count: result.heartbeat_count, timed_out: result.timed_out, cancelled: result.cancelled, operation: result.operation || null },
       timestamp: new Date().toISOString(),
       evidence: { raw_jsonl: 'state/evals/runs/' + run_id + '-' + lane + '.jsonl', stderr: 'state/evals/runs/' + run_id + '-' + lane + '.stderr.txt' }
     };

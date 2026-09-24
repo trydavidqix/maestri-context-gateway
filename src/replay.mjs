@@ -54,6 +54,7 @@ export async function replayTask({ root, task_id, variant, binary, workspace = r
     timed_out: result.timed_out,
     cancelled: result.cancelled,
     job_class: result.policy.job_class,
+    operation: result.operation || null,
     original_untouched: true,
     snapshot: `${replay_id}/snapshot.json`,
     timestamp: new Date().toISOString()
