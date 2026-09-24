@@ -1,6 +1,8 @@
 # Lumenva → Maestri Context Gateway transfer ledger
 
-**Target branch:** `migration/lumenva-maestri-import-20260924`  
+**Target branch:** `main` (`4195fea8cde0edbd6b59e284a18141dab62701af`, PR #5)
+
+**Synced working branch:** `migration/lumenva-maestri-import-20260924` (same HEAD as `main`)
 **Source repository:** `trydavidqix/Lumenva`  
 **Rule:** import only Maestri-owned material. Do not merge whole monorepo branches. Do not touch source worktrees or CRM/voice/Meta/business paths.
 
@@ -24,7 +26,7 @@
 - The previous contract conflict was substantive: TOKENS workforce modules expected older task, execution, quota, context and evidence shapes. The local migration now keeps the single VPS `TaskContract`, `ExecutionPort`, `ExecutionResult` and `ContextPacket`; planning-domain `RiskLevel`, `TaskComplexity` and `MasterPlan` live in `workforce-types.ts`, with explicit risk conversion at execution boundaries. Strict typechecking and unit tests pass. Full workspace CI, provider-backed integrations, and dashboard ownership/behavior are not yet verified.
 - Next: run full workspace CI and safe integration tests with external services absent (no Docker); audit behavior against TOKENS acceptance criteria and record intentional adaptations; resolve Command Center ownership and import only Maestri-specific deltas after exact-path review.
 - Do not delete a ref until its allowlisted payload is in this repository, tests and security scans pass, source worktree is clean/released, and the user-approved cleanup list is checked against fresh remote SHAs.
-- This ledger records local file extraction, not a commit, push, merge, or completed migration.
+- PR #5 transferred the selected changes into standalone `main`; this does not mean all Maestri/Cloud Fabric acceptance gates or source-branch cleanup are complete.
 
 ## TOKENS Cloud Fabric — functional coverage audit (2026-09-24)
 
@@ -45,7 +47,7 @@ Compared against `TOKENS:docs/TOKENS_FRONTIER_BRAIN_AGENT_WORKFORCE_PLAN.md` at 
 | Routing history is recorded | routing traces and observations have persistence methods/adapters | **PARTIAL** — structural storage exists, but no integration test proves route → persisted trace/observation → reload/use. |
 | Model selection learns only from validated outcomes | `LearningRouter.historicalSuccess()` only returns model stats after validated sample threshold; unit boundary 1 vs 30 samples | **LOCAL STRUCTURAL PASS / RUNTIME OPEN** — validated sample filtering is tested; actual >=30 independently validated outcomes still required. |
 | No critical PASS relies on mock/placeholder | unconfigured adapters return blocked/unavailable; evidence gate | **STRUCTURAL PASS / RUNTIME OPEN** — no success stub found in the inspected provider adapters; authenticated executions, durable storage, and real-provider evidence are not run. |
-| Main untouched absent explicit approval | this migration branch only; no source/main mutation in this audit | **PASS FOR THIS AUDIT** — no commit, push, merge, or source-branch/worktree edit. |
+| Main integration | explicit owner authorization; PR #5 merged after both MCG CI checks passed | **MERGED** — selected Maestri transfer is in standalone `main`; source branches/worktrees remain unchanged. |
 
 ### Adaptation and next gates
 
