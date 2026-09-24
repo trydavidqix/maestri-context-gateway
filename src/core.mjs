@@ -17,12 +17,24 @@ export const INBOX = join(ROOT, 'events', 'inbox');
 export const TERMINAL = new Set(['DONE', 'BLOCKED_OWNER']);
 const INTERNAL = new Set(['CREATED', 'DISPATCHED', 'WORKING', 'TESTING', 'BUILDING', 'CI_RUNNING', 'RETRYING', 'APPROVAL_REQUIRED', 'BLOCKED', 'SECURITY_RISK', 'FAILED_FINAL', 'DONE', 'CANCELLED']);
 const SECRET_KEY = /pass(word)?|token|secret|private[_-]?key|api[_-]?key|authorization|cookie/i;
+const SECRET_PATTERNS = [
+  { pattern: /(\bAuthorization\s*[:=]\s*Bearer\s+)[^\s"'`,;]+/gi, replace: (_match, prefix) => `${prefix}[REDACTED]` },
+  { pattern: /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-(?:ant-)?[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{30,})\b/g, replace: () => '[REDACTED]' },
+  { pattern: /(\b(?:password|passwd|api[_-]?key|access[_-]?token|client[_-]?secret)\s*[:=]\s*)[^\s,;]+/gi, replace: (_match, prefix) => `${prefix}[REDACTED]` },
+  { pattern: /([?&](?:access_token|token|api_key|key)=)[^&\s]+/gi, replace: (_match, prefix) => `${prefix}[REDACTED]` },
+  { pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, replace: () => '[REDACTED PRIVATE KEY]' }
+];
+
+function redactText(value) {
+  return SECRET_PATTERNS.reduce((text, item) => text.replace(item.pattern, item.replace), value);
+}
 
 function redact(value, key = '') {
   if (/^(input_tokens|cached_input_tokens|output_tokens|reasoning_tokens|total_tokens)$/i.test(key) && Number.isFinite(value)) return value;
   if (SECRET_KEY.test(key)) return '[REDACTED]';
   if (Array.isArray(value)) return value.map(item => redact(item));
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, redact(item, name)]));
+  if (typeof value === 'string') return redactText(value);
   return value;
 }
 
@@ -177,13 +189,24 @@ export async function waitForTerminal(id, root = ROOT, timeoutMs = 0) {
   });
 }
 
-export async function sliceEvidence(id, type = 'manifest', lines = 80, root = ROOT) {
+export async function sliceEvidence(id, type = 'manifest', lines = 80, root = ROOT, offset = 0) {
   assertTaskId(id);
   const base = join(root, 'tasks', id);
+  const limit = Math.max(1, Math.min(Number.isFinite(lines) ? Math.trunc(lines) : 80, 200));
+  const start = Math.max(0, Number.isFinite(offset) ? Math.trunc(offset) : 0);
+  if (type === 'result') {
+    const state = JSON.parse(await readFile(join(base, 'state.json'), 'utf8'));
+    if (state.result == null) throw new Error('result evidence unavailable');
+    const text = typeof state.result === 'string' ? state.result : JSON.stringify(state.result, null, 2);
+    const rows = text.split('\n');
+    const page = rows.slice(start, start + limit);
+    if (!page.length && start > 0) throw new Error('result evidence offset is beyond the available lines');
+    return `${page.join('\n')}\n[MCG RESULT EVIDENCE: lines ${start + 1}-${Math.min(start + limit, rows.length)} of ${rows.length}${start + limit < rows.length ? `; continue with --offset ${start + limit}` : ''}]`;
+  }
   const names = type === 'validation' ? ['validation.json'] : type === 'ci' ? ['evidence', 'ci.log'] : type === 'tests' ? ['evidence', 'tests.log'] : ['manifest.json'];
   const path = join(base, ...names);
   const text = await readFile(path, 'utf8');
-  return text.split('\n').slice(0, Math.max(1, Math.min(lines, 200))).join('\n');
+  return text.split('\n').slice(start, start + limit).join('\n');
 }
 
 export async function listTasks(root = ROOT) {
