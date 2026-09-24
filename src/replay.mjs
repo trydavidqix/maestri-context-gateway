@@ -5,8 +5,9 @@ import { parseCodexJsonl } from './codex-usage.mjs';
 import { recordTelemetry } from './telemetry.mjs';
 import { runProcess } from './executor.mjs';
 import { recordHistory } from './history/store.mjs';
+import { redactSensitive, redactText } from './redaction.mjs';
 
-export async function replayTask({ root, task_id, variant, binary, workspace = root, job_class = 'NORMAL', timeout_ms, signal } = {}) {
+export async function replayTask({ root, task_id, variant, binary, workspace = root, job_class = 'NORMAL', timeout_ms, signal, processRunner = runProcess } = {}) {
   if (!['baseline', 'mcg'].includes(variant)) throw new Error('variant must be baseline or mcg');
   const state = JSON.parse(await readFile(join(root, 'tasks', task_id, 'state.json'), 'utf8'));
   let context = '';
@@ -22,7 +23,7 @@ export async function replayTask({ root, task_id, variant, binary, workspace = r
   await mkdir(dir, { recursive: true, mode: 0o700 });
   await writeFile(join(dir, 'snapshot.json'), `${JSON.stringify({ replay_id, source_task_id: task_id, variant, workspace_snapshot: 'read-only process snapshot', original_untouched: true, timestamp: new Date().toISOString() }, null, 2)}\n`, { mode: 0o600 });
 
-  const result = await runProcess({
+  const result = await processRunner({
     command: binary,
     args: ['exec', '--ignore-user-config', '--ephemeral', '--skip-git-repo-check', '--sandbox', 'read-only', '--json', '-C', workspace, prompt],
     cwd: workspace,
@@ -35,8 +36,8 @@ export async function replayTask({ root, task_id, variant, binary, workspace = r
     replay_id,
     source_task_id: task_id,
     variant,
-    result: result.stdout,
-    stderr: result.stderr,
+    result: redactText(result.stdout),
+    stderr: redactText(result.stderr),
     success: result.classification === 'SUCCESS',
     exit_code: result.code,
     exit_classification: result.classification,
@@ -58,7 +59,7 @@ export async function replayTask({ root, task_id, variant, binary, workspace = r
     timestamp: new Date().toISOString()
   };
   await writeFile(join(dir, 'result.json'), `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 });
-  await recordHistory(root, 'replay', record);
+  await recordHistory(root, 'replay', redactSensitive(record));
   await recordTelemetry(root, {
     task_id,
     executor: 'codex',

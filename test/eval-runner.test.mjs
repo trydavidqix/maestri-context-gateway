@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildCodexArgs, buildLanePrompt, runValidationSuite, selectValidationCases } from '../src/eval-runner.mjs';
+import { buildCodexArgs, buildLanePrompt, runPairedCase, runValidationSuite, selectValidationCases } from '../src/eval-runner.mjs';
 import { saveEvaluation } from '../src/evals.mjs';
 const sample={id:'x',category:'context-recall',evidence:'A = one\nB = two',question:'Report values.',no_evidence_question:'Unknown?',expected_contains:['one','two'],archive_lines:20,tools:[]};
 assert.ok(buildLanePrompt('baseline',sample).length>buildLanePrompt('mcg',sample).length);
@@ -32,5 +32,24 @@ try {
   assert.equal(resumed.pairs, 1);
   assert.equal(resumed.executed_pairs, 0);
   assert.deepEqual(resumed.run_ids, ['completed-case-1']);
+
+  const credential = ['gh', 'p_', 'abcdefghijklmnopqrstuvwxyz', '0123456789'].join('');
+  const paired = await runPairedCase({
+    root,
+    binary: 'must-not-run',
+    workspace: root,
+    test: { ...sample, id: 'redaction-case', expected_contains: ['safe answer'] },
+    processRunner: async () => ({
+      stdout: JSON.stringify({ item: { type: 'agent_message', text: `safe answer ${credential}` } }) + '\n',
+      stderr: `Authorization: Bearer ${credential}`,
+      classification: 'SUCCESS', code: 0, duration_ms: 2, last_activity_at: new Date().toISOString(), heartbeat_count: 0,
+      timed_out: false, cancelled: false, policy: { job_class: 'NORMAL' }
+    })
+  });
+  const persistedStdout = await readFile(join(root, 'state', 'evals', 'runs', paired.run_id + '-mcg.jsonl'), 'utf8');
+  const persistedStderr = await readFile(join(root, 'state', 'evals', 'runs', paired.run_id + '-mcg.stderr.txt'), 'utf8');
+  assert.equal(persistedStdout.includes(credential), false);
+  assert.equal(persistedStderr.includes(credential), false);
+  assert.match(persistedStdout, /\[REDACTED\]/);
 } finally { await rm(root,{recursive:true,force:true}); }
 console.log('eval runner tests: 1 passed');

@@ -24,7 +24,7 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 
 - Single active cross-blueprint plan: [`MASTER_BLUEPRINT_CANONICAL.md`](MASTER_BLUEPRINT_CANONICAL.md). MCG evidence remains tracked in this status file and in §49 of that plan.
 - Consolidated progress: **3/7 phases accepted = 43%**. This uses a broader denominator than the former 2/6 dashboard-only tracker; it is a scope reconciliation, not newly completed work.
-- Phases 0–2 are accepted. Phase 3 Token Firewall is partial and not accepted; PR #19 adds secret-redacted result drill-through but does not close batching, end-to-end reuse, or provider benchmark gates. Phases 4–6 (14 reports, reference-faithful dual theme/accessibility, final eval/benchmark/release) remain open.
+- Phases 0–2 are accepted. Phase 3 Token Firewall is partial and not accepted; PR #19 adds secret-redacted task-result drill-through and PR #22 extends redaction to replay/evaluation artifacts, but batching, end-to-end reuse, and provider benchmark gates remain open. Phases 4–6 (14 reports, reference-faithful dual theme/accessibility, final eval/benchmark/release) remain open.
 - Jules drafts/session `6700594731787502098` remain paused/unaccepted and are not part of the accepted branch. Do not count them as implementation evidence.
 - `superpowers/plans/2026-09-23-dashboard-reports-token-firewall.md` is retained as historical detail and superseded by the master plan; it is not a second active tracker.
 

@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { parseCodexJsonl, parseCodexTools } from './codex-usage.mjs';
 import { aggregatePairedEvaluations, gradeContextRecall, gradeHallucinations, qualityPreservingSavings, saveEvaluation, trustScore } from './evals.mjs';
 import { runProcess } from './executor.mjs';
+import { redactText } from './redaction.mjs';
 
 const DEFAULT_MODEL = 'gpt-5.5';
 const DEFAULT_EFFORT = 'medium';
@@ -65,7 +66,7 @@ function gradeCase(test, answer) {
   };
 }
 
-export async function runPairedCase({ root, binary, workspace = root, test, model = DEFAULT_MODEL, effort = DEFAULT_EFFORT, job_class = 'NORMAL', timeout_ms, signal } = {}) {
+export async function runPairedCase({ root, binary, workspace = root, test, model = DEFAULT_MODEL, effort = DEFAULT_EFFORT, job_class = 'NORMAL', timeout_ms, signal, processRunner = runProcess } = {}) {
   if (!test?.id) throw new Error('validation test id required');
   const run_id = 'pair-' + test.id + '-' + Date.now() + '-' + randomUUID().slice(0, 8);
   const dir = join(root, 'state', 'evals', 'runs');
@@ -74,7 +75,7 @@ export async function runPairedCase({ root, binary, workspace = root, test, mode
   const runLane = async lane => {
     const prompt = buildLanePrompt(lane, test);
     const args = buildCodexArgs({ model, effort, workspace, prompt });
-    const result = await runProcess({ command: binary, args, cwd: workspace, job_class, timeout_ms, signal });
+    const result = await processRunner({ command: binary, args, cwd: workspace, job_class, timeout_ms, signal });
     const usage = parseCodexJsonl(result.stdout);
     const answer = answerFromJsonl(result.stdout);
     const grade = gradeCase(test, answer);
@@ -91,8 +92,8 @@ export async function runPairedCase({ root, binary, workspace = root, test, mode
       timestamp: new Date().toISOString(),
       evidence: { raw_jsonl: 'state/evals/runs/' + run_id + '-' + lane + '.jsonl', stderr: 'state/evals/runs/' + run_id + '-' + lane + '.stderr.txt' }
     };
-    await writeFile(join(dir, run_id + '-' + lane + '.jsonl'), result.stdout, { mode: 0o600 });
-    await writeFile(join(dir, run_id + '-' + lane + '.stderr.txt'), result.stderr, { mode: 0o600 });
+    await writeFile(join(dir, run_id + '-' + lane + '.jsonl'), redactText(result.stdout), { mode: 0o600 });
+    await writeFile(join(dir, run_id + '-' + lane + '.stderr.txt'), redactText(result.stderr), { mode: 0o600 });
     return record;
   };
 

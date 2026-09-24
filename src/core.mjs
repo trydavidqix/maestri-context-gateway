@@ -10,34 +10,13 @@ import { compileContext } from './context/compiler.mjs';
 import { cacheContext } from './context/cache.mjs';
 import { recordHistory } from './history/store.mjs';
 import { assertContract } from './contracts.mjs';
+import { redactSensitive as redact } from './redaction.mjs';
 
 export const ROOT = process.env.MCG_ROOT || resolve(dirname(fileURLToPath(import.meta.url)), '..', '.mcg-state');
 export const TASKS = join(ROOT, 'tasks');
 export const INBOX = join(ROOT, 'events', 'inbox');
 export const TERMINAL = new Set(['DONE', 'BLOCKED_OWNER']);
 const INTERNAL = new Set(['CREATED', 'DISPATCHED', 'WORKING', 'TESTING', 'BUILDING', 'CI_RUNNING', 'RETRYING', 'APPROVAL_REQUIRED', 'BLOCKED', 'SECURITY_RISK', 'FAILED_FINAL', 'DONE', 'CANCELLED']);
-const SECRET_KEY = /pass(word)?|token|secret|private[_-]?key|api[_-]?key|authorization|cookie/i;
-const SECRET_PATTERNS = [
-  { pattern: /(\bAuthorization\s*[:=]\s*Bearer\s+)[^\s"'`,;]+/gi, replace: (_match, prefix) => `${prefix}[REDACTED]` },
-  { pattern: /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-(?:ant-)?[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{30,})\b/g, replace: () => '[REDACTED]' },
-  { pattern: /(\b(?:password|passwd|api[_-]?key|access[_-]?token|client[_-]?secret)\s*[:=]\s*)[^\s,;]+/gi, replace: (_match, prefix) => `${prefix}[REDACTED]` },
-  { pattern: /([?&](?:access_token|token|api_key|key)=)[^&\s]+/gi, replace: (_match, prefix) => `${prefix}[REDACTED]` },
-  { pattern: /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, replace: () => '[REDACTED PRIVATE KEY]' }
-];
-
-function redactText(value) {
-  return SECRET_PATTERNS.reduce((text, item) => text.replace(item.pattern, item.replace), value);
-}
-
-function redact(value, key = '') {
-  if (/^(input_tokens|cached_input_tokens|output_tokens|reasoning_tokens|total_tokens)$/i.test(key) && Number.isFinite(value)) return value;
-  if (SECRET_KEY.test(key)) return '[REDACTED]';
-  if (Array.isArray(value)) return value.map(item => redact(item));
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, redact(item, name)]));
-  if (typeof value === 'string') return redactText(value);
-  return value;
-}
-
 export async function ensureLayout(root = ROOT) {
   for (const path of [root, join(root, 'config'), join(root, 'state'), join(root, 'tasks'), join(root, 'events', 'inbox'), join(root, 'logs')]) await mkdir(path, { recursive: true, mode: 0o700 });
 }
