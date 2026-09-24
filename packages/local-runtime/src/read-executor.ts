@@ -1,14 +1,113 @@
 import { readFile, readdir, realpath, stat } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { createConnection } from "node:net";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import type { RuntimeCommand, RuntimeCorrelation } from "./contracts.js";
-import { SafeCommandRunner } from "./command-runner.js";
+import { redactRuntimeText, SafeCommandRunner } from "./command-runner.js";
 
 export interface ExecutorResult<T> {
   capabilityId: string;
   risk: "R0";
   deterministic: true;
   value: T;
+}
+
+export type ReadOnlyBatchOperation =
+  | { id: string; kind: "read"; path: string }
+  | { id: string; kind: "search"; query: string }
+  | { id: string; kind: "git-status"; correlation: RuntimeCorrelation }
+  | { id: string; kind: "git-diff"; correlation: RuntimeCorrelation }
+  | { id: string; kind: "git-log"; correlation: RuntimeCorrelation; count?: number }
+  | { id: string; kind: "read-log"; path: string; maxLines?: number }
+  | { id: string; kind: "service-health"; url: string; timeoutMs?: number }
+  | { id: string; kind: "port-check"; host: string; port: number; timeoutMs?: number };
+
+export type ReadOnlyBatchItem =
+  | { id: string; status: "succeeded"; value: ExecutorResult<unknown>; contentBytes: number }
+  | { id: string; status: "failed"; errorCode: string }
+  | { id: string; status: "omitted"; errorCode: "batch_output_budget_exceeded"; contentBytes: number };
+
+export interface ReadOnlyBatchResult {
+  batchId: string;
+  status: "succeeded" | "partial" | "failed";
+  total: number;
+  succeeded: number;
+  failed: number;
+  omitted: number;
+  outputBytes: number;
+  maxOutputBytes: number;
+  durationMs: number;
+  results: readonly ReadOnlyBatchItem[];
+  source: "runtime.read-only-batch";
+  measurementType: "exact";
+}
+
+const MAX_BATCH_OPERATIONS = 20;
+const DEFAULT_BATCH_OUTPUT_BYTES = 64_000;
+const MAX_BATCH_OUTPUT_BYTES = 256_000;
+const DEFAULT_BATCH_CONCURRENCY = 4;
+const MAX_BATCH_CONCURRENCY = 8;
+const MAX_BATCH_FIELD_LENGTH = 4_096;
+const MAX_BATCH_TIMEOUT_MS = 10_000;
+
+const BATCH_FIELDS: Record<ReadOnlyBatchOperation["kind"], readonly string[]> = {
+  read: ["id", "kind", "path"],
+  search: ["id", "kind", "query"],
+  "git-status": ["id", "kind", "correlation"],
+  "git-diff": ["id", "kind", "correlation"],
+  "git-log": ["id", "kind", "correlation", "count"],
+  "read-log": ["id", "kind", "path", "maxLines"],
+  "service-health": ["id", "kind", "url", "timeoutMs"],
+  "port-check": ["id", "kind", "host", "port", "timeoutMs"],
+};
+
+function batchErrorCode(error: unknown): string {
+  if (error && typeof error === "object" && "code" in error && typeof error.code === "string" && /^[a-z0-9_]{1,80}$/i.test(error.code)) return error.code;
+  if (error instanceof Error) {
+    const code = error.message.split(":", 1)[0];
+    if (/^runtime_[a-z0-9_]{1,72}$/i.test(code)) return code;
+  }
+  return "read_operation_failed";
+}
+
+function sanitizeBatchValue<T>(value: T, key = ""): T {
+  if (typeof value === "string") return (/(token|secret|password|passwd|api[_-]?key|authorization|cookie)/i.test(key) ? "[REDACTED]" : redactRuntimeText(value)) as T;
+  if (Array.isArray(value)) return value.map((item) => sanitizeBatchValue(item)) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, sanitizeBatchValue(item, name)])) as T;
+  }
+  return value;
+}
+
+function assertBatchOperations(value: readonly ReadOnlyBatchOperation[]): void {
+  if (!Array.isArray(value) || value.length < 1 || value.length > MAX_BATCH_OPERATIONS) throw new Error("runtime_batch_size_invalid");
+  const ids = new Set<string>();
+  for (const operation of value) {
+    if (!operation || typeof operation !== "object" || !Object.hasOwn(BATCH_FIELDS, operation.kind)) throw new Error("runtime_batch_operation_invalid");
+    const fields = BATCH_FIELDS[operation.kind as keyof typeof BATCH_FIELDS];
+    if (Object.keys(operation).some((field) => !fields.includes(field))) throw new Error("runtime_batch_operation_invalid");
+    if (typeof operation.id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(operation.id)) throw new Error("runtime_batch_operation_invalid");
+    if (ids.has(operation.id)) throw new Error("runtime_batch_duplicate_id");
+    ids.add(operation.id);
+    const validText = (text: unknown, maxLength = MAX_BATCH_FIELD_LENGTH): text is string => typeof text === "string" && text.length > 0 && text.length <= maxLength;
+    const validTimeout = (timeout: unknown): boolean => timeout === undefined || (Number.isInteger(timeout) && Number(timeout) >= 1 && Number(timeout) <= MAX_BATCH_TIMEOUT_MS);
+    if ("path" in operation && !validText(operation.path)) throw new Error("runtime_batch_operation_invalid");
+    if ("query" in operation && !validText(operation.query, 1_000)) throw new Error("runtime_batch_operation_invalid");
+    if ("url" in operation && (!validText(operation.url, 2_048) || !/^https?:\/\//i.test(operation.url))) throw new Error("runtime_batch_operation_invalid");
+    if ("host" in operation && !validText(operation.host, 253)) throw new Error("runtime_batch_operation_invalid");
+    if ("port" in operation && (!Number.isInteger(operation.port) || operation.port < 1 || operation.port > 65_535)) throw new Error("runtime_batch_operation_invalid");
+    if ("timeoutMs" in operation && !validTimeout(operation.timeoutMs)) throw new Error("runtime_batch_operation_invalid");
+    if ("count" in operation && (!Number.isInteger(operation.count) || Number(operation.count) < 1 || Number(operation.count) > 100)) throw new Error("runtime_batch_operation_invalid");
+    if ("maxLines" in operation && (!Number.isInteger(operation.maxLines) || Number(operation.maxLines) < 1 || Number(operation.maxLines) > 2_000)) throw new Error("runtime_batch_operation_invalid");
+    if ("correlation" in operation) {
+      const correlation = operation.correlation as unknown;
+      const allowedCorrelationFields = ["organizationId", "traceId", "sessionId", "taskId", "jobId", "stepId"];
+      if (!correlation || typeof correlation !== "object" || Array.isArray(correlation)) throw new Error("runtime_batch_operation_invalid");
+      const entries = Object.entries(correlation);
+      if (entries.some(([key, item]) => !allowedCorrelationFields.includes(key) || !validText(item, 256))) throw new Error("runtime_batch_operation_invalid");
+      if (!validText(Reflect.get(correlation, "organizationId"), 256) || !validText(Reflect.get(correlation, "traceId"), 256)) throw new Error("runtime_batch_operation_invalid");
+    }
+  }
 }
 
 export interface ReadExecutorOptions {
@@ -111,6 +210,76 @@ export class ReadOnlyLocalExecutor {
       socket.once("error", () => done(false));
     });
     return this.result("port.check", open);
+  }
+
+  async batch(
+    operations: readonly ReadOnlyBatchOperation[],
+    { concurrency = DEFAULT_BATCH_CONCURRENCY, maxOutputBytes = DEFAULT_BATCH_OUTPUT_BYTES }: { concurrency?: number; maxOutputBytes?: number } = {},
+  ): Promise<ReadOnlyBatchResult> {
+    assertBatchOperations(operations);
+    if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > MAX_BATCH_CONCURRENCY) throw new Error("runtime_batch_concurrency_invalid");
+    if (!Number.isInteger(maxOutputBytes) || maxOutputBytes < 1 || maxOutputBytes > MAX_BATCH_OUTPUT_BYTES) throw new Error("runtime_batch_output_budget_invalid");
+
+    const started = Date.now();
+    const outcomes = new Array<{ id: string; value: ExecutorResult<unknown> } | { id: string; errorCode: string }>(operations.length);
+    let cursor = 0;
+    const execute = async (operation: ReadOnlyBatchOperation): Promise<ExecutorResult<unknown>> => {
+      switch (operation.kind) {
+        case "read": return this.read(operation.path);
+        case "search": return this.search(operation.query);
+        case "git-status": return this.gitStatus(operation.correlation);
+        case "git-diff": return this.gitDiff(operation.correlation);
+        case "git-log": return this.gitLog(operation.correlation, operation.count);
+        case "read-log": return this.readLog(operation.path, operation.maxLines);
+        case "service-health": return this.serviceHealth(operation.url, operation.timeoutMs);
+        case "port-check": return this.portCheck(operation.host, operation.port, operation.timeoutMs);
+      }
+    };
+    const worker = async (): Promise<void> => {
+      while (true) {
+        const index = cursor++;
+        if (index >= operations.length) return;
+        const operation = operations[index];
+        try { outcomes[index] = { id: operation.id, value: sanitizeBatchValue(await execute(operation)) }; }
+        catch (error) { outcomes[index] = { id: operation.id, errorCode: batchErrorCode(error) }; }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, operations.length) }, () => worker()));
+
+    let remainingBytes = maxOutputBytes;
+    let outputBytes = 0;
+    let succeeded = 0;
+    let failed = 0;
+    let omitted = 0;
+    const results = outcomes.map((outcome): ReadOnlyBatchItem => {
+      if ("errorCode" in outcome) {
+        failed += 1;
+        return { id: outcome.id, status: "failed", errorCode: outcome.errorCode };
+      }
+      const contentBytes = Buffer.byteLength(JSON.stringify(outcome.value.value), "utf8");
+      if (contentBytes > remainingBytes) {
+        omitted += 1;
+        return { id: outcome.id, status: "omitted", errorCode: "batch_output_budget_exceeded", contentBytes };
+      }
+      remainingBytes -= contentBytes;
+      outputBytes += contentBytes;
+      succeeded += 1;
+      return { id: outcome.id, status: "succeeded", value: outcome.value, contentBytes };
+    });
+    return {
+      batchId: `read-batch-${randomUUID()}`,
+      status: failed + omitted === operations.length ? "failed" : failed || omitted ? "partial" : "succeeded",
+      total: operations.length,
+      succeeded,
+      failed,
+      omitted,
+      outputBytes,
+      maxOutputBytes,
+      durationMs: Math.max(0, Date.now() - started),
+      results,
+      source: "runtime.read-only-batch",
+      measurementType: "exact",
+    };
   }
 
   private async git(capabilityId: string, correlation: RuntimeCorrelation, args: readonly string[]): Promise<ExecutorResult<string>> {

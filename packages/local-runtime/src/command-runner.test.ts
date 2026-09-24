@@ -60,5 +60,6 @@ describe("SafeCommandRunner", () => {
   it("redacts common credential values", () => {
     expect(redactRuntimeText("Authorization: Bearer abcdefghijklmnop")).not.toContain("abcdefghijklmnop");
     expect(redactRuntimeText("token ghp_abcdefghijklmnopqrstuvwxyz")).not.toContain("ghp_abcdefghijklmnopqrstuvwxyz");
+    expect(redactRuntimeText("api_key=very-private-material")).not.toContain("very-private-material");
   });
 });

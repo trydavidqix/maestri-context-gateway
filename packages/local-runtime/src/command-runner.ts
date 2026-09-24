@@ -20,9 +20,10 @@ export class CommandPolicyError extends Error {
 
 const SECRET_KEY = /(token|secret|password|passwd|api[_-]?key|authorization|cookie)/i;
 const SECRET_VALUE = /(bearer\s+[a-z0-9._~+\/-]+=*|(?:sk|ghp|github_pat|xox)[-_a-z0-9]{12,})/gi;
+const SECRET_ASSIGNMENT = /(\b(?:password|passwd|token|secret|api[_-]?key|access[_-]?token|client[_-]?secret)\b["']?\s*[:=]\s*["']?)[^\s,"'`]+/gi;
 
 export function redactRuntimeText(value: string): string {
-  return value.replace(SECRET_VALUE, "[REDACTED]");
+  return value.replace(SECRET_VALUE, "[REDACTED]").replace(SECRET_ASSIGNMENT, "$1[REDACTED]");
 }
 
 function contained(root: string, child: string): boolean {
