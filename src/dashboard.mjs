@@ -396,11 +396,18 @@ export async function dashboardViews(root = ROOT, { graphView, executionFeed, re
       : measurements.includes('estimated') ? 'estimated' : 'exact';
     return { status: observed.length ? 'OBSERVED' : 'UNAVAILABLE', count: observed.length || null, registered_count: rows.length || null, items: rows, measurement_type, source, timestamp: new Date().toISOString() };
   };
+  const tasksWithResult = stats.tasks.filter(task => task.measurable).length;
+  const taskResultCoverage = stats.tasks.length ? {
+    tasks_with_result: tasksWithResult,
+    total_tasks: stats.tasks.length,
+    coverage_percent: Number((tasksWithResult / stats.tasks.length * 100).toFixed(2)),
+    coverage_basis: 'result.json evidence exists'
+  } : null;
   return {
     Overview: { status: 'OBSERVED', tasks_processed: stats.tasks_processed, tasks_active: stats.tasks_active, metrics: stats.metrics, measurement_type: stats.telemetry.measurement_type, source: stats.telemetry.source, timestamp: new Date().toISOString() },
     History: history,
     Traces: traces.length ? { status: 'OBSERVED', count: traces.length, traces, measurement_type: 'exact', source: 'state/telemetry/traces/*.jsonl', timestamp: new Date().toISOString() } : unavailable('state/telemetry/traces/*.jsonl'),
-    Tasks: { status: stats.tasks.length ? 'OBSERVED' : 'UNAVAILABLE', count: stats.tasks.length || null, tasks: stats.tasks.length ? stats.tasks : null, measurement_type: stats.tasks.length ? 'estimated' : 'unavailable', source: 'tasks/*/state.json + evidence', timestamp: new Date().toISOString() },
+    Tasks: { status: stats.tasks.length ? 'OBSERVED' : 'UNAVAILABLE', count: stats.tasks.length || null, period: 'ALL_TIME', result_coverage: taskResultCoverage, tasks: stats.tasks.length ? stats.tasks : null, measurement_type: stats.tasks.length ? 'estimated' : 'unavailable', source: 'tasks/*/state.json + evidence', timestamp: new Date().toISOString() },
     Agents: registryView(registries.agents, 'state/registry/agents.json + telemetry/process discovery'),
     Tools: registryView(registries.tools, 'state/registry/tools.json + telemetry discovery'),
     Plugins: registryView(registries.plugins, 'state/registry/plugins.json + telemetry discovery'),
