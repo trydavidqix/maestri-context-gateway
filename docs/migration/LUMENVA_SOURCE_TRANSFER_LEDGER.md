@@ -1,8 +1,8 @@
 # Lumenva → Maestri Context Gateway transfer ledger
 
-**Target branch:** `main` (verified through PR #20 on 2026-09-24 at `a54d778d994089878cab7ee2282f2631d14a351c`; payload merged by PR #5, audit reconciliation by PR #7, dashboard work by PRs #8–20)
+**Target branch:** standalone `main`, verified after PR #23 and its follow-up at `eda600c859dc6ddcf6c917b984b4bf6560b116dd` on 2026-09-24; payload merged by PR #5, audit reconciliation by PR #7, dashboard/Token Firewall work by PRs #8–23.
 
-**Migration branch:** `migration/lumenva-maestri-import-20260924` (verified at the exact same tip as `main`, `a54d778d994089878cab7ee2282f2631d14a351c`; retained as a compatibility pointer with no unique commits)
+**Migration branch:** `migration/lumenva-maestri-import-20260924` (verified at the exact same tip as `main`, `eda600c859dc6ddcf6c917b984b4bf6560b116dd`; retained as a compatibility pointer with no unique commits)
 **Source repository:** `trydavidqix/Lumenva`  
 **Rule:** import only Maestri-owned material. Do not merge whole monorepo branches. Do not touch source worktrees or CRM/voice/Meta/business paths.
 
@@ -17,7 +17,7 @@
 
 | Workstream | Source ref (audited SHA) | Transfer state | Evidence / next gate |
 |---|---|---|---|
-| MCG standalone | target repository main `a54d778d994089878cab7ee2282f2631d14a351c` | Already present | Audit against current source consumer; no duplicate gateway import. |
+| MCG standalone | target repository main `eda600c859dc6ddcf6c917b984b4bf6560b116dd` (verified snapshot) | Already present | Audit against current source consumer; no duplicate gateway import. |
 | Maestri V3 Core | `vps` `d04568d6db764dd60bb60bd6fefa6491997c2205` | Files copied locally; two manual Actions preserved disabled under `docs/archive/source-blueprints/` | Core + Cloud Fabric strict typecheck passes; 69/69 unit tests pass, 2 integration tests skipped. |
 | Advanced Cloud Fabric / Workforce | `TOKENS` `3de66946d3d3555ef18f00abdf6c59ad1a16851d` | 61 unique add-only modules copied locally; workforce planning types separated; contracts adapted to canonical execution/context shapes | Strict typecheck passes; 69/69 unit tests pass, 2 integration tests skipped. Local orchestrator fakes cover routing/model handoff, independent review persistence and scope blocking. Provider-backed integration/runtime validation remains pending. |
 | Local Runtime | `lumenva-local-runtime` `339a19b49d1346bfb40fe09c8880b7b19513d04b` | Files copied locally | Tests 14/14 and typecheck pass. Package and imports are Maestri-namespaced. |
@@ -35,7 +35,7 @@
 - The previous contract conflict was substantive: TOKENS workforce modules expected older task, execution, quota, context and evidence shapes. The local migration now keeps the single VPS `TaskContract`, `ExecutionPort`, `ExecutionResult` and `ContextPacket`; planning-domain `RiskLevel`, `TaskComplexity` and `MasterPlan` live in `workforce-types.ts`, with explicit risk conversion at execution boundaries. Strict typechecking and unit tests pass. Full workspace CI, provider-backed integrations, and dashboard ownership/behavior are not yet verified.
 - Next: run full workspace CI and safe integration tests with external services absent (no Docker); audit behavior against TOKENS acceptance criteria and record intentional adaptations; resolve Command Center ownership and import only Maestri-specific deltas after exact-path review.
 - Do not delete a ref until its allowlisted payload is in this repository, tests and security scans pass, source worktree is clean/released, and the user-approved cleanup list is checked against fresh remote SHAs.
-- PR #5 transferred selected changes into standalone `main`; PR #6 merged initial status; PR #7 reconciled audit records; PRs #8–20 advanced dashboard reports, accessibility, freshness and evidence. The verified target HEAD is `a54d778d994089878cab7ee2282f2631d14a351c`; `origin/main` and `origin/migration/lumenva-maestri-import-20260924` point to this exact same commit. This does not mean all Maestri/Cloud Fabric acceptance gates or source-branch cleanup are complete.
+- PR #5 transferred selected changes into standalone `main`; PR #6 merged initial status; PR #7 reconciled audit records; PRs #8–23 advanced dashboard reports, accessibility, freshness, redaction and execution evidence. A small follow-up to PR #23 persisted its operation envelope in replay/evaluation records. At the recorded check, `main`, `origin/main` and `origin/migration/lumenva-maestri-import-20260924` point to `eda600c859dc6ddcf6c917b984b4bf6560b116dd`. This does not mean all Maestri/Cloud Fabric acceptance gates or source-branch cleanup are complete.
 - Dashboard reports: all 14 registered views have readable fields/lists, provenance, explicit per-view data scope/limitations and unavailable states; dark/light/system themes; report focus/table semantics/live announcements and fresh no-store data per visit are implemented. Cache/History disclose ALL_TIME and 5,000-record bounds; Validation reports observed pair coverage against the 30-pair minimum; Tasks reports exact result-evidence coverage against all observed tasks. Cache/History distinguish report query time from the last recorded source observation. Result evidence can be retrieved on demand with secret-pattern redaction; CSS-token contrast and reduced-motion checks pass. Still pending: interactive browser/screen-reader validation, touch behavior and reference screenshot review. No source Lumenva branches or worktrees were modified.
 
 ## TOKENS Cloud Fabric — functional coverage audit (2026-09-24)
