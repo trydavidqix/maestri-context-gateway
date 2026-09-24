@@ -82,3 +82,66 @@ jobs:
         with:
           sarif_file: osv.sarif
           category: osv-scanner
+
+  zap-baseline:
+    name: ZAP baseline scan (report only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+
+      - name: Start isolated read-only dashboard
+        env:
+          MCG_ROOT: ${{ runner.temp }}/mcg-zap-state
+        run: |
+          mkdir -p "$MCG_ROOT" "$RUNNER_TEMP/zap-reports"
+          node bin/mcg.mjs dashboard --port 7435 --no-open >"$RUNNER_TEMP/mcg-zap-dashboard.log" 2>&1 &
+          echo "$!" >"$RUNNER_TEMP/mcg-zap-dashboard.pid"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:7435/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/mcg-zap-dashboard.log"
+          exit 1
+
+      - name: Run ZAP passive baseline against the local dashboard
+        env:
+          ZAP_IMAGE: ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
+        run: |
+          sudo chown 1000:1000 "$RUNNER_TEMP/zap-reports"
+          docker run --rm --network host \
+            --volume "$RUNNER_TEMP/zap-reports:/zap/wrk/:rw" \
+            "$ZAP_IMAGE" zap-baseline.py \
+            -t http://127.0.0.1:7435/ \
+            -m 1 \
+            -r zap-baseline.html \
+            -J zap-baseline.json \
+            -I
+
+      - name: Verify ZAP reports were generated
+        run: |
+          test -s "$RUNNER_TEMP/zap-reports/zap-baseline.html"
+          test -s "$RUNNER_TEMP/zap-reports/zap-baseline.json"
+
+      - name: Stop isolated dashboard
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/mcg-zap-dashboard.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/mcg-zap-dashboard.pid")" 2>/dev/null || true
+          fi
+
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: zap-baseline-report
+          path: ${{ runner.temp }}/zap-reports/
+          if-no-files-found: warn
+          retention-days: 14
