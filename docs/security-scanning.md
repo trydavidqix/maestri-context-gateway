@@ -13,7 +13,9 @@ Os novos scanners começam em modo **report-only**: achados geram relatórios, m
 
 ## DAST com ZAP
 
-ZAP ainda não está no workflow: este repositório não declara um ambiente de staging/target autorizado. Não rode active scan contra produção ou um host externo sem autorização específica. Quando houver staging, configure um environment protegido no GitHub e faça primeiro baseline/passive scan; active scan exige aprovação do owner do ambiente.
+O workflow executa o **ZAP Baseline/passive scan** contra o dashboard do próprio MCG, iniciado em `127.0.0.1:7435` no runner hospedado pelo GitHub e com `MCG_ROOT` temporário. O alvo só aceita `GET`; o container não recebe tokens ou secrets. A imagem ZAP e as Actions usadas são fixadas por digest/SHA, os relatórios HTML/JSON são artefatos temporários por 14 dias e os achados são informativos (`report-only`). Isso não instala Docker no Windows: a execução usa o Docker já disponível no runner hospedado.
+
+O baseline usa spider/passive checks e não executa active scan. Não rode active scan contra produção ou um host externo sem autorização específica. Uma futura varredura autenticada/de produção exige um staging autorizado e um environment protegido no GitHub.
 
 ## Fuzzing
 
