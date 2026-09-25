@@ -14,7 +14,8 @@ const patterns = [
   ['aws-access-key', /\bAKIA[0-9A-Z]{16}\b/],
   ['mac-home-path', /\/Users\/[A-Za-z0-9._-]+\//],
   ['linux-home-path', /\/home\/[A-Za-z0-9._-]+\//],
-  ['windows-home-path', /[A-Za-z]:\\Users\\[^\\\r\n]+\\/]
+  // Ignore the literal `...` username placeholder used in preserved plan examples.
+  ['windows-home-path', /[A-Za-z]:\\Users\\(?!\.\.\.\\)[^\\\r\n]+\\/]
 ];
 const textExtensions = new Set(['.mjs', '.js', '.json', '.md', '.ps1', '.yml', '.yaml', '.txt']);
 
