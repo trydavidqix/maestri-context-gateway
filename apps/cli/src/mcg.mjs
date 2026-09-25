@@ -69,11 +69,9 @@ try {
   await ensureLayout();
   if (command === 'doctor') {
     const nodeMajor = Number(process.versions.node.split('.')[0]);
-    const maestri = spawnSync(process.env.MAESTRI_CLI || 'maestri', ['debug'], { encoding: 'utf8', timeout: 5000 });
-    const maestriOutput = `${maestri.stdout || ''}\n${maestri.stderr || ''}`;
     let wire = { status: 'unconfigured' };
     try { wire = { status: 'ok', ...(await wireStatus()) }; } catch (error) { wire = { status: 'error', error: error.message }; }
-    print({ root: ROOT, node: process.versions.node, node_ok: nodeMajor >= 22, storage: 'ok', maestri: maestri.status === 0 ? 'available' : 'unavailable', maestri_connection: /Connection:\s+OK/.test(maestriOutput) ? 'ok' : 'unknown', wire, auth: 'not inspected' });
+    print({ product: 'Nexus Brain', root: ROOT, node: process.versions.node, node_ok: nodeMajor >= 22, storage: 'ok', wire, auth: 'not inspected' });
   } else if (command === 'wire') {
     const action = args.shift() || 'status';
     if (action === 'status') print(await wireStatus());
