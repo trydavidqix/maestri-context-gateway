@@ -15,22 +15,34 @@ For commit `42385fa0f1c88f2a26387cd8373ec473f56d0fe9` on `main`, these runs comp
 ## Merge enforcement — verified absent
 
 - Recent manual checks via the API confirmed that `GET repos/trydavidqix/maestri-context-gateway/rulesets` returned an empty list, and `GET .../branches/main/protection` returned `HTTP 404 Branch not protected`.
-- Therefore, there is **no observed enforcement** on the `main` branch. The successful workflow checks listed above are explicitly **not** mandatory gates. Protection against direct or force pushes is absent.
+- Therefore, there is **no observed enforcement** on the `main` branch. The successful workflow checks listed above are explicitly **not** mandatory gates (including Gitleaks, which is not a mandatory CI blocker). Protection against direct or force pushes is absent.
 
-## Findings review — outstanding manual verification
+## Findings review — recent manual verification
 
-- Review the `zap-baseline-report` and `gitleaks-results.sarif` artifact contents; these were generated during successful workflow executions but their findings remain unverified and unanalyzed in this assessment.
-- Review Code-scanning findings (107 total currently grouped by CLI `rule.severity` as 96 error, 10 warning, 1 note) from actual reports/alert views. Do not map these rules to generic GitHub Security Severities (Critical/High) unless natively supported.
-- Check current secret-scanning alert counts.
-- Record sanitized results only. Never put matched secrets or credential values in reports.
+Artifact contents for the assessed SHA revealed:
+- **Gitleaks:** Reportou 0 detecções.
+- **OSV-Scanner:** Reportou 0 dependências vulneráveis.
+- **ZAP:** Fez uma verificação básica apenas na dashboard local e apontou cabeçalhos de segurança ausentes, além de um alerta de possível XSS no parâmetro `view` que não foi confirmado.
+
+*These findings do not prove general overall security and do not cover production.*
+
+Other findings:
+- Code-scanning findings (107 total currently grouped by CLI `rule.severity` as 96 error, 10 warning, 1 note) remain open. These are rule severities, not generic GitHub Security Severities.
+- 0 open Dependabot alerts against active project dependencies.
 
 ## Remaining Release / Rollback Checks
 
 Before any final release or rollback approval, the following explicit checks must be completed:
-1. **Analyze scanning artifacts:** Extract, review, and manually verify the contents of `zap-baseline-report` and `gitleaks-results.sarif`.
-2. **Review open code-scanning alerts:** Formally evaluate the 107 open code-scanning alerts for false positives or remediation requirements.
-3. **Verify merge enforcement:** Ensure branch-protection rules are actually established and configured if these workflow checks are expected to formally block unverified code (currently they do not).
-4. **Determine Dependabot baseline:** Verify the current API assertion of 0 open Dependabot alerts against active project dependencies.
+1. **Review open code-scanning alerts:** Formally evaluate the 107 open code-scanning alerts for false positives or remediation requirements.
+2. **Verify merge enforcement:** Ensure branch-protection rules are actually established and configured if these workflow checks are expected to formally block unverified code.
+
+### Rollback Process
+
+If a critical issue is discovered post-release that necessitates a rollback, follow these concrete steps:
+1. Identifique o último SHA estável (ex: `git log` para encontrar a tag ou commit anterior ao lançamento defeituoso).
+2. Execute `git revert <commit_defeituoso>` para criar um novo commit revertendo as alterações, ou recrie a tag de publicação sobre um commit anterior limpo.
+3. Se a infraestrutura externa ou registro de pacotes (NPM) já tiverem absorvido o pacote, publique uma versão "patch" de correção que simplesmente espelhe o código anterior ou utilize a funcionalidade de "deprecate" no registro.
+4. Documente no `docs/STATUS.md` a reversão e garanta que todos os testes passem (via `pnpm test`) no novo commit.
 
 ## Available local script — not an enforced gate
 

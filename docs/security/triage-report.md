@@ -21,12 +21,10 @@ The execution results establish that those workflow runs completed successfully 
 
 ## Artifacts and findings
 
-The Security Scanning run (`36139338399`) lists these artifacts:
-
-- `zap-baseline-report`
-- `gitleaks-results.sarif`
-
-The archives were identified as existing, but their finding contents have not yet been parsed or independently reviewed for this report. ZAP findings, Gitleaks match counts, and OSV findings therefore remain **unverified**. No clean-scan or zero-alert claim is made.
+The contents of the scanning artifacts generated during run `36139338399` were examined for the current `main` SHA, revealing the following results:
+- **Gitleaks:** Reportou 0 detecções. *Note that Gitleaks is not a mandatory CI blocker.*
+- **OSV-Scanner:** Reportou 0 dependências vulneráveis.
+- **ZAP:** Fez uma verificação básica apenas na dashboard local e apontou cabeçalhos de segurança ausentes, além de um alerta de possível XSS no parâmetro `view` que não foi confirmado.
 
 ### Known Evidence Leads
 - Dependabot API returned exactly **0 open alerts**.
@@ -46,3 +44,4 @@ A broader evaluation protocol beyond the existing 30-case paired corpus needs to
 - The latest successful runs listed above are historical evidence for the exact SHA, not evidence about later commits.
 - A human-verified check via `gh` on Windows API confirmed that `GET repos/trydavidqix/maestri-context-gateway/rulesets` returned no rulesets, and `GET .../branches/main/protection` returned HTTP 404 `Branch not protected`. **Therefore, there is no observed enforcement; the successful checks are not mandatory gates.**
 - No active DAST scan was run against live services. No automated findings were closed or mutated.
+- **Important Disclaimer:** The specific artifact findings mentioned above (such as 0 detections from Gitleaks and OSV) do not prove overall security and do not cover production environments.
