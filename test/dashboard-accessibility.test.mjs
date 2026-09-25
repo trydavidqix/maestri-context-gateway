@@ -22,7 +22,7 @@ test('dashboard exposes concise accessible status announcements without live-upd
   assert.equal(page.status, 200);
   assert.match(page.body, /id="health"[^>]*role="group"[^>]*aria-label="Estado dos serviços"/);
   assert.match(page.body, /<label[^>]*for="theme-select"[^>]*>Tema<\/label><select id="theme-select"/);
-  assert.match(page.body, /id="task-filter-status"[^>]*class="visually-hidden"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(page.body, /id="task-filter-status"[^>]*class="panel-sub"[^>]*aria-live="polite"/);
   assert.doesNotMatch(page.body, /\$\('tasks'\)\.setAttribute\('aria-live'/);
   assert.match(page.body, /id="view-panel"[^>]*role="region" aria-labelledby="detail-title"/);
 });
