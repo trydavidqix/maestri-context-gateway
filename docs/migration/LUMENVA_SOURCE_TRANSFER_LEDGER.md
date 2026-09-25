@@ -1,10 +1,17 @@
 # Lumenva → Maestri Context Gateway transfer ledger
 
-**Target branch:** standalone `main`, verified after PR #29 at `e07d6a8b20781d25aa9535ce22720763b2b9f7f7` on 2026-09-24; payload merged by PR #5, audit reconciliation by PR #7, dashboard/Token Firewall work by PRs #8–29.
+**Current target branch:** standalone `main` at `97ccad2052b85f1c98ef26d0c1490324a2fa9b04` on 2026-09-25. Historical transfer snapshot below records the 2026-09-24 audit and must not be mistaken for current remote state.
 
-**Migration branch:** `migration/lumenva-maestri-import-20260924` (verified at the exact same tip as `main`, `e07d6a8b20781d25aa9535ce22720763b2b9f7f7`; retained as a compatibility pointer with no unique commits)
+**Migration pointer (historical):** `migration/lumenva-maestri-import-20260924` pointed to the same tip as `main` at the 2026-09-24 audit; it is absent from the 2026-09-25 remote branch inventory.
 **Source repository:** `trydavidqix/Lumenva`  
 **Rule:** import only Maestri-owned material. Do not merge whole monorepo branches. Do not touch source worktrees or CRM/voice/Meta/business paths.
+
+## Destination refresh — 2026-09-25
+
+- The local checkout was fast-forwarded to the actual GitHub `main` at `97ccad2`; working tree is clean and `main` equals `origin/main`.
+- PRs #38–40 are merged; no pull requests are open. Current remote refs include `main` and three merged PR head branches. The old migration compatibility pointer `migration/lumenva-maestri-import-20260924` is not present in the current remote branch inventory.
+- PR #38 updates the dashboard document title on view changes and adds an accessibility regression test. PR #39 refreshes the security triage/release-gate snapshot at `42385fa`. PR #40 adds nested-field, Unicode, malformed-input and size-boundary redaction fuzz cases. MCG gates, security scanning and fuzzing passed on `97ccad2`.
+- The source-worktree and source-branch audit below is dated 2026-09-24. It is historical evidence only; do not delete or move source refs/worktrees without a fresh, exact-path and ownership audit.
 
 ## Read-only revalidation — 2026-09-24
 
