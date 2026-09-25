@@ -26,3 +26,12 @@ test('dashboard exposes concise accessible status announcements without live-upd
   assert.doesNotMatch(page.body, /\$\('tasks'\)\.setAttribute\('aria-live'/);
   assert.match(page.body, /id="view-panel"[^>]*role="region" aria-labelledby="detail-title"/);
 });
+
+test('dashboard updates document title when changing views', async t => {
+  const server = await createDashboardServer({ root: process.cwd(), port: 0 });
+  t.after(() => new Promise(resolve => server.close(resolve)));
+
+  const page = await get(server.address().port);
+  assert.equal(page.status, 200);
+  assert.match(page.body, /document\.title\s*=\s*.*?label\s*\+\s*['"]\s*-\s*Lumenva Context Gateway['"]/);
+});
