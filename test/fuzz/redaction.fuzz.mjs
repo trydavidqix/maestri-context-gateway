@@ -62,4 +62,17 @@ export function fuzz(data) {
     owner_needed: { api_key: secret, data: rawString }
   });
   if (JSON.stringify(blockedCompact).includes(secret)) throw new Error('secret value survived blocked task summary');
+
+  // Explicit boundary size check for redaction over limits
+  const oversizedText = `${'A'.repeat(5000)} api_key=${secret} ${'B'.repeat(5000)}`;
+  const redactedOversized = redactText(oversizedText);
+  if (redactedOversized.includes(secret)) throw new Error('secret value survived redaction in oversized text input');
+
+  const oversizedObject = {
+    id: 'large',
+    content: oversizedText,
+    nested: { access_token: secret }
+  };
+  const safeOversized = redactSensitive(oversizedObject);
+  if (JSON.stringify(safeOversized).includes(secret)) throw new Error('secret value survived redaction in oversized object');
 }
