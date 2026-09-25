@@ -5,7 +5,7 @@
 **Status:** ACTIVE — consolidation and implementation not complete
 **Last reconciled:** 2026-09-25
 
-This is the only active cross-project implementation tracker. Nexus Brain is one product and one monorepo. “Maestri”, “Lumenva Brain”, “Context Gateway/MCG”, “Local Runtime”, “Cloud Fabric”, “Command Center” and “Everything Edge” name historical designs or internal modules—not separate products or repositories. CRM, voice, social-business/Meta integrations, tenant business data and unrelated Lumenva code remain out of scope unless a later explicit decision identifies an exact owned path.
+This is the only active cross-project implementation tracker. Nexus Brain itself is one product and one monorepo. The ecosystem it manages is explicitly multi-project: many independent projects, repositories, workspaces, sessions and agents may be registered and governed by Nexus without being moved into the Nexus monorepo. “Maestri”, “Lumenva Brain”, “Context Gateway/MCG”, “Local Runtime”, “Cloud Fabric”, “Command Center” and “Everything Edge” name historical designs or internal modules—not separate products or repositories. CRM, voice, social-business/Meta integrations, tenant business data and unrelated Lumenva code remain out of scope unless a later explicit decision identifies an exact owned path.
 
 ## 1. Mission and completion rule
 
@@ -20,23 +20,32 @@ Implementation order for every work package:
 ## 2. Canonical system boundary
 
 ```text
-NEXUS BRAIN — ONE MONOREPO / ONE PRODUCT
-├── Control plane: session/task state, DAG, policy, approvals, budgets, scheduler
-├── Brain services: memory, temporal facts, provenance, context, retrieval, capabilities
+NEXUS BRAIN — ONE PLATFORM / ONE BRAIN / ONE CONTROL PLANE
+├── Nexus codebase: one product and one monorepo
+├── Project Registry: project identity, repository/workspace binding, stack, policy, permissions and lifecycle
+├── Control plane (Maestri): session/task state, DAG, routing, approvals, budgets, scheduler and project-aware orchestration
+├── Brain services: global/project/session/task memory, temporal facts, provenance, context, retrieval and reusable capabilities
 ├── Execution: agent factory/supervisor, local runtime, Codex Cloud, Jules/provider adapters
 ├── Edge: Windows Everything 1.5 + Git + minimal Lumenva Edge/MCP bridge
 ├── Interfaces: Claude Code, Codex, Gemini CLI, Antigravity, Jules
-├── Operations: dashboard/reports, traces, CI/security, backups and disaster recovery
-└── Governance: contracts, evidence, branch/PR gates and auditable cleanup
+├── Operations: multi-project dashboard/reports, traces, CI/security, backups and disaster recovery
+└── Governance: contracts, evidence, project isolation, branch/PR gates and auditable cleanup
+
+MANAGED ECOSYSTEM
+├── MANY independent projects
+├── MANY repositories
+├── MANY local/cloud workspaces
+├── MANY sessions/tasks
+└── MANY agents/providers
 ```
 
-Reuse the existing repository, tests, MCG dashboard, Local Runtime and transferred Maestri/Cloud Fabric files where ownership is proven. Do not create a second memory engine, task store, router, dashboard, MCP surface, filesystem watcher or governance policy. Preserve old package/API names as compatibility identifiers until an individually tested migration changes them; renaming the GitHub repository does not authorize a blind code-wide rename.
+Reuse the existing Nexus repository, tests, MCG dashboard, Local Runtime and transferred Maestri/Cloud Fabric files where ownership is proven. Managed projects remain in their own repositories/workspaces; registering a project must not require copying or vendoring that project's code into Nexus. Do not create a second memory engine, task store, router, dashboard, MCP surface, filesystem watcher or governance policy. Preserve old package/API names as compatibility identifiers until an individually tested migration changes them; renaming the GitHub repository does not authorize a blind code-wide rename.
 
 ## 3. Reconciled architecture decisions
 
 | Concern | Canonical V1 decision | Preserved alternative / status |
 |---|---|---|
-| Product identity | Nexus Brain is the sole product; legacy systems become modules. | Historical source documents retain their original names for provenance. |
+| Product identity | Nexus Brain is the sole platform product; legacy systems become internal modules. The Nexus codebase remains one monorepo, while the managed ecosystem is many independent projects/repositories/workspaces. | Historical source documents retain their original names for provenance. |
 | Deployment | Cloud-first: Brain API/MCP, canonical DB, indexer, compiler and backups run in Google Cloud. | Early local-first SQLite/vector design is preserved as history; no local authoritative database in V1. |
 | Canonical stores | GitHub = code/config; Cloud SQL PostgreSQL + pgvector = Brain state; Cloud Storage = versioned recovery artifacts. | Firebase SQL Connect is not on the V1 critical path; reconsider only for a concrete UI/app need. |
 | Local machine | Tiny Edge uses Everything 1.5 Journal + Git; queue/snapshots are bounded, encrypted, and non-authoritative. | Do not build a recursive scanner or parallel filesystem watcher. Fallback to Git status/diff if Everything is unavailable. |
@@ -47,7 +56,53 @@ Reuse the existing repository, tests, MCG dashboard, Local Runtime and transferr
 | Agents/runtime | One task/session/event model; Agent Factory, policy, evidence and bounded loop are shared by local/cloud/Jules execution. | Council, C4, AutoImprove and learned Reflex are later gated modules, not duplicate control planes or V1 prerequisites. |
 | Provider/native directories | Codex, Claude Code, Gemini/Antigravity and other provider runtimes keep their official global install/config/state directories under provider ownership. Nexus integrates only through supported interfaces such as MCP, API, CLI, hooks and project-level configuration; it must not relocate, fork, vendor, patch or convert provider home/install directories into Nexus-owned paths. | Project-scoped adapter/config files may live in Nexus when officially supported. Official provider updates must remain independently applicable without requiring Nexus directory migration. |
 | Recovery | GitHub for committed code; unique create-only snapshots for uncommitted work; Cloud SQL backup/PITR and a separate GCS recovery vault. | Never use mutable `latest.zip`, auto-commit as backup, or irreversible retention locks before restore tests. |
-| Scope | Only Nexus Brain-owned paths enter this repo. | CRM, voice, Meta/social-business and tenant/business migrations are explicitly excluded. |
+| Scope | Only Nexus Brain-owned platform code enters this repo. External projects are registered, indexed and governed in place through project identity + repository/workspace bindings; they are not absorbed into the Nexus monorepo. | CRM, voice, Meta/social-business and tenant/business code remain outside this repo unless a later explicit migration decision changes ownership. |
+
+## 3A. Multi-project platform model
+
+Nexus is not a single-project brain. It is the permanent control and intelligence platform for present and future projects.
+
+Core invariant:
+
+`NEXUS ITSELF = one product + one monorepo`
+
+`NEXUS-MANAGED ECOSYSTEM = many independent projects + repositories + workspaces + sessions + agents`
+
+### Project Registry
+
+Every managed project has a stable `project_id` and registry record binding at minimum:
+
+- canonical repository and default branch;
+- optional local/cloud workspace locations;
+- project lifecycle/status;
+- stack/runtime metadata;
+- allowed agents/providers/tools;
+- project policies, approvals and budgets;
+- project memory/knowledge namespace;
+- task/session/evidence namespace;
+- Git/CI/deployment bindings where applicable.
+
+Project metadata may be discovered from repository evidence and/or an optional project-scoped descriptor (for example `.nexus/project.yaml`) when later justified. The descriptor is metadata, not a requirement to relocate the project.
+
+### Memory and context scopes
+
+Shared memory must be explicitly scoped. V1 scope model:
+
+`GLOBAL → PROJECT → SESSION → TASK`
+
+Agent-private scratch state may exist, but it is not canonical shared memory by default.
+
+Retrieval order is project-aware and task-bounded: task/session context first, then project memory, then only relevant global knowledge. Cross-project reuse is allowed only for evidence-backed reusable capabilities/patterns and must never leak project-specific secrets, incompatible decisions or stale configuration into another project's context.
+
+### Maestri role
+
+Maestri is the Nexus-native control plane/orchestrator, not a separate product and not a project-specific agent. It receives operator intent, resolves `project_id`, loads the project's registry/policy/context, routes work to the appropriate provider/runtime, tracks tasks/sessions/evidence, and keeps authority over lifecycle, budgets, approvals and recovery.
+
+Provider agents execute bounded work inside the selected project's repository/workspace. They do not become the source of truth for project identity, task state, policy or canonical memory.
+
+### Multi-project Control Center
+
+The Nexus Control Center must support portfolio-level and project-level views. Portfolio view shows registered projects, health/status, active tasks, agents, budgets, incidents and blockers. Project drill-down exposes that project's tasks, sessions, memory, knowledge, Git/PRs, tests, deployments, evidence, costs and history without mixing unrelated project state.
 
 ## 4. Current verified baseline
 
@@ -82,28 +137,29 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | ID | Work package | Depends on | Acceptance gate | Initial status |
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
-| NB-01 | Monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded paths; dependency/import graph; safe folder rename; no CRM/voice migration | BLOCKED |
+| NB-01 | Nexus monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded Nexus-owned paths; dependency/import graph; safe folder rename; external projects remain independent | BLOCKED |
 | NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; no permanent GitHub cloud key | TODO |
 | NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | Migrations; append-only observations/events; explicit `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED` lifecycle; versioned facts; evidence lineage; ACL/scope; source re-check path; restore test | TODO |
 | NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Authenticated context/search/remember/reuse/status plus health; `remember` stores observations/candidates unless promotion policy passes; responses expose status/provenance/source; contract tests; bounded context | TODO |
 | NB-06 | GitHub project indexer and sync/reconciliation | NB-02, NB-03, NB-04 | Idempotent webhook + scheduled reconciliation; branch/commit provenance; safe retry | TODO |
-| NB-07 | Workspace index and capability evidence | NB-01, NB-06 | Manifests/files/symbols/capabilities indexed with repo/commit/test evidence and incremental updates | TODO |
-| NB-08 | Hybrid retrieval and reuse coverage | NB-05, NB-07 | Lexical+vector+scope retrieval; freshness/evidence-aware ranking; conflicted/revoked facts excluded by default; task-minimal context; explainable full/partial/missing coverage; no unsupported percentage | TODO |
+| NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent permissions/budgets; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
+| NB-07 | Workspace index and capability evidence | NB-01, NB-06, NB-06A | Per-project manifests/files/symbols/capabilities indexed with project/repo/commit/test evidence and incremental updates; no cross-project namespace collision | TODO |
+| NB-08 | Hybrid retrieval and reuse coverage | NB-05, NB-07 | Lexical+vector+scope retrieval across GLOBAL/PROJECT/SESSION/TASK; project context first and global only when relevant; freshness/evidence-aware ranking; conflicted/revoked facts excluded by default; task-minimal context; safe cross-project reusable-capability lookup; explainable full/partial/missing coverage | TODO |
 | NB-09 | Memory/event compiler and decision tiers | NB-04, NB-05, NB-08 | `OBSERVED→CANDIDATE→source verification→dedup/conflict→VERIFIED→CANONICAL`; deterministic-first; no model statement self-promotes to truth; contradictory evidence yields `CONFLICTED`; newer verified facts supersede older ones without erasing history; model abstention/fallback tests | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
 | NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude, Codex, Gemini/Antigravity and Jules use the same Nexus contracts through supported interfaces; provider outputs enter as observations/candidates, never automatic truth; native provider install/config/state directories remain provider-owned and untouched; official updates remain independently applicable; scoped auth; no duplicated memory | TODO |
-| NB-13 | Maestri control plane as Nexus module | NB-02, NB-05 | Session/Event Store, Task DAG, Progress, scheduler, recovery and budgets share the Brain contracts | TODO |
+| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity before execution; Session/Event Store, Task DAG, Progress, scheduler, recovery and budgets are project-scoped and share Brain contracts; Maestri remains platform-wide, not tied to one repository | TODO |
 | NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions, revocable scoped capabilities, risk gates, bounded loops and audit evidence | TODO |
 | NB-15 | Local Runtime, Codex Cloud and Jules execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches, resumable jobs, quota-safe retries, independent tests and no direct main merge | TODO |
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, mandatory structured report, owner approval and acceptance manifest | TODO |
 | NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Keep existing bounded batch/redaction; compile only task-relevant verified context; exclude conflicted/revoked memory by default; prove live provider path and paired tokens/round-trip benchmark with lower token/call cost and no quality/accuracy loss | IN_PROGRESS |
-| NB-18 | Dashboard/reporting and design/accessibility | NB-17 | Every registered view has clear source/scope/measurement/unavailable report; reference fidelity, keyboard, screen reader, touch | IN_PROGRESS |
+| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Portfolio + project drill-down views; every registered view has clear project/source/scope/measurement/unavailable report; no cross-project state leakage; reference fidelity, keyboard, screen reader, touch | IN_PROGRESS |
 | NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security workflows, least token permissions, actual required checks/protection verified; audit current alert findings | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
 | NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Health/latency/sync/conflicts/usage/errors and alert reports backed by real measurements | TODO |
-| NB-22 | Cross-provider, offline, security and recovery E2E | NB-05–NB-21 | Cross-write/read; new session/PC; offline recovery; hallucinated/contradictory/stale-memory injection tests; proof that one provider cannot promote its own unsupported statement to canonical truth; hostile inputs; authorization; disaster restore pass | TODO |
+| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Cross-write/read; project isolation; safe cross-project reusable knowledge; new project registration; new session/PC; offline recovery; hallucinated/contradictory/stale-memory injection tests; proof that one provider cannot promote unsupported claims; hostile inputs; authorization; disaster restore pass | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
 ### Dependency waves
@@ -112,7 +168,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 Wave 0: NB-00 → NB-01 → NB-02
 Wave 1: NB-03 → NB-04 → NB-05
 Wave 2: NB-06 / NB-10 / NB-19 (independent ownership after contracts)
-Wave 3: NB-07 → NB-08 → NB-09; NB-10 → NB-11
+Wave 3: NB-06 → NB-06A → NB-07 → NB-08 → NB-09; NB-10 → NB-11
 Wave 4: NB-12 → NB-13 → NB-14 → NB-15 / NB-16 / NB-17
 Wave 5: NB-18 / NB-20 / NB-21
 Final:  NB-22 → NB-23
@@ -142,9 +198,9 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 
 ## 9. Objective progress
 
-The implementation denominator is the 24 work packages NB-00..NB-23. Only `DONE` counts; `IN_PROGRESS`, `VALIDATING`, `BLOCKED` and `TODO` do not. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only); do not average it into the Nexus total.
+The implementation tracker contains NB-00..NB-23 plus NB-06A (Project Registry). Reconcile the numerical denominator before the next implementation-progress claim so Project Registry is not hidden inside another package. Only `DONE` counts; `IN_PROGRESS`, `VALIDATING`, `BLOCKED` and `TODO` do not. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only); do not average it into the Nexus total.
 
-Current verified tracker state: `DONE 1/24`, `BLOCKED 1/24`, `IN_PROGRESS 3/24`, `TODO 19/24`; **Nexus implementation progress: 4%, remaining: 96%**. Only NB-00 is complete; NB-01 is blocked by active processes/workspace references to the old local path. Dashboard, Token Firewall and GitHub/security work remain partial under their larger Nexus acceptance gates. This is not a claim that existing MCG code is absent.
+The previously published numerical snapshot (`DONE 1/24`, `BLOCKED 1/24`, `IN_PROGRESS 3/24`, `TODO 19/24`) predates the explicit Project Registry package. Do not publish a new percentage until the tracker denominator/statuses are reconciled with NB-06A. Only NB-00 is complete; NB-01 is blocked by active processes/workspace references to the old local path. Dashboard, Token Firewall and GitHub/security work remain partial under their larger Nexus acceptance gates. This is not a claim that existing MCG code is absent.
 
 ### NB-01 audit record
 
@@ -164,4 +220,4 @@ Do not permanently delete. If any gate fails, leave all source emails untouched 
 
 ## 11. Final acceptance
 
-Nexus Brain is complete only when NB-00..NB-23 are `DONE`, full-workspace checks and provider-backed gates pass, every capability has evidence, security/backup recovery is verified, all sources remain preserved, and local `main` is synchronized with GitHub `main`. No overall completion claim is made from MCG’s 4/7 score.
+Nexus Brain is complete only when NB-00..NB-23 and NB-06A are `DONE`, full-workspace checks and provider-backed gates pass, every capability has evidence, security/backup recovery is verified, all sources remain preserved, and local `main` is synchronized with GitHub `main`. No overall completion claim is made from MCG’s 4/7 score.
