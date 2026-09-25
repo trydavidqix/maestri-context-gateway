@@ -1,0 +1,26 @@
+name: Bug report
+description: Report a reproducible Nexus Brain defect with evidence.
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Observed behavior
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Minimal safe steps, command, and environment. Do not include credentials or private data.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and scope
+      description: Relevant test/result, affected canonical app/package, and what was not verified.
+    validations:
+      required: true

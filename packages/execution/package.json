@@ -1,0 +1,29 @@
+{
+  "name": "@nexus-brain/execution",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./executor": "./src/executor.mjs",
+    "./replay": "./src/replay.mjs",
+    "./worktrees": "./src/worktrees.mjs",
+    "./eval-runner": "./src/eval-runner.mjs",
+    "./cloud-fabric": "./src/cloud-fabric/index.ts"
+  },
+  "scripts": {
+    "test:unit": "node --test tests/*.test.mjs && vitest run src/cloud-fabric",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nexus-brain/brain": "workspace:*",
+    "@nexus-brain/contracts": "workspace:*",
+    "@nexus-brain/context-gateway": "workspace:*",
+    "@nexus-brain/evidence": "workspace:*",
+    "@nexus-brain/providers": "workspace:*",
+    "@openai/codex-sdk": "0.155.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

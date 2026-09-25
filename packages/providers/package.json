@@ -1,0 +1,24 @@
+{
+  "name": "@nexus-brain/providers",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./codex/usage": "./src/codex/usage.mjs",
+    "./codex/adapter": "./src/codex/adapter.ts",
+    "./claude/adapter": "./src/claude/adapter.ts",
+    "./antigravity/adapter": "./src/antigravity/adapter.ts"
+  },
+  "scripts": {
+    "test:unit": "node --test tests/*.test.mjs && vitest run tests/claude-adapter.test.ts tests/antigravity-adapter.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nexus-brain/contracts": "workspace:*",
+    "@openai/codex-sdk": "0.155.1"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -2,6 +2,18 @@
 
 This repository is the canonical home for Nexus Brain (`trydavidqix/nexus-brain`). Maestri Context Gateway (MCG), extracted from Lumenva on 2026-09-23, is one internal module. This repository contains its current source, contracts, configuration templates, registries, tests, evaluation datasets, and CI; other Nexus modules remain tracked in the active blueprint until transferred and verified.
 
+## CURRENT migration snapshot — 2026-09-26
+
+Migration PR #44 (`codex/nexus-canonical-architecture`) is under final validation. Workspace, package-boundary, integration, typecheck and security workflow jobs have passed at the latest tested revision; CodeQL's PR annotation remains red because it reports findings against moved legacy files. Live Codex eval commands are intentionally excluded because they execute real provider requests; runner behavior is covered by unit/integration tests.
+
+- **Scope:** Migration readiness only. Do not start Blueprint implementation. The reconciled plan has 24 future implementation work packages (`NB-00`–`NB-23`) plus 6 migration-readiness packages (`NB-24`–`NB-29`); six additional migration gates explain the earlier 24-vs-30 count. Only the Master Blueprint is an active tracker.
+- **Local code:** 10 packages and 3 apps are organized under canonical owners. Compatibility shims are explicit and optional. MCG/Token Firewall capability remains; Maestri and Wire are not required for standalone Nexus operation. SQL is a schema artifact only, not deployed infrastructure.
+- **Windows:** No MCG daemon, Maestri app, Wire process, or old MCP launcher is running. The obsolete Scheduled Task was exported and removed; its Startup shortcut and VBS launcher were moved to the user-profile archive; stale user `MCG_ROOT` was removed. The earlier 417-file inventory could not be reproduced. Two files from an interrupted live eval were copied to ignored `.nexus-state` and SHA-256 verified; originals remain. No other historical state was found or declared migrated.
+- **Local path:** Still `%USERPROFILE%\.lumenva\maestri-context-gateway`; global Codex trust entries now target `%USERPROFILE%\.lumenva\nexus-brain`. Rename the registered `main` worktree after integration.
+- **Remote:** PR #44 is open and mergeable. MCG gates, CodeQL analysis extraction, Gitleaks, Semgrep, OSV, ZAP and fuzz execution completed; the CodeQL alert check reports legacy findings at moved paths and has not been dismissed. The existing `main` already reports corresponding critical command-execution and Wire SSRF findings; this migration does not claim to remediate the broader baseline. Repository is public, `main` is default, and no branch protection/ruleset was observed; preserve those settings unless separately approved.
+
+The sections below are dated historical snapshots. They are not current instructions when they conflict with this migration snapshot or the Master Blueprint.
+
 ## Current authoritative snapshot — 2026-09-25
 
 - Repository: `trydavidqix/nexus-brain` (renamed from `trydavidqix/maestri-context-gateway` on 2026-09-25); local `main` and `origin/main` are synchronized after the blueprint/source consolidation updates.

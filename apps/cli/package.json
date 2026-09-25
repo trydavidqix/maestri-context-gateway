@@ -1,0 +1,19 @@
+{
+  "name": "@nexus-brain/cli",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mcg": "src/mcg.mjs"
+  },
+  "scripts": {
+    "cli": "node src/mcg.mjs",
+    "test:unit": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@nexus-brain/context-gateway": "workspace:*",
+    "@nexus-brain/edge": "workspace:*",
+    "@nexus-brain/control-center": "workspace:*",
+    "@nexus-brain/execution": "workspace:*",
+    "@nexus-brain/providers": "workspace:*"
+  }
+}

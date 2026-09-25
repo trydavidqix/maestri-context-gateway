@@ -1,6 +1,7 @@
 # Runtime state stays local.
 state/
 .mcg-state/
+.nexus-state/
 tasks/
 logs/
 events/inbox/
