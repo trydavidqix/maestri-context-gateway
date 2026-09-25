@@ -55,7 +55,7 @@ Reuse the existing repository, tests, MCG dashboard, Local Runtime and transferr
 - At the pre-change inspection, the checkout was clean on `main`, with no open PRs and only `main` on the remote. Recheck after this documentation change.
 - Existing `docs/MASTER_BLUEPRINT_CANONICAL.md` contains a prior Maestri-wide design and source-to-plan map. Its verified snapshot says MCG F0–F2 and F4 are accepted (**4/7 MCG phases, 57% MCG-only**); F3, F5 and F6 are partial. This is not a Nexus-wide percentage.
 - Existing plan/status records say Brain service/API/database, Git governance enforcement, provider-backed Cloud/Jules execution, full Cloud Fabric acceptance and cross-provider recovery are not yet proven complete. Treat them as pending until fresh tests/evidence confirm otherwise.
-- Seven Gmail source attachments have been copied byte-for-byte into `docs/blueprints/sources/`. The seven source emails have **not** been deleted. The prior Maestri blueprint is preserved as historical source; it is not a second active tracker once the pointer update is complete.
+- Seven Gmail source attachments have been copied into `docs/blueprints/sources/`; their recorded lengths match Gmail metadata and their local SHA-256 hashes are in `sources/SHA256SUMS.txt`. The seven exact source messages were moved to Gmail Trash on 2026-09-25 after source review and plan validation; they were not permanently deleted. The prior Maestri blueprint is retained behind a historical/superseded banner, not as a second active tracker.
 
 ## 5. Source ledger and lossless coverage
 
@@ -80,7 +80,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 
 | ID | Work package | Depends on | Acceptance gate | Initial status |
 |---|---|---|---|---|
-| NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | IN_PROGRESS |
+| NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
 | NB-01 | Monorepo inventory and ownership map | NB-00 | AS-IS/TARGET map; exact included/excluded paths; dependency/import graph; no CRM/voice migration | TODO |
 | NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; no permanent GitHub cloud key | TODO |
@@ -137,7 +137,7 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 
 The implementation denominator is the 24 work packages NB-00..NB-23. Only `DONE` counts; `IN_PROGRESS`, `VALIDATING`, `BLOCKED` and `TODO` do not. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only); do not average it into the Nexus total.
 
-At creation of this reconciled tracker: `DONE 0/24`, `IN_PROGRESS 4/24`, `TODO 20/24`; **Nexus implementation progress: 0%, remaining: 100%**. NB-00 reflects a verified remote repository rename and source capture, but remains in progress until checksum, pointer, and synchronization checks pass. This is a project-plan baseline, not a claim that existing MCG code is absent.
+Current verified tracker state: `DONE 1/24`, `IN_PROGRESS 3/24`, `TODO 20/24`; **Nexus implementation progress: 4%, remaining: 96%**. Only NB-00 is complete; dashboard, Token Firewall and GitHub/security work remain partial under their larger Nexus acceptance gates. This is not a claim that existing MCG code is absent.
 
 ## 10. Email deletion gate
 
