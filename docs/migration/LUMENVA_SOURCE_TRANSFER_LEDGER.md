@@ -1,6 +1,6 @@
 # Lumenva → Maestri Context Gateway transfer ledger
 
-**Current target branch:** standalone `main` at `d72e5d88902582ff91cfb3f728a1cf3bec2d93b5` on 2026-09-25. Historical transfer snapshot below records the 2026-09-24 audit and must not be mistaken for current remote state.
+**Current target:** Nexus Brain repository `trydavidqix/nexus-brain`, branch `main`; latest verified pre-audit tip `5c46c7f875e51dd3a3036fa277cc76c58a9ef803` on 2026-09-25. Historical transfer snapshots below are not a current source-branch inventory; see [`../blueprints/NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md`](../blueprints/NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md) for the latest branch/ownership audit.
 
 **Migration pointer (historical):** `migration/lumenva-maestri-import-20260924` pointed to the same tip as `main` at the 2026-09-24 audit; it is absent from the 2026-09-25 remote branch inventory.
 **Source repository:** `trydavidqix/Lumenva`  

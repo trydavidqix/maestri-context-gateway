@@ -81,7 +81,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | ID | Work package | Depends on | Acceptance gate | Initial status |
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
-| NB-01 | Monorepo inventory and ownership map | NB-00 | AS-IS/TARGET map; exact included/excluded paths; dependency/import graph; no CRM/voice migration | TODO |
+| NB-01 | Monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded paths; dependency/import graph; safe folder rename; no CRM/voice migration | BLOCKED |
 | NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; no permanent GitHub cloud key | TODO |
 | NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | Migrations, append-only events, versioned facts, evidence lineage, ACL/scope and restore test | TODO |
@@ -137,7 +137,11 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 
 The implementation denominator is the 24 work packages NB-00..NB-23. Only `DONE` counts; `IN_PROGRESS`, `VALIDATING`, `BLOCKED` and `TODO` do not. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only); do not average it into the Nexus total.
 
-Current verified tracker state: `DONE 1/24`, `IN_PROGRESS 3/24`, `TODO 20/24`; **Nexus implementation progress: 4%, remaining: 96%**. Only NB-00 is complete; dashboard, Token Firewall and GitHub/security work remain partial under their larger Nexus acceptance gates. This is not a claim that existing MCG code is absent.
+Current verified tracker state: `DONE 1/24`, `BLOCKED 1/24`, `IN_PROGRESS 3/24`, `TODO 19/24`; **Nexus implementation progress: 4%, remaining: 96%**. Only NB-00 is complete; NB-01 is blocked by active processes/workspace references to the old local path. Dashboard, Token Firewall and GitHub/security work remain partial under their larger Nexus acceptance gates. This is not a claim that existing MCG code is absent.
+
+### NB-01 audit record
+
+The read-only ownership and local-path audit is [`NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md`](NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md). It records the 53-branch Lumenva source inventory, the one-branch Nexus target, selective Maestri ownership boundaries, current dirty/active source worktrees, path-reference checks, and the live daemon/MCP blockers. No Lumenva branch/worktree or unrelated CRM/voice file was changed. Do not rename the local checkout until the recorded blockers are cleared and the full post-rename validation is possible.
 
 ## 10. Email deletion gate
 
