@@ -7398,7 +7398,7 @@ The current MCG tracker reports phases 0–2 accepted, phase 3 partial, phase 4 
 
 ### 49.3 MCG acceptance
 
-All seven phases require evidence. Dashboard has useful PT-BR reports across all 14 areas; numbers are qualified and link to evidence; light/dark references and usability are validated; token firewall reduces measured redundancy without harming quality; tests and scans pass. Overall plan remains unmeasured until all workstreams have a reconciled objective denominator.
+All seven phases require evidence. F0–F2 and F4 are accepted (4/7, 57%); F3, F5 and F6 remain partial. The complete Maestri program remains unmeasured until every workstream has a reconciled objective denominator.
 
 ## 50. SINGLE EXECUTION MODEL — INTEGRATION WITHOUT DUPLICATE ENGINES
 

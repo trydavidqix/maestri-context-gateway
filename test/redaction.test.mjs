@@ -35,6 +35,21 @@ test('redacts secret-valued fields recursively while preserving usage numbers', 
   });
 });
 
+test('preserves numeric context-economy metrics without exposing credential fields', () => {
+  const safe = redactSensitive({
+    estimated_tokens_saved: 42,
+    estimated_tokens_avoided: 18,
+    tokens_saved: 12,
+    api_token: 987654
+  });
+  assert.deepEqual(safe, {
+    estimated_tokens_saved: 42,
+    estimated_tokens_avoided: 18,
+    tokens_saved: 12,
+    api_token: '[REDACTED]'
+  });
+});
+
 test('does not rewrite ordinary output text', () => {
   assert.equal(redactText('test passed; total_tokens=120'), 'test passed; total_tokens=120');
 });

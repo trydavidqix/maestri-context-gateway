@@ -1,4 +1,5 @@
 import { redactSensitive, redactText } from '../../src/redaction.mjs';
+import { compactResult } from '../../src/core.mjs';
 
 export function fuzz(data) {
   const secret = `fuzz-secret-${data.toString('base64url') || 'empty-input'}-sentinel`;
@@ -23,4 +24,28 @@ export function fuzz(data) {
 
   const safeText = redactText(`Authorization: Bearer ${secret}\napi_key=${secret}`);
   if (safeText.includes(secret)) throw new Error('secret value survived text redaction');
+
+  const metrics = redactSensitive({ estimated_tokens_saved: data.length, tokens_avoided: data.length, api_token: secret });
+  if (metrics.estimated_tokens_saved !== data.length || metrics.tokens_avoided !== data.length) throw new Error('numeric context-economy metric was redacted');
+  if (metrics.api_token !== '[REDACTED]') throw new Error('credential field was not redacted');
+
+  const compact = compactResult({
+    task_id: 'jazzer-summary',
+    internal_state: 'DONE',
+    external_state: 'DONE',
+    result: `token=${secret}`,
+    validation: `Authorization: Bearer ${secret}`,
+    commit: `api_key=${secret}`,
+    evidence_reference: `https://example.test/?access_token=${secret}`
+  });
+  if (JSON.stringify(compact).includes(secret)) throw new Error('secret value survived compact task summary');
+
+  const blockedCompact = compactResult({
+    task_id: 'jazzer-blocked-summary',
+    internal_state: 'BLOCKED',
+    external_state: 'BLOCKED_OWNER',
+    blocker: `password=${secret}`,
+    owner_needed: { api_key: secret }
+  });
+  if (JSON.stringify(blockedCompact).includes(secret)) throw new Error('secret value survived blocked task summary');
 }

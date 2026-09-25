@@ -18,6 +18,7 @@ export type ReadOnlyBatchOperation =
   | { id: string; kind: "search"; query: string }
   | { id: string; kind: "git-status"; correlation: RuntimeCorrelation }
   | { id: string; kind: "git-diff"; correlation: RuntimeCorrelation }
+  | { id: string; kind: "git-diff-if-changed"; correlation: RuntimeCorrelation; expectedSha256?: string }
   | { id: string; kind: "git-log"; correlation: RuntimeCorrelation; count?: number }
   | { id: string; kind: "read-log"; path: string; maxLines?: number }
   | { id: string; kind: "service-health"; url: string; timeoutMs?: number }
@@ -57,6 +58,7 @@ const BATCH_FIELDS: Record<ReadOnlyBatchOperation["kind"], readonly string[]> = 
   search: ["id", "kind", "query"],
   "git-status": ["id", "kind", "correlation"],
   "git-diff": ["id", "kind", "correlation"],
+  "git-diff-if-changed": ["id", "kind", "correlation", "expectedSha256"],
   "git-log": ["id", "kind", "correlation", "count"],
   "read-log": ["id", "kind", "path", "maxLines"],
   "service-health": ["id", "kind", "url", "timeoutMs"],
@@ -210,7 +212,14 @@ export class ReadOnlyLocalExecutor {
   }
 
   async gitDiff(correlation: RuntimeCorrelation): Promise<ExecutorResult<string>> {
-    return this.git("git.diff", correlation, ["diff", "--no-ext-diff"]);
+    return this.git("git.diff", correlation, ["diff", "--no-ext-diff", "--no-textconv"]);
+  }
+
+  private async gitDiffIfChanged(correlation: RuntimeCorrelation, expectedSha256?: string): Promise<ExecutorResult<{ sha256: string; unchanged: boolean; content?: string }>> {
+    const diff = (await this.git("git.diff", correlation, ["diff", "HEAD", "--no-ext-diff", "--no-textconv"])).value;
+    const sha256 = createHash("sha256").update(diff, "utf8").digest("hex");
+    const unchanged = expectedSha256?.toLowerCase() === sha256;
+    return this.result("git.diff.digest", { sha256, unchanged, ...(unchanged ? {} : { content: diff }) });
   }
 
   async gitLog(correlation: RuntimeCorrelation, count = 20): Promise<ExecutorResult<string>> {
@@ -270,6 +279,7 @@ export class ReadOnlyLocalExecutor {
         case "search": return this.search(operation.query);
         case "git-status": return this.gitStatus(operation.correlation);
         case "git-diff": return this.gitDiff(operation.correlation);
+        case "git-diff-if-changed": return this.gitDiffIfChanged(operation.correlation, operation.expectedSha256);
         case "git-log": return this.gitLog(operation.correlation, operation.count);
         case "read-log": return this.readLog(operation.path, operation.maxLines);
         case "service-health": return this.serviceHealth(operation.url, operation.timeoutMs);
@@ -338,6 +348,7 @@ export class ReadOnlyLocalExecutor {
     };
     const output = await this.options.commandRunner.run(command);
     if (output.exitCode !== 0) throw new Error(`runtime_git_failed:${output.stderr}`);
+    if (output.truncated) throw new Error("runtime_git_output_too_large");
     return this.result(capabilityId, output.stdout);
   }
 

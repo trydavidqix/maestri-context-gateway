@@ -1,5 +1,6 @@
-import { mkdtemp, mkdir, symlink, unlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, symlink, unlink, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -182,5 +183,61 @@ describe("ReadOnlyLocalExecutor", () => {
     const result = await executor.batch([{ id: "too-large", kind: "read-if-changed", path: "too-large.txt" }]);
     expect(result.results[0]).toMatchObject({ status: "failed", errorCode: "runtime_file_too_large" });
     expect(JSON.stringify(result)).not.toContain("xxxx");
+  });
+
+  it("returns a Git diff checkpoint and omits unchanged diff content", async () => {
+    const root = await mkdtemp(join(tmpdir(), "lumenva-git-checkpoint-"));
+    const git = (args: string[]) => execFileSync("git", args, { cwd: root, stdio: "ignore" });
+    try {
+      git(["init", "--quiet"]);
+      git(["config", "user.name", "MCG tests"]);
+      git(["config", "user.email", "mcg-tests@example.invalid"]);
+      await writeFile(join(root, "plan.md"), "original\n");
+      git(["add", "plan.md"]);
+      git(["commit", "--quiet", "-m", "initial"]);
+      await writeFile(join(root, "plan.md"), "updated\n");
+      git(["add", "plan.md"]);
+
+      const runner = new SafeCommandRunner({ workspaceRoots: [root], allowedExecutables: ["git", "git.exe"] });
+      const executor = new ReadOnlyLocalExecutor({ workspaceRoot: root, commandRunner: runner });
+      const correlation = { organizationId: "test-org", traceId: "test-trace" };
+      const first = await executor.batch([{ id: "diff-checkpoint", kind: "git-diff-if-changed", correlation }]);
+      const firstValue = (first.results[0] as { status: string; value: { value: { sha256: string; unchanged: boolean; content?: string } } }).value.value;
+      expect(firstValue.unchanged).toBe(false);
+      expect(firstValue.content).toContain("updated");
+      expect(firstValue.sha256).toBe(createHash("sha256").update(firstValue.content ?? "").digest("hex"));
+
+      const unchanged = await executor.batch([{ id: "same-diff", kind: "git-diff-if-changed", correlation, expectedSha256: firstValue.sha256 }]);
+      const unchangedValue = (unchanged.results[0] as { status: string; value: { value: { sha256: string; unchanged: boolean; content?: string } } }).value.value;
+      expect(unchangedValue).toEqual({ sha256: firstValue.sha256, unchanged: true });
+
+      await writeFile(join(root, "plan.md"), "newer\n");
+      const changed = await executor.batch([{ id: "changed-diff", kind: "git-diff-if-changed", correlation, expectedSha256: firstValue.sha256 }]);
+      const changedValue = (changed.results[0] as { status: string; value: { value: { sha256: string; unchanged: boolean; content?: string } } }).value.value;
+      expect(changedValue.unchanged).toBe(false);
+      expect(changedValue.sha256).not.toBe(firstValue.sha256);
+      expect(changedValue.content).toContain("newer");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does not issue a reusable checkpoint for a truncated Git diff", async () => {
+    const root = await mkdtemp(join(tmpdir(), "lumenva-git-checkpoint-truncated-"));
+    const commandRunner = {
+      run: async () => ({ commandId: "truncated-diff", exitCode: 0, signal: null, stdout: "partial diff", stderr: "", truncated: true, timedOut: false, durationMs: 1 }),
+    } as unknown as SafeCommandRunner;
+    try {
+      const executor = new ReadOnlyLocalExecutor({ workspaceRoot: root, commandRunner });
+      const result = await executor.batch([{
+        id: "truncated-checkpoint",
+        kind: "git-diff-if-changed",
+        correlation: { organizationId: "test-org", traceId: "test-trace" },
+      }]);
+      expect(result.results[0]).toMatchObject({ status: "failed", errorCode: "runtime_git_output_too_large" });
+      expect(JSON.stringify(result)).not.toContain("partial diff");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

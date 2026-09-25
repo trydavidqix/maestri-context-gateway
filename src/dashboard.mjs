@@ -314,7 +314,10 @@ async function historyView(root) {
   const measurement_type = measurements.includes('unavailable')
     ? 'unavailable'
     : measurements.includes('estimated') ? 'estimated' : 'exact';
-  return { types, period: 'ALL_TIME', scope: 'All retained records per history type; up to 5,000 records per type', limitations: 'Each subtype reports its own limit_reached and last_observed_at; missing sources remain unavailable.', source: 'HistoryStore', measurement_type, timestamp: new Date().toISOString() };
+  const hasObserved = Object.values(types).some(type => type.status === 'OBSERVED');
+  const hasUnavailable = Object.values(types).some(type => type.status === 'UNAVAILABLE');
+  const status = hasObserved && hasUnavailable ? 'PARTIAL' : hasObserved ? 'OBSERVED' : 'UNAVAILABLE';
+  return { status, types, period: 'ALL_TIME', scope: 'All retained records per history type; up to 5,000 records per type', limitations: 'Each subtype reports its own limit_reached and last_observed_at; missing sources remain unavailable.', source: 'HistoryStore', measurement_type, timestamp: new Date().toISOString() };
 }
 
 async function memoryView(root) {
@@ -503,39 +506,40 @@ export function createDashboardServer({ root = ROOT, port = PORT, wireProbe, gra
   const server = createServer(async (req, res) => {
     if (req.method !== 'GET') { res.writeHead(405, { Allow: 'GET' }); return res.end('Method Not Allowed'); }
     try {
-      if (req.url === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); return res.end(dashboardHtml); }
-      if (req.url === '/api/events') { res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive', 'Cache-Control': 'no-cache' }); clients.add(res); await publish(); req.on('close', () => clients.delete(res)); return; }
-      if (req.url === '/api/stats') return sendJson(res, await dashboardStats(root));
-      if (req.url === '/api/views') return sendJson(res, { views: await dashboardViews(root, { graphView, executionFeed, registryOptions }), source: 'dashboard view registry', measurement_type: 'exact', timestamp: new Date().toISOString() });
-      if (req.url === '/api/executions') return sendJson(res, await executionEvidence(executionFeed));
-      if (req.url === '/api/graph') return graphView ? sendJson(res, await graphView()) : sendJson(res, { error: 'GRAPH_UNAVAILABLE', readOnly: true, measurement_type: 'unavailable', source: 'Core GET /graph' });
-      if (req.url === '/api/history') return sendJson(res, await historyView(root));
-      if (req.url === '/api/cache') return sendJson(res, await cacheView(root));
-      if (req.url === '/api/memory') return sendJson(res, await memoryView(root));
-      if (req.url === '/api/validation') return sendJson(res, await validationView(root));
-      if (req.url === '/api/tasks') return sendJson(res, { tasks: await taskStats(root), source: 'tasks/*/state.json + evidence', measurement_type: 'estimated', timestamp: new Date().toISOString() });
-      if (req.url === '/api/health') return sendJson(res, await health(root, wireProbe, actualPort()));
-      if (req.url === '/api/trust') return sendJson(res, (await dashboardStats(root)).trust);
-      if (req.url === '/api/traces') return sendJson(res, { traces: await listTraces(root), source: 'state/telemetry/traces/*.jsonl', measurement_type: 'exact', timestamp: new Date().toISOString() });
-      if (req.url.startsWith('/api/traces/')) {
-        const traceId = decodeURIComponent(req.url.slice('/api/traces/'.length));
+      const requestPath = new URL(req.url || '/', 'http://127.0.0.1').pathname;
+      if (requestPath === '/') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); return res.end(dashboardHtml); }
+      if (requestPath === '/api/events') { res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive', 'Cache-Control': 'no-cache' }); clients.add(res); await publish(); req.on('close', () => clients.delete(res)); return; }
+      if (requestPath === '/api/stats') return sendJson(res, await dashboardStats(root));
+      if (requestPath === '/api/views') return sendJson(res, { views: await dashboardViews(root, { graphView, executionFeed, registryOptions }), source: 'dashboard view registry', measurement_type: 'exact', timestamp: new Date().toISOString() });
+      if (requestPath === '/api/executions') return sendJson(res, await executionEvidence(executionFeed));
+      if (requestPath === '/api/graph') return graphView ? sendJson(res, await graphView()) : sendJson(res, { error: 'GRAPH_UNAVAILABLE', readOnly: true, measurement_type: 'unavailable', source: 'Core GET /graph' });
+      if (requestPath === '/api/history') return sendJson(res, await historyView(root));
+      if (requestPath === '/api/cache') return sendJson(res, await cacheView(root));
+      if (requestPath === '/api/memory') return sendJson(res, await memoryView(root));
+      if (requestPath === '/api/validation') return sendJson(res, await validationView(root));
+      if (requestPath === '/api/tasks') return sendJson(res, { tasks: await taskStats(root), source: 'tasks/*/state.json + evidence', measurement_type: 'estimated', timestamp: new Date().toISOString() });
+      if (requestPath === '/api/health') return sendJson(res, await health(root, wireProbe, actualPort()));
+      if (requestPath === '/api/trust') return sendJson(res, (await dashboardStats(root)).trust);
+      if (requestPath === '/api/traces') return sendJson(res, { traces: await listTraces(root), source: 'state/telemetry/traces/*.jsonl', measurement_type: 'exact', timestamp: new Date().toISOString() });
+      if (requestPath.startsWith('/api/traces/')) {
+        const traceId = decodeURIComponent(requestPath.slice('/api/traces/'.length));
         if (!/^trace-[A-Za-z0-9-]+$/.test(traceId)) return sendJson(res, { error: 'invalid trace_id', measurement_type: 'unavailable', source: 'dashboard', timestamp: new Date().toISOString() });
         return sendJson(res, await loadTrace(root, traceId));
       }
-      if (req.url === '/api/agents') return sendJson(res, await registryResponse('agents', 'agents', 'state/registry/agents.json + telemetry/process discovery'));
-      if (req.url === '/api/tools') return sendJson(res, await registryResponse('tools', 'tools', 'state/registry/tools.json + telemetry discovery'));
-      if (req.url === '/api/plugins') {
+      if (requestPath === '/api/agents') return sendJson(res, await registryResponse('agents', 'agents', 'state/registry/agents.json + telemetry/process discovery'));
+      if (requestPath === '/api/tools') return sendJson(res, await registryResponse('tools', 'tools', 'state/registry/tools.json + telemetry discovery'));
+      if (requestPath === '/api/plugins') {
         const [registry, resources] = await Promise.all([registryResponse('plugins', 'plugins', 'state/registry/plugins.json + telemetry discovery'), discoverResources(root)]);
         return sendJson(res, { ...registry, skills: resources.skills });
       }
-      if (req.url === '/api/mcps') return sendJson(res, await registryResponse('mcps', 'mcps', 'state/registry/mcps.json + telemetry discovery'));
-      if (req.url === '/api/runtimes') {
+      if (requestPath === '/api/mcps') return sendJson(res, await registryResponse('mcps', 'mcps', 'state/registry/mcps.json + telemetry discovery'));
+      if (requestPath === '/api/runtimes') {
         const [registry, resources] = await Promise.all([registryResponse('runtimes', 'runtimes', 'state/registry/runtimes.json + telemetry/process discovery'), discoverResources(root)]);
         return sendJson(res, { ...registry, ides: resources.ides });
       }
-      if (req.url === '/api/models') return sendJson(res, await registryResponse('models', 'models', 'state/registry/models.json + telemetry discovery'));
-      if (req.url === '/api/alerts') return sendJson(res, { alerts: await alertHistory(root), source: 'state/alerts/alerts.jsonl', measurement_type: 'estimated', timestamp: new Date().toISOString() });
-      if (req.url === '/api/alerts/ceo') return sendJson(res, { alerts: await ceoInbox(root), source: 'state/alerts/ceo-inbox.jsonl', measurement_type: 'estimated', timestamp: new Date().toISOString() });
+      if (requestPath === '/api/models') return sendJson(res, await registryResponse('models', 'models', 'state/registry/models.json + telemetry discovery'));
+      if (requestPath === '/api/alerts') return sendJson(res, { alerts: await alertHistory(root), source: 'state/alerts/alerts.jsonl', measurement_type: 'estimated', timestamp: new Date().toISOString() });
+      if (requestPath === '/api/alerts/ceo') return sendJson(res, { alerts: await ceoInbox(root), source: 'state/alerts/ceo-inbox.jsonl', measurement_type: 'estimated', timestamp: new Date().toISOString() });
       res.writeHead(404); res.end('Not Found');
     } catch { sendJson(res, { error: 'falha ao ler dashboard', measurement_type: 'unavailable', source: 'dashboard', timestamp: new Date().toISOString() }); }
   });
