@@ -100,7 +100,7 @@ jobs:
           MCG_ROOT: ${{ runner.temp }}/mcg-zap-state
         run: |
           mkdir -p "$MCG_ROOT" "$RUNNER_TEMP/zap-reports"
-          node bin/mcg.mjs dashboard --port 7435 --no-open >"$RUNNER_TEMP/mcg-zap-dashboard.log" 2>&1 &
+          node apps/cli/src/mcg.mjs dashboard --port 7435 --no-open >"$RUNNER_TEMP/mcg-zap-dashboard.log" 2>&1 &
           echo "$!" >"$RUNNER_TEMP/mcg-zap-dashboard.pid"
           for attempt in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:7435/ >/dev/null; then
