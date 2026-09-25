@@ -1,6 +1,6 @@
 # Lumenva → Maestri Context Gateway transfer ledger
 
-**Current target branch:** standalone `main` at `97ccad2052b85f1c98ef26d0c1490324a2fa9b04` on 2026-09-25. Historical transfer snapshot below records the 2026-09-24 audit and must not be mistaken for current remote state.
+**Current target branch:** standalone `main` at `d72e5d88902582ff91cfb3f728a1cf3bec2d93b5` on 2026-09-25. Historical transfer snapshot below records the 2026-09-24 audit and must not be mistaken for current remote state.
 
 **Migration pointer (historical):** `migration/lumenva-maestri-import-20260924` pointed to the same tip as `main` at the 2026-09-24 audit; it is absent from the 2026-09-25 remote branch inventory.
 **Source repository:** `trydavidqix/Lumenva`  
@@ -8,8 +8,8 @@
 
 ## Destination refresh — 2026-09-25
 
-- The local checkout was fast-forwarded to the actual GitHub `main` at `97ccad2`; working tree is clean and `main` equals `origin/main`.
-- PRs #38–40 are merged; no pull requests are open. Current remote refs include `main` and three merged PR head branches. The old migration compatibility pointer `migration/lumenva-maestri-import-20260924` is not present in the current remote branch inventory.
+- The current local checkout is synchronized with GitHub `main` at `d72e5d8`; the documentation reconciliation is merged and the working tree is clean.
+- PRs #38–41 are merged; no pull requests are open. The three merged PR head refs were deleted after merge; fresh remote inventory contains only `main`. The old migration compatibility pointer `migration/lumenva-maestri-import-20260924` is absent.
 - PR #38 updates the dashboard document title on view changes and adds an accessibility regression test. PR #39 refreshes the security triage/release-gate snapshot at `42385fa`. PR #40 adds nested-field, Unicode, malformed-input and size-boundary redaction fuzz cases. MCG gates, security scanning and fuzzing passed on `97ccad2`.
 - The source-worktree and source-branch audit below is dated 2026-09-24. It is historical evidence only; do not delete or move source refs/worktrees without a fresh, exact-path and ownership audit.
 
