@@ -27,11 +27,50 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
 
-  packages/local-runtime:
+  apps/cli:
+    dependencies:
+      '@nexus-brain/context-gateway':
+        specifier: workspace:*
+        version: link:../../packages/context-gateway
+      '@nexus-brain/control-center':
+        specifier: workspace:*
+        version: link:../control-center
+      '@nexus-brain/edge':
+        specifier: workspace:*
+        version: link:../edge
+      '@nexus-brain/execution':
+        specifier: workspace:*
+        version: link:../../packages/execution
+      '@nexus-brain/providers':
+        specifier: workspace:*
+        version: link:../../packages/providers
+
+  apps/control-center:
+    dependencies:
+      '@nexus-brain/brain':
+        specifier: workspace:*
+        version: link:../../packages/brain
+      '@nexus-brain/context-gateway':
+        specifier: workspace:*
+        version: link:../../packages/context-gateway
+      '@nexus-brain/edge':
+        specifier: workspace:*
+        version: link:../edge
+      '@nexus-brain/evidence':
+        specifier: workspace:*
+        version: link:../../packages/evidence
+
+  apps/edge:
     dependencies:
       '@modelcontextprotocol/server':
         specifier: 2.1.0
         version: 2.1.0
+      '@nexus-brain/context-gateway':
+        specifier: workspace:*
+        version: link:../../packages/context-gateway
+      '@nexus-brain/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -52,8 +91,45 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(tsx@4.23.15))
 
-  packages/operating-core:
+  packages/brain:
     dependencies:
+      '@nexus-brain/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/compat:
+    dependencies:
+      '@nexus-brain/brain':
+        specifier: workspace:*
+        version: link:../brain
+      '@nexus-brain/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@nexus-brain/control-plane':
+        specifier: workspace:*
+        version: link:../control-plane
+      '@nexus-brain/evidence':
+        specifier: workspace:*
+        version: link:../evidence
+      '@nexus-brain/execution':
+        specifier: workspace:*
+        version: link:../execution
+      '@nexus-brain/governance':
+        specifier: workspace:*
+        version: link:../governance
+      '@nexus-brain/providers':
+        specifier: workspace:*
+        version: link:../providers
+      '@nexus-brain/routing':
+        specifier: workspace:*
+        version: link:../routing
       '@openai/codex-sdk':
         specifier: 0.155.1
         version: 0.155.1
@@ -73,6 +149,126 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/context-gateway:
+    dependencies:
+      '@nexus-brain/brain':
+        specifier: workspace:*
+        version: link:../brain
+      '@nexus-brain/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@nexus-brain/evidence':
+        specifier: workspace:*
+        version: link:../evidence
+
+  packages/contracts:
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/control-plane:
+    dependencies:
+      '@nexus-brain/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@nexus-brain/evidence':
+        specifier: workspace:*
+        version: link:../evidence
+      '@nexus-brain/routing':
+        specifier: workspace:*
+        version: link:../routing
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/evidence:
+    dependencies:
+      '@nexus-brain/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
+  packages/execution:
+    dependencies:
+      '@nexus-brain/brain':
+        specifier: workspace:*
+        version: link:../brain
+      '@nexus-brain/context-gateway':
+        specifier: workspace:*
+        version: link:../context-gateway
+      '@nexus-brain/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@nexus-brain/evidence':
+        specifier: workspace:*
+        version: link:../evidence
+      '@nexus-brain/providers':
+        specifier: workspace:*
+        version: link:../providers
+      '@openai/codex-sdk':
+        specifier: 0.155.1
+        version: 0.155.1
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/governance:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/providers:
+    dependencies:
+      '@nexus-brain/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@openai/codex-sdk':
+        specifier: 0.155.1
+        version: 0.155.1
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(tsx@4.23.15))
+
+  packages/routing:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.2
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
 packages:
 

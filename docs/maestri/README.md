@@ -1,6 +1,6 @@
 # Maestri — Lumenva Engineering Council
 
-Este diretório operacionaliza o Agentic Engineering OS já definido em `docs/MISSION.md`, `docs/ARCHITECTURE.md` e `docs/DECISIONS.md`.
+Este diretório contém referências de papéis e rotinas históricas/opt-in; não inicia Maestri e não é dependência do Nexus standalone. A arquitetura atual fica em `docs/architecture/overview.md`; o Master Blueprint é o único tracker de implementação.
 
 ## Regra de autoridade
 

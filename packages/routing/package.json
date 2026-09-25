@@ -1,0 +1,17 @@
+{
+  "name": "@nexus-brain/routing",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./router": "./src/router.mjs",
+    "./maestri-router": "./src/maestri-router/index.ts"
+  },
+  "scripts": {
+    "test:unit": "node --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

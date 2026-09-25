@@ -20,21 +20,15 @@ jobs:
           cache: pnpm
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
-      - name: MCG unit tests
-        run: node --test test/*.test.mjs
+      - name: Enforce workspace package boundaries
+        run: pnpm check:architecture
+      - name: Workspace package unit tests
+        run: pnpm -r --if-present test:unit
+      - name: Cross-package integration tests
+        run: pnpm test:integration
       - name: Import and syntax smoke
-        run: node scripts/check-syntax.mjs
+        run: node tooling/scripts/check-syntax.mjs
       - name: Secret, path and personal-data scan
-        run: node scripts/scan-sensitive.mjs
-      - name: Dashboard smoke
-        run: node --test test/dashboard.test.mjs
-      - name: Contracts smoke
-        run: node --test test/contracts.test.mjs
-      - name: Local Runtime typecheck and tests
-        run: |
-          pnpm --dir packages/local-runtime typecheck
-          pnpm --dir packages/local-runtime test:unit
-      - name: Operating Core typecheck and tests
-        run: |
-          pnpm --dir packages/operating-core typecheck
-          pnpm --dir packages/operating-core test:unit
+        run: node tooling/scripts/scan-sensitive.mjs
+      - name: Workspace TypeScript checks
+        run: pnpm -r --if-present typecheck

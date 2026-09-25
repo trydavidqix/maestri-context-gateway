@@ -1,8 +1,8 @@
-[mcp_servers.maestri_local_runtime]
+[mcp_servers.nexus_local_runtime]
 command = "node"
-args = ["scripts/run-local-runtime-mcp.mjs"]
+args = ["tooling/scripts/run-edge-mcp.mjs"]
 enabled_tools = ["mcg_read_batch"]
 startup_timeout_sec = 30
 
-[mcp_servers.maestri_local_runtime.tools.mcg_read_batch]
+[mcp_servers.nexus_local_runtime.tools.mcg_read_batch]
 approval_mode = "approve"

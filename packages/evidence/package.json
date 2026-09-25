@@ -1,0 +1,23 @@
+{
+  "name": "@nexus-brain/evidence",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./context-cache": "./src/context/cache.mjs",
+    "./history": "./src/history/store.mjs",
+    "./events": "./src/events/bus.mjs",
+    "./evidence": "./src/evidence.mjs",
+    "./telemetry": "./src/telemetry.mjs",
+    "./traces": "./src/traces.mjs",
+    "./evals": "./src/evals.mjs",
+    "./scores": "./src/scores.mjs",
+    "./redaction": "./src/redaction.mjs",
+    "./governance/eval-os": "./src/governance/eval-os.ts"
+  },
+  "scripts": {
+    "test:unit": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@nexus-brain/contracts": "workspace:*"
+  }
+}
