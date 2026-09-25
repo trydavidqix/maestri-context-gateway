@@ -3,7 +3,7 @@
 **Canonical project:** Nexus Brain (`trydavidqix/nexus-brain`)
 **Default branch:** `main`
 **Status:** ACTIVE — consolidation and implementation not complete
-**Last reconciled:** 2026-09-25
+**Last reconciled:** 2026-09-26
 
 This is the only active cross-project implementation tracker. Nexus Brain itself is one product and one monorepo. The ecosystem it manages is explicitly multi-project: many independent projects, repositories, workspaces, sessions and agents may be registered and governed by Nexus without being moved into the Nexus monorepo. “Maestri”, “Lumenva Brain”, “Context Gateway/MCG”, “Local Runtime”, “Cloud Fabric”, “Command Center” and “Everything Edge” name historical designs or internal modules—not separate products or repositories. CRM, voice, social-business/Meta integrations, tenant business data and unrelated Lumenva code remain out of scope unless a later explicit decision identifies an exact owned path.
 
@@ -25,6 +25,7 @@ NEXUS BRAIN — ONE PLATFORM / ONE BRAIN / ONE CONTROL PLANE
 ├── Project Registry: project identity, repository/workspace binding, stack, policy, permissions and lifecycle
 ├── Control plane (Maestri): session/task state, DAG, routing, approvals, budgets, scheduler and project-aware orchestration
 ├── Brain services: global/project/session/task memory, temporal facts, provenance, context, retrieval and reusable capabilities
+├── Memory runtime: Hindsight API + dedicated background worker service(s) over canonical PostgreSQL/pgvector
 ├── Execution: agent factory/supervisor, local runtime, Codex Cloud, Jules/provider adapters
 ├── Edge: Windows Everything 1.5 + Git + minimal Lumenva Edge/MCP bridge
 ├── Interfaces: Claude Code, Codex, Gemini CLI, Antigravity, Jules
@@ -46,7 +47,7 @@ Reuse the existing Nexus repository, tests, MCG dashboard, Local Runtime and tra
 | Concern | Canonical V1 decision | Preserved alternative / status |
 |---|---|---|
 | Product identity | Nexus Brain is the sole platform product; legacy systems become internal modules. The Nexus codebase remains one monorepo, while the managed ecosystem is many independent projects/repositories/workspaces. | Historical source documents retain their original names for provenance. |
-| Deployment | Cloud-first: Brain API/MCP, canonical DB, indexer, compiler and backups run in Google Cloud. | Early local-first SQLite/vector design is preserved as history; no local authoritative database in V1. |
+| Deployment | Cloud-first: Brain API/MCP, canonical DB, indexer, compiler, **Hindsight API + dedicated Hindsight worker service(s)** and backups run in Google Cloud. Hindsight API and workers scale independently while sharing the canonical PostgreSQL state. | Early local-first SQLite/vector design is preserved as history; no local authoritative database in V1. |
 | Canonical stores | GitHub = code/config; Cloud SQL PostgreSQL + pgvector = Brain state; Cloud Storage = versioned recovery artifacts. | Firebase SQL Connect is not on the V1 critical path; reconsider only for a concrete UI/app need. |
 | Local machine | Tiny Edge uses Everything 1.5 Journal + Git; queue/snapshots are bounded, encrypted, and non-authoritative. | Do not build a recursive scanner or parallel filesystem watcher. Fallback to Git status/diff if Everything is unavailable. |
 | Memory/indexing | One Nexus-owned memory API and canonical provenance/temporal model; **Hindsight is the V1 memory engine behind a replaceable `MemoryEngine` adapter, not the authority**. Agent/model/Hindsight outputs are observations or candidates, never truth by assertion. Memory lifecycle is `OBSERVED → CANDIDATE → VERIFIED → CANONICAL`, with `SUPERSEDED`, `CONFLICTED` and `REVOKED` states. Canonical promotion remains Nexus-owned and requires provenance, scope and supporting evidence. | **Graphiti is deferred as a benchmark alternative**, not installed in V1. Evaluate it only if a concrete graph/temporal retrieval limitation is proven. |
@@ -117,8 +118,13 @@ MemoryEngine interface
       ↓
 HindsightAdapter (V1)
       ↓
-PostgreSQL + pgvector
+Hindsight API
+   ↙       ↘
+PostgreSQL  Hindsight Worker(s)
+ + pgvector   (background processing)
 ```
+
+The Hindsight API and worker service(s) are separate runtime roles. The API serves Nexus memory operations; workers process asynchronous/background memory work. They share the same canonical PostgreSQL/pgvector state and must be independently observable and scalable.
 
 ### Responsibility boundary
 
@@ -145,18 +151,38 @@ Hindsight owns V1 memory-engine mechanics behind the adapter:
 
 **Hindsight output never self-promotes to canonical truth.** Any `reflect`, inferred relation, summary or model-generated conclusion re-enters Nexus as `OBSERVED` or `CANDIDATE` and must pass normal verification policy.
 
-### Multi-project memory banks / namespaces
+### Multi-project banks, tags and retrieval
 
-Use project-isolated Hindsight memory banks/namespaces aligned with the Nexus Project Registry:
+Use **one Hindsight bank per project**, plus one separate global bank:
 
 ```text
-global
-project:<project_id>
-session:<session_id>
-task:<task_id>
+bank: global
+bank: project:<project_id>
 ```
 
-The exact physical mapping may use Hindsight banks plus Nexus metadata/tags, but the invariant is isolation by `project_id`. Cross-project retrieval is denied by default except for explicitly evidence-backed reusable global capabilities/patterns.
+`SESSION` and `TASK` remain Nexus scopes, but are represented inside the relevant project bank with Hindsight tags/metadata rather than separate banks:
+
+```text
+tag: session:<session_id>
+tag: task:<task_id>
+tag: scope:project|session|task
+tag: type:<memory_type>
+```
+
+The invariant is strong isolation by `project_id`: a project bank contains that project's memory; session/task tags narrow retrieval inside it. Cross-project retrieval is denied by default.
+
+For normal task context, Nexus performs **separate retrievals** and owns the merge:
+
+```text
+1. query project:<project_id> bank with task/session tags
+2. query global bank only when reusable global knowledge is relevant
+3. apply Nexus provenance/freshness/conflict/security policy
+4. merge + deduplicate + rank
+5. Context Compiler + Token Firewall
+6. deliver bounded context to the provider agent
+```
+
+Hindsight banks do not become an implicit cross-project sharing mechanism. Only evidence-backed reusable knowledge may be promoted to the global bank by Nexus policy.
 
 ### Replaceability
 
@@ -212,13 +238,13 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
 | NB-01 | Nexus monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded Nexus-owned paths; dependency/import graph; safe folder rename; external projects remain independent | BLOCKED |
 | NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; conflicts recorded as unresolved | TODO |
-| NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; no permanent GitHub cloud key | TODO |
-| NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 persistence integrated behind Nexus ownership; append-only observations/events; explicit `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED` lifecycle; versioned facts; evidence lineage; ACL/scope; source re-check path; restore test | TODO |
+| NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | TODO |
+| NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; one `global` bank + one `project:<project_id>` bank per registered project; session/task represented by scoped tags/metadata inside project banks; append-only observations/events; explicit `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED` lifecycle; evidence lineage; ACL/scope; restore test | TODO |
 | NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus Brain API/MCP fronts `MemoryEngine`; Hindsight is not called directly by agents; authenticated context/search/remember/reuse/status plus health; `remember` stores observations/candidates unless Nexus promotion policy passes; responses expose status/provenance/source; contract tests; bounded context | TODO |
 | NB-06 | GitHub project indexer and sync/reconciliation | NB-02, NB-03, NB-04 | Idempotent webhook + scheduled reconciliation; branch/commit provenance; safe retry | TODO |
 | NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent permissions/budgets; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
 | NB-07 | Workspace index and capability evidence | NB-01, NB-06, NB-06A | Per-project manifests/files/symbols/capabilities indexed with project/repo/commit/test evidence and incremental updates; no cross-project namespace collision | TODO |
-| NB-08 | Hybrid retrieval and reuse coverage | NB-05, NB-07 | Hindsight-backed semantic + lexical + relationship/graph + temporal retrieval across GLOBAL/PROJECT/SESSION/TASK; Nexus project scope first and global only when relevant; freshness/evidence-aware filtering; conflicted/revoked facts excluded by default; task-minimal context; safe cross-project reusable-capability lookup; explainable full/partial/missing coverage | TODO |
+| NB-08 | Hybrid retrieval and reuse coverage | NB-05, NB-07 | Hindsight-backed semantic + lexical + relationship/graph + temporal retrieval; Nexus queries the project bank first with session/task tags, queries the global bank separately only when relevant, then policy-filters/merges/deduplicates/ranks results; conflicted/revoked facts excluded by default; task-minimal context; safe cross-project reusable-capability lookup; explainable full/partial/missing coverage | TODO |
 | NB-09 | Memory/event compiler and decision tiers | NB-04, NB-05, NB-08 | `OBSERVED→CANDIDATE→source verification→dedup/conflict→VERIFIED→CANONICAL`; deterministic-first; Hindsight `reflect`/inference returns only observations/candidates; no model or memory-engine statement self-promotes to truth; contradictory evidence yields `CONFLICTED`; newer verified facts supersede older ones without erasing history; model abstention/fallback tests | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
@@ -231,7 +257,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Portfolio + project drill-down views; every registered view has clear project/source/scope/measurement/unavailable report; no cross-project state leakage; reference fidelity, keyboard, screen reader, touch | IN_PROGRESS |
 | NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security workflows, least token permissions, actual required checks/protection verified; audit current alert findings | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
-| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Health/latency/sync/conflicts/usage/errors and alert reports backed by real measurements | TODO |
+| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Health/latency/sync/conflicts/usage/errors and alert reports backed by real measurements; separate Hindsight API/worker health, queue/backlog/failure visibility and scaling runbook | TODO |
 | NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Cross-write/read; project isolation; safe cross-project reusable knowledge; new project registration; new session/PC; offline recovery; hallucinated/contradictory/stale-memory injection tests; proof that one provider cannot promote unsupported claims; hostile inputs; authorization; disaster restore pass | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
@@ -264,6 +290,8 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 - Fresh verified evidence may mark older canonical facts `SUPERSEDED`; history/provenance remain append-only and auditable.
 - Context injection is task-bounded: retrieve the minimum relevant verified information needed for the current task rather than dumping the full shared memory into provider prompts.
 - Do not expose Hindsight directly to provider agents as an authority. Agents use Nexus Brain API/MCP; Hindsight remains an internal replaceable engine behind Nexus governance.
+- Project banks are isolation boundaries. Session/task scoping uses tags/metadata inside the selected project bank; do not create separate session/task banks by default.
+- Project-bank and global-bank retrievals are performed separately and merged only by Nexus after scope, provenance, freshness, conflict and security checks.
 - Do not run Graphiti in parallel as a second authoritative V1 memory system. It remains a benchmark alternative until evidence justifies a migration or specialized adapter.
 - Least privilege; no secrets in logs, context, execution records, reports or source archives. Edge receives only short-lived scoped identity, not cloud-admin or database credentials.
 - No direct-main worker writes, force-push, destructive cleanup, auto-merge, auto-commit backup, Docker install, paid provider calls, model training, irreversible bucket lock, or CRM/voice migration without the applicable explicit authorization and gates.
@@ -273,9 +301,9 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 
 ## 9. Objective progress
 
-The implementation tracker contains NB-00..NB-23 plus NB-06A (Project Registry). Reconcile the numerical denominator before the next implementation-progress claim so Project Registry is not hidden inside another package. Only `DONE` counts; `IN_PROGRESS`, `VALIDATING`, `BLOCKED` and `TODO` do not. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only); do not average it into the Nexus total.
+The implementation tracker has **25 work packages total**: NB-00..NB-23 (24 packages) plus NB-06A (Project Registry). This denominator is canonical unless a future blueprint change explicitly adds/removes a package. Only `DONE` counts; `IN_PROGRESS`, `VALIDATING`, `BLOCKED` and `TODO` do not. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only); do not average it into the Nexus total.
 
-The previously published numerical snapshot (`DONE 1/24`, `BLOCKED 1/24`, `IN_PROGRESS 3/24`, `TODO 19/24`) predates the explicit Project Registry package. Do not publish a new percentage until the tracker denominator/statuses are reconciled with NB-06A. Only NB-00 is complete; NB-01 is blocked by active processes/workspace references to the old local path. Dashboard, Token Firewall and GitHub/security work remain partial under their larger Nexus acceptance gates. This is not a claim that existing MCG code is absent.
+Current tracker snapshot: `DONE 1/25`, `BLOCKED 1/25`, `IN_PROGRESS 3/25`, `TODO 20/25`; **Nexus implementation progress: 4%, remaining: 96%**. Only NB-00 is complete; NB-01 is blocked by active processes/workspace references to the old local path. Dashboard, Token Firewall and GitHub/security work remain partial under their larger Nexus acceptance gates. This is not a claim that existing MCG code is absent.
 
 ### NB-01 audit record
 
@@ -295,4 +323,4 @@ Do not permanently delete. If any gate fails, leave all source emails untouched 
 
 ## 11. Final acceptance
 
-Nexus Brain is complete only when NB-00..NB-23 and NB-06A are `DONE`, full-workspace checks and provider-backed gates pass, every capability has evidence, security/backup recovery is verified, all sources remain preserved, and local `main` is synchronized with GitHub `main`. No overall completion claim is made from MCG’s 4/7 score.
+Nexus Brain is complete only when all **25 work packages** (NB-00..NB-23 plus NB-06A) are `DONE`, full-workspace checks and provider-backed gates pass, every capability has evidence, security/backup recovery is verified, all sources remain preserved, and local `main` is synchronized with GitHub `main`. No overall completion claim is made from MCG’s 4/7 score.
