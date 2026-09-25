@@ -2,6 +2,17 @@
 
 This repository is the canonical home for Maestri Context Gateway (MCG), extracted from the Lumenva implementation branch on 2026-09-23. It contains the MCG source, contracts, configuration templates, registries, tests, evaluation datasets, and standalone CI.
 
+## Current authoritative snapshot — 2026-09-25
+
+- Repository: `trydavidqix/maestri-context-gateway`; reconciliation started from a clean local `main` synchronized with `origin/main` at `97ccad2052b85f1c98ef26d0c1490324a2fa9b04`. This update has changed three documentation files locally; it is not yet committed or pushed.
+- PRs #38 (dashboard title/accessibility regression), #39 (security triage/release-gate documentation), and #40 (hostile-input redaction fuzz coverage) are merged. No PRs are open. MCG gates, security scanning and fuzz workflows completed successfully for `97ccad2`: [MCG](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36147387550), [security](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36147387653), [fuzz](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36147387658).
+- The remote currently contains `main` plus three merged PR head refs: `fix/dashboard-spa-title-accessibility-594114502157110223`, `update-security-triage-reports-6096125214365440451`, and `jules-fuzz-redaction-1613426214711698241`. Therefore the prior “only main” state is no longer true. They have not been deleted in this documentation update.
+- MCG completion remains **4/7 accepted = 57%**: F0–F2 and F4 accepted; F3, F5 and F6 partial. This percentage is MCG-only, not the Maestri mega-blueprint.
+- F3: broader hostile-input fuzz tests are merged; live Codex `mcg_read_batch` use, router checkpoint-hash adoption and provider-backed token/round-trip benchmark remain open. No token savings are claimed.
+- F5: PR #38 adds dynamic document-title updates plus a regression test. Reference-image fidelity, screen-reader acceptance and physical touch-device acceptance remain open.
+- F6: latest workflow runs passed, but this does not mean zero findings or enforced protection. Fresh read-only GitHub API checks after `97ccad2` show 107 open code-scanning alerts, 0 open Dependabot alerts, 0 rulesets, and `main` unprotected (HTTP 404). Gitleaks 0, OSV 0, and the unconfirmed ZAP possible XSS plus missing headers are findings from the artifact review at `42385fa`, not re-reviewed artifacts for `97ccad2`.
+- The complete cross-blueprint status and remaining work are in [`MASTER_BLUEPRINT_CANONICAL.md`](MASTER_BLUEPRINT_CANONICAL.md), §§49 and 62. No combined Maestri-wide percentage is defensible; the component plans have different scopes and no shared denominator.
+
 ## Initial extraction snapshot (historical)
 
 - Source snapshot: Lumenva PR #26, commit `0901c57c`.
@@ -20,7 +31,7 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 - Dashboard CLI accepts `--port` so this checkout can run beside an older MCG dashboard instance without replacing it.
 - Validation (latest branch run, 2026-09-23): 44/44 tests pass; syntax/import smoke parses 33 modules; PowerShell parser and sensitive-data scan pass. The Scheduled Task is registered and verified for the current user with an at-logon trigger, Interactive logon, Limited run level, IgnoreNew duplicate policy, and three restart attempts.
 
-## Dashboard reports and Token Firewall follow-up — consolidated 2026-09-24
+## Historical dashboard reports and Token Firewall snapshot — 2026-09-24 (superseded by current snapshot above)
 
 - Single active cross-blueprint plan: [`MASTER_BLUEPRINT_CANONICAL.md`](MASTER_BLUEPRINT_CANONICAL.md). MCG evidence remains tracked in this status file and in §49 of that plan.
 - Consolidated progress: **3/7 phases accepted = 43%**. This uses a broader denominator than the former 2/6 dashboard-only tracker; it is a scope reconciliation, not newly completed work.
@@ -28,13 +39,13 @@ This repository is the canonical home for Maestri Context Gateway (MCG), extract
 - Jules drafts/session `6700594731787502098` remain paused/unaccepted and are not part of the accepted branch. Do not count them as implementation evidence.
 - `superpowers/plans/2026-09-23-dashboard-reports-token-firewall.md` is retained as historical detail and superseded by the master plan; it is not a second active tracker.
 
-## Security instrumentation and current MCG completion state — 2026-09-25
+## Historical security instrumentation snapshot — 2026-09-25 (superseded by current snapshot above)
 
 - This work is an additive part of MCG release/evaluation readiness, not a separate denominator. Current MCG status: **4/7 accepted phases = 57%** (F0–F2 and F4 accepted; F3, F5 and F6 partial).
 - Security tooling merged to this repository's `main`: PR #31 adds CodeQL, Semgrep, Gitleaks, OSV-Scanner and Dependabot; PR #36 adds isolated passive ZAP; PR #37 adds Jazzer.js redaction fuzzing. Recorded Actions runs for base commit `249cb391cd51c235f2489ffbb6f858c82774c336` passed; those historical runs do not validate the new local commits until pushed CI completes. Scanner workflows remain report-only; ZAP is passive-only.
 - The latest verified GitHub code-scanning snapshot available during this reconciliation had 106 open alerts (CodeQL/Semgrep); individual findings still require triage. Dependabot security-alert count remains unverified because the API denied the required permission. Four Dependabot update PRs were open; they are update proposals, not the security-alert count, and are being closed at the owner's direction.
 - PR #37 adds Jazzer.js credential-redaction fuzzing. The Token Firewall follow-up and tracked Git diff checkpoint are integrated into the local `main` history. Verification now passes: MCG 53/53 tests; Local Runtime 30/30 and strict typecheck; 35 syntax/import modules; sensitive scan across 203 files; Jazzer 62,897 executions in 9 seconds without a crash. The project Codex config registers only `mcg_read_batch` with per-tool approval; CLI sees the registration and the official MCP client tests cover discovery plus bounded reads. No live Codex model/tool turn or token savings from this code path are claimed. F4 reports are accepted; F5 screen-reader/touch/reference checks and F6 scanner triage/release gates remain open.
-- Final synchronization: implementation commit `2398bc1eaf27caf2d9c7f98a8766e85c98777b72` passed GitHub MCG gates, CodeQL, security scanning and security fuzzing. A later documentation-only commit recorded branch cleanup; it changed no product code. All 4 open Dependabot update PRs were closed as requested. All remote branches except `main` were deleted; local and remote branch inventories now contain only `main`; no PRs remain open. The former auxiliary worktree was removed after its commits landed in `main`.
+- Historical sync note at `2398bc1e`: it recorded a main-only branch inventory at that time. PRs #38–40 were merged afterward and recreated three remote head refs; see the current authoritative snapshot above. No PRs are currently open.
 
 ## Lumenva branch extraction reconciliation — 2026-09-23
 
