@@ -34,7 +34,7 @@ test('dashboard updates document title when changing views', async t => {
   const page = await get(server.address().port);
   assert.equal(page.status, 200);
 
-  const scriptMatch = [...page.body.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)?.[1];
+  const scriptMatch = [...page.body.matchAll(/<script>([\s\S]*?)<\/script>/gi)].at(-1)?.[1];
   assert.ok(scriptMatch, 'Client script must be present');
 
   const vm = await import('node:vm');
