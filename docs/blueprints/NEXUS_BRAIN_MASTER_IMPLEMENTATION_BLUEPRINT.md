@@ -45,6 +45,7 @@ Reuse the existing repository, tests, MCG dashboard, Local Runtime and transferr
 | MCP | One stable Brain MCP surface. V1 tools: `brain_context`, `brain_search`, `brain_reuse`, `brain_remember`, `local_search`, `brain_status`. | Earlier 8-tool variants remain in source archive; aliases may be added only for proven client compatibility. |
 | Compiler/decision | Deterministic rules first; one Gemini compiler for V1 behind provider-neutral interface; larger models only for ambiguous cases. | Multiple compilers, Laya/classifier choices and routing thresholds remain deferred/experimental until benchmarked. No custom training in V1. |
 | Agents/runtime | One task/session/event model; Agent Factory, policy, evidence and bounded loop are shared by local/cloud/Jules execution. | Council, C4, AutoImprove and learned Reflex are later gated modules, not duplicate control planes or V1 prerequisites. |
+| Provider/native directories | Codex, Claude Code, Gemini/Antigravity and other provider runtimes keep their official global install/config/state directories under provider ownership. Nexus integrates only through supported interfaces such as MCP, API, CLI, hooks and project-level configuration; it must not relocate, fork, vendor, patch or convert provider home/install directories into Nexus-owned paths. | Project-scoped adapter/config files may live in Nexus when officially supported. Official provider updates must remain independently applicable without requiring Nexus directory migration. |
 | Recovery | GitHub for committed code; unique create-only snapshots for uncommitted work; Cloud SQL backup/PITR and a separate GCS recovery vault. | Never use mutable `latest.zip`, auto-commit as backup, or irreversible retention locks before restore tests. |
 | Scope | Only Nexus Brain-owned paths enter this repo. | CRM, voice, Meta/social-business and tenant/business migrations are explicitly excluded. |
 
@@ -92,7 +93,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-09 | Memory/event compiler and decision tiers | NB-04, NB-05, NB-08 | Candidate→source verification→dedup/conflict→canonical; deterministic-first; model abstention/fallback tests | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
-| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude, Codex, Gemini/Antigravity and Jules use same contracts; scoped auth; no duplicated memory | TODO |
+| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude, Codex, Gemini/Antigravity and Jules use the same Nexus contracts through supported interfaces; native provider install/config/state directories remain provider-owned and untouched; official updates remain independently applicable; scoped auth; no duplicated memory | TODO |
 | NB-13 | Maestri control plane as Nexus module | NB-02, NB-05 | Session/Event Store, Task DAG, Progress, scheduler, recovery and budgets share the Brain contracts | TODO |
 | NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions, revocable scoped capabilities, risk gates, bounded loops and audit evidence | TODO |
 | NB-15 | Local Runtime, Codex Cloud and Jules execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches, resumable jobs, quota-safe retries, independent tests and no direct main merge | TODO |
@@ -130,7 +131,8 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 - User decisions and verified code/config/test/runtime evidence outrank agent inference. Memory candidates require provenance and scope checks.
 - Least privilege; no secrets in logs, context, execution records, reports or source archives. Edge receives only short-lived scoped identity, not cloud-admin or database credentials.
 - No direct-main worker writes, force-push, destructive cleanup, auto-merge, auto-commit backup, Docker install, paid provider calls, model training, irreversible bucket lock, or CRM/voice migration without the applicable explicit authorization and gates.
-- Separate global agent profiles from project integration. A project instruction or skill does not prove a Windows-global config is active.
+- Keep provider-native global directories and installations external to Nexus. Codex, Claude Code, Gemini/Antigravity and other provider runtimes retain their official install/config/state locations; Nexus must not require moving, forking, vendoring or patching those directories.
+- Project integration may add only supported project-level adapters/configuration (for example MCP, API, CLI, hooks or project instructions). A project instruction or skill does not prove a Windows-global config is active, and official provider updates must continue to work independently of Nexus.
 - Keep models/providers replaceable. The product owns contracts, evidence, memory, task state and recovery.
 
 ## 9. Objective progress
