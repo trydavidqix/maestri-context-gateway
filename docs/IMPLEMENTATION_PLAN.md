@@ -1,8 +1,8 @@
 # Maestri Context Gateway Implementation Plan (Historical Baseline)
 
-> This checklist records the original implementation plan from the Lumenva monorepo. It is retained as project history, not as the current task tracker. The sole active cross-blueprint plan is [`MASTER_BLUEPRINT_CANONICAL.md`](MASTER_BLUEPRINT_CANONICAL.md); [`STATUS.md`](STATUS.md) records verified MCG state.
+> This checklist records the original implementation plan from the Lumenva monorepo. It is retained as project history, not as the current task tracker. The sole active cross-blueprint plan is [`blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md`](blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md); [`STATUS.md`](STATUS.md) records verified MCG state.
 
-> **Scope clarification (2026-09-24):** The push/merge restriction below belongs to this historical checklist. Dashboard, Token Firewall, product extraction, Brain/Git Governance integration, reporting, themes and validation work are consolidated in [`MASTER_BLUEPRINT_CANONICAL.md`](MASTER_BLUEPRINT_CANONICAL.md). This historical checklist must not be resumed as a competing tracker.
+> **Scope clarification (2026-09-24):** The push/merge restriction below belongs to this historical checklist. Dashboard, Token Firewall, product extraction, Brain/Git Governance integration, reporting, themes and validation work are consolidated in [`blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md`](blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md). This historical checklist must not be resumed as a competing tracker.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

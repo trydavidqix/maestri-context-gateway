@@ -6,15 +6,15 @@ This document separates automated workflow execution from merge enforcement and 
 
 For commit `42385fa0f1c88f2a26387cd8373ec473f56d0fe9` on `main`, these runs completed successfully:
 
-- MCG CI: [run `36139338314`](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36139338314).
-- Security scanning (Gitleaks, OSV, ZAP jobs): [run `36139338399`](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36139338399).
-- CodeQL: [run `36139337096`](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36139337096).
+- MCG CI: [run `36139338314`](https://github.com/trydavidqix/nexus-brain/actions/runs/36139338314).
+- Security scanning (Gitleaks, OSV, ZAP jobs): [run `36139338399`](https://github.com/trydavidqix/nexus-brain/actions/runs/36139338399).
+- CodeQL: [run `36139337096`](https://github.com/trydavidqix/nexus-brain/actions/runs/36139337096).
 
 **Status:** workflow execution is verified for the listed runs only. These runs are not, by themselves, proof that the checks are required branch-protection gates or that their scanners found nothing.
 
 ## Merge enforcement — verified absent
 
-- Recent manual checks via the API confirmed that `GET repos/trydavidqix/maestri-context-gateway/rulesets` returned an empty list, and `GET .../branches/main/protection` returned `HTTP 404 Branch not protected`.
+- Historical manual checks queried `GET repos/trydavidqix/nexus-brain/rulesets` (then named `maestri-context-gateway`) and found an empty list; `GET .../branches/main/protection` returned `HTTP 404 Branch not protected`.
 - Therefore, there is **no observed enforcement** on the `main` branch. The successful workflow checks listed above are explicitly **not** mandatory gates (including Gitleaks, which is not a mandatory CI blocker). Protection against direct or force pushes is absent.
 
 ## Findings review — recent manual verification

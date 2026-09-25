@@ -1,4 +1,6 @@
-# MASTER_BLUEPRINT_CANONICAL.md
+# Historical source — superseded tracker
+
+> This Maestri-era blueprint is preserved as historical architectural source and provenance. The sole active plan is [`docs/blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md`](blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md). Maestri capabilities described here are internal Nexus Brain modules, not a separate product or active tracker. Do not update task status in this file.
 
 # MAESTRI — MEGA BLUEPRINT CANÔNICO
 
@@ -7242,7 +7244,7 @@ Important limitation of the audit:
 
 # INTEGRATED ADDITIONS — LAST THREE BLUEPRINTS + MCG WORKSTREAM
 
-> This section is additive to the canonical Maestri blueprint above. It preserves all unique requirements from the latest Lumenva Brain and Git & Agent Governance blueprints and folds the standalone MCG implementation tracker into the same master. This document is the sole active plan. The source snapshots are retained under `docs/archive/source-blueprints/` for provenance; they are not competing trackers. No implementation is authorized by this document alone.
+> Historical status: this section was additive to the Maestri-era blueprint and is retained for provenance. The active Nexus Brain plan is `docs/blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md`; this file is no longer an execution tracker. The source snapshots are retained for provenance.
 
 ## 47. LUMENVA BRAIN — INSTITUTIONAL MEMORY, CONTEXT AND TEMPORAL KNOWLEDGE
 
@@ -7674,7 +7676,7 @@ The full TOKENS acceptance checklist and evidence/status per criterion are maint
 
 # 62. CONSOLIDATED EXECUTION STATUS — ALL BLUEPRINT WORK PACKAGES
 
-**As of 2026-09-25.** This section gives one status map for every source blueprint listed in §§47–61. It does not delete their detailed requirements or make the archived files active trackers. `MASTER_BLUEPRINT_CANONICAL.md` is the sole active cross-blueprint plan; MCG implementation evidence is in `docs/STATUS.md`, and transfer evidence is in `docs/migration/LUMENVA_SOURCE_TRANSFER_LEDGER.md`.
+**Historical snapshot as of 2026-09-25.** This section gives a status map for the source blueprints listed in §§47–61. It does not delete their detailed requirements or make the archived files active trackers. The active cross-blueprint plan is `docs/blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md`; MCG implementation evidence is in `docs/STATUS.md`, and transfer evidence is in `docs/migration/LUMENVA_SOURCE_TRANSFER_LEDGER.md`.
 
 | Work package | What is verified in this project | What remains / status |
 |---|---|---|

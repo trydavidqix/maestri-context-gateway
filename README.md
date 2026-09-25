@@ -1,14 +1,16 @@
-# Maestri Context Gateway
+# Nexus Brain
 
-Maestri Context Gateway (MCG) is a local-first gateway for task execution,
-context compilation, provider telemetry, evidence, registries, scheduling, and
-its read-only dashboard. It is distributed as source and runs on Node.js 22+.
+Nexus Brain is the canonical project and repository. The existing Maestri
+Context Gateway (MCG) is an internal context/runtime module in this monorepo;
+its package names, CLI commands, APIs, and compatibility paths remain unchanged
+until separately tested migrations authorize changes. The project currently
+includes the MCG source, tests, registries, evaluation data, and standalone CI.
 
-The source blueprints and previous MCG plan are preserved under
-[`docs/archive/`](docs/archive/) as historical snapshots. The single active
-cross-blueprint plan is [`docs/MASTER_BLUEPRINT_CANONICAL.md`](docs/MASTER_BLUEPRINT_CANONICAL.md);
-[`docs/STATUS.md`](docs/STATUS.md) records verified MCG evidence separately from
-the broader Maestri program.
+The single active implementation plan is
+[`docs/blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md`](docs/blueprints/NEXUS_BRAIN_MASTER_IMPLEMENTATION_BLUEPRINT.md).
+Original source plans are preserved in `docs/blueprints/sources/` and historical
+project documentation remains archived. [`docs/STATUS.md`](docs/STATUS.md)
+tracks verified MCG component evidence; it is not a second project plan.
 
 ## Runtime data
 

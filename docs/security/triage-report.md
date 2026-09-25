@@ -2,7 +2,7 @@
 
 ## Scope and source
 
-- Repository: `trydavidqix/maestri-context-gateway`
+- Repository: `trydavidqix/nexus-brain` (renamed 2026-09-25; original run URLs redirect)
 - Assessed revision: `42385fa0f1c88f2a26387cd8373ec473f56d0fe9` (`main`)
 - Assessment date: 2026-09-25
 - This report records workflow execution evidence. A successful workflow is not evidence of zero findings.
@@ -13,9 +13,9 @@ The following GitHub Actions runs were verified as completed successfully for th
 
 | Check | Run | Result | Evidence |
 |---|---:|---|---|
-| MCG gates / CI | `36139338314` | completed / success | [run](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36139338314) |
-| Security scanning | `36139338399` | completed / success | [run](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36139338399) |
-| CodeQL | `36139337096` | completed / success | [run](https://github.com/trydavidqix/maestri-context-gateway/actions/runs/36139337096) |
+| MCG gates / CI | `36139338314` | completed / success | [run](https://github.com/trydavidqix/nexus-brain/actions/runs/36139338314) |
+| Security scanning | `36139338399` | completed / success | [run](https://github.com/trydavidqix/nexus-brain/actions/runs/36139338399) |
+| CodeQL | `36139337096` | completed / success | [run](https://github.com/trydavidqix/nexus-brain/actions/runs/36139337096) |
 
 The execution results establish that those workflow runs completed successfully on the assessed SHA. They do not establish that the checks are required for merging, that scanners reported zero findings, or that the repository has zero open security alerts.
 
@@ -42,6 +42,6 @@ A broader evaluation protocol beyond the existing 30-case paired corpus needs to
 ## Limits
 
 - The latest successful runs listed above are historical evidence for the exact SHA, not evidence about later commits.
-- A human-verified check via `gh` on Windows API confirmed that `GET repos/trydavidqix/maestri-context-gateway/rulesets` returned no rulesets, and `GET .../branches/main/protection` returned HTTP 404 `Branch not protected`. **Therefore, there is no observed enforcement; the successful checks are not mandatory gates.**
+- A human-verified check via `gh` on Windows API confirmed that `GET repos/trydavidqix/nexus-brain/rulesets` (then named `maestri-context-gateway`) returned no rulesets, and `GET .../branches/main/protection` returned HTTP 404 `Branch not protected`. **Therefore, there is no observed enforcement; the successful checks are not mandatory gates.**
 - No active DAST scan was run against live services. No automated findings were closed or mutated.
 - **Important Disclaimer:** The specific artifact findings mentioned above (such as 0 detections from Gitleaks and OSV) do not prove overall security and do not cover production environments.
