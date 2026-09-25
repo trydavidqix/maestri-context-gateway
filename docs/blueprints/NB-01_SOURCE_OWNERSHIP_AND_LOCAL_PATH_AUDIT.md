@@ -1,7 +1,7 @@
 # NB-01 — Source ownership and local path audit
 
-**Audit date:** 2026-09-25  
-**Status:** BLOCKED — do not rename the local checkout while consumers are active.  
+**Audit date:** 2026-09-25
+**Status:** BLOCKED — do not rename the local checkout while consumers are active.
 **Scope:** read-only inspection of Nexus Brain, Lumenva source refs, Windows references and running consumers. No Lumenva branch, worktree, process, config or unrelated CRM/voice data was changed.
 
 ## Repository and branch inventory
