@@ -1,6 +1,6 @@
 # Nexus Brain — mapa de migração da arquitetura canônica
 
-**Estado autoritativo em 2026-09-26:** estrutura local organizada e validada; dois MCPs antigos foram encerrados; launcher de autostart foi arquivado, Scheduled Task removida e MCG_ROOT obsoleto limpo. Ainda pendem PR/CI/merge, rename físico do checkout e validação final.
+**Estado autoritativo em 2026-09-26:** estrutura local organizada e validada; dois MCPs antigos foram encerrados; launcher de autostart foi arquivado, Scheduled Task removida e MCG_ROOT obsoleto limpo. Os jobs de CI terminaram; PR/merge e renomeação física do checkout ainda pendem. O check agregado CodeQL permanece vermelho por findings em paths legados movidos, sem supressão.
 **Origem Git:** `trydavidqix/nexus-brain`, branch `main` em `5d78258893cf25ce4c6038999a82e1e2be97e8a7`
 **Checkout desta execução:** worktree isolado `codex/nexus-canonical-architecture`.
 
@@ -14,6 +14,8 @@
 - Validação local repetida: frozen install passou; 162 testes unitários, 15 testes de integração, 13 typechecks, arquitetura com 13 packages e sem ciclos/imports não declarados, 113 módulos no syntax/import smoke, scan sensível em 224 arquivos, fuzz de redaction com 45.993 execuções/11s, hooks observacionais exercitados e `git diff --check` passaram. `eval:smoke` não é gate local offline: foi interrompido quando se constatou que fazia chamadas reais ao Codex; uma lane de baseline foi escrita, sem concluir o par.
 - Auditoria Windows final parcial: nenhum daemon MCG/Maestri/Wire ou processo MCP legado permanece. A tarefa agendada foi exportada e removida; shortcut/VBS foram arquivados; launchers globais `.local/bin` agora apontam ao CLI no novo caminho planejado e usam stop gracioso; MCG_ROOT de usuário foi removido. O `.mcg-state` efetivamente localizado continha somente os dois arquivos da lane interrompida (18.571 bytes); ambos foram copiados para `.nexus-state` e comparados por caminho relativo e SHA-256; originais retidos. A contagem histórica de 417 arquivos não se reproduz e permanece sem fonte comprovada.
 - O diretório antigo continua sendo o `cwd` registrado da tarefa Codex atual, embora a execução de código esteja isolada em outra worktree. Não renomear até confirmar que o app continuará abrindo a tarefa após o `git worktree move`; o caminho local físico ainda está pendente.
+- O `doctor` do CLI não consulta mais `MAESTRI_CLI` nem executa `maestri debug`; isso removia uma invocação externa desnecessária e deixa o diagnóstico autônomo do Maestri. Teste dedicado cobre essa garantia.
+- No PR #44, MCG gates, instalação congelada/workspace, testes, CodeQL extraction, Gitleaks, Semgrep, OSV, ZAP e fuzz executaram; CodeQL anota findings em arquivos migrados e mantém o check agregado vermelho. A `main` já contém alertas críticos correspondentes em código-fonte antigo (incluindo execução de comandos e Wire SSRF). Não foram suprimidos nem declarados corrigidos por esta reorganização.
 - O restante deste documento conserva snapshots e planos anteriores; quando contradisser este snapshot, este bloco é a verdade operacional mais recente.
 
 O caminho global do Codex foi atualizado para confiar no futuro checkout canônico. Os dois launcher trees MCP antigos foram parados; a tarefa agendada removida após exportar seu XML; shortcut e VBS arquivados. Não há processo Node MCG/Wire/daemon ativo observado. O state root previamente relatado com 417 arquivos segue ausente, não foi apagado nesta tarefa e não pode ser declarado migrado.
@@ -107,7 +109,7 @@ O diretório local ignorado `state/` contém estado de execução fora do Git; n
 
 Direção permitida: `apps → packages`; `control-plane → contracts, brain, execution, routing, providers, evidence, governance`; `execution → contracts, providers, evidence, governance`; `routing → contracts, providers`; `providers → contracts`; `brain → contracts`; `evidence → contracts`; `governance → contracts`; `context-gateway → brain, contracts, evidence`; `edge → contracts, context-gateway/SDK HTTP-MCP ports`, sem importar stores autoritativos do cloud control-plane. Telemetria de routing entra em evidence como DTO/port de contracts, nunca por import direto de implementação.
 
-**Bloqueio conhecido, confirmado por import scan:** as futuras fronteiras atuais formam ciclos. Exemplos: `execution ↔ control-plane`, `evidence ↔ control-plane`, `brain → execution`, `routing ↔ control-plane`, `routing ↔ providers`, `providers → execution`, `execution ↔ evidence`, `infrastructure → control-plane/execution/evidence/routing` e `brain → routing`. Portanto, a primeira extração da Onda A/B deve mover DTOs/ports `execution-port.ts`, `context-packet.ts` e `workforce-types.ts` para `packages/contracts`; os adapters concretos do Postgres/durable stores devem ser divididos junto a seus domínios; qualquer referência restante vira violação do gate de arquitetura. Nenhum pacote será separado antes dessa extração/teste. Uma dependência de nível inferior nunca importa seu orquestrador/consumidor.
+**Snapshot inicial pré-migração (histórico):** o primeiro import scan apontou ciclos planejados entre módulos que então estavam no mesmo pacote. A migração posterior extraiu os owners e `pnpm check:architecture` agora passa em 13 packages, sem ciclos ou imports internos não declarados. O texto inicial fica como histórico da motivação, não como estado atual.
 
 ## 5. Ondas seguras e gates
 
@@ -126,7 +128,7 @@ Não criar `apps/brain-api`, `apps/worker`, `packages/sdk`, plugins de provider 
 
 Para cada pacote: (1) adicionar/ajustar teste no destino ou teste de arquitetura; (2) observar falha relevante; (3) mover o menor conjunto coerente; (4) corrigir imports/config/exports; (5) rodar teste focado, typecheck, unit e checks de segurança afetados; (6) inspecionar diff, grafo, `git status` e compatibilidade; (7) atualizar o único Master Blueprint com evidência. Não usar movimentos em massa, não editar PNPM lockfile manualmente, não marcar DONE com diretório vazio ou só documentação.
 
-## 7. Ondas aplicadas localmente nesta execução (aceite ainda em validação)
+## 7. Ondas aplicadas — snapshot histórico de 2026-09-25 (substituído pelo snapshot autoritativo acima)
 
 - **Registry/config foundation:** seis arquivos movidos para `config/registries`; 15 fontes inexistentes foram substituídas por paths existentes ou `external://` explícito para dependências externas. Teste novo impede paths locais ausentes ou que escapem do repositório.
 - **Shared contracts:** pacote `packages/contracts` contém validador JS, declaração pública, 12 schemas, tipos TS de Job e Runtime e compatibilidade por re-export dos caminhos anteriores. Workspace, testes JS/TS e typecheck estão integrados.
@@ -138,7 +140,7 @@ Para cada pacote: (1) adicionar/ajustar teste no destino ou teste de arquitetura
 - **Daemon operacional:** reauditoria identificou o Wire client ativo e seu estado persistente separado; a tarefa agendada duplicada para o clone Desktop foi desabilitada, mas não se moveu estado nem se interrompeu a instância viva.
 - **Verificação local da onda atual (2026-09-25):** `pnpm install --frozen-lockfile` passou; suíte raiz 41/41; Brain 2; Control Plane 7; Contracts 1 Node + 1 Vitest; Evidence 11; Context Gateway 6; Edge 34; Operating Core 65. Typechecks passaram em Brain, Contracts, Control Plane, Edge e Operating Core; arquitetura passou em 7 packages; syntax/import smoke passou em 35 módulos; scanner sensível passou em 183 arquivos; `git diff --check` não encontrou erro (somente avisos de normalização LF/CRLF do Windows). GitHub CI ainda não foi executado nesta branch. Estes são gates locais, não conclusão dos work packages.
 
-## 8. Bloqueios atuais e fora de escopo
+## 8. Bloqueios registrados no snapshot de 2026-09-25 (histórico; ver estado atual no início)
 
 - O rename do checkout local permanece bloqueado pelos consumers ativos registrados em `docs/blueprints/NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md`; a migração de código no worktree pode prosseguir sem renomear o checkout físico.
 - O checkout original `.lumenva` mantém consumidores ativos; esta implementação está em worktree Git isolado. Não copiar, misturar ou limpar alterações de outros worktrees.

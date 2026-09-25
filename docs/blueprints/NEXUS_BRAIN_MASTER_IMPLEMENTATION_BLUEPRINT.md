@@ -154,7 +154,7 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 
 The reconciled tracker has 24 original work packages (`NB-00`–`NB-23`) and 6 separate migration-readiness gates (`NB-24`–`NB-29`). The older “24 vs 30” counts referred to those two scopes; no six product features were added. Do not combine progress percentages across the two tracks. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only).
 
-Current ledger: NB-00 and NB-01 are accepted preparation/audit only; NB-02–NB-23 remain future product implementation (`TODO`). Migration readiness is tracked separately: NB-24–NB-28 are `VALIDATING` on GitHub CI, and NB-29 is `IN_PROGRESS` pending final path/runtime sync. Migration readiness is not a feature-completion percentage. The code now locally includes 10 packages and 3 apps, retained MCG/Token Firewall capabilities, the optional Wire bridge, and the real runtime state copied with hash verification. Do not count code moves, local tests or CI as implementation of future APIs/cloud services or other Blueprint features.
+Current ledger: NB-00 and NB-01 are accepted preparation/audit only; NB-02–NB-23 remain future product implementation (`TODO`). Migration readiness is tracked separately: NB-24–NB-28 await PR #44 integration; NB-29 remains `IN_PROGRESS` until the local physical path can be safely renamed and reopened. Migration readiness is not a feature-completion percentage. The code now locally includes 10 packages and 3 apps, retained MCG/Token Firewall capabilities, the optional Wire bridge, and real runtime state copied with hash verification. CI workflow jobs passed except the aggregate CodeQL alert check, which flags findings on moved legacy paths; corresponding critical findings already exist on `main` and remain visible. Do not count code moves, local tests or CI as implementation of future APIs/cloud services or other Blueprint features.
 
 ### NB-01 audit record
 
@@ -162,7 +162,7 @@ The ownership and local-path audit is [`NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AU
 
 ### Canonical architecture migration
 
-The migration audit/map and safe waves are in [`../migration/NEXUS_CANONICAL_ARCHITECTURE_MIGRATION.md`](../migration/NEXUS_CANONICAL_ARCHITECTURE_MIGRATION.md). It documents existing versus target-only code, non-equivalent duplicate candidates, dependency cycles, and the newly verified daemon/Wire lifecycle. NB-24 remains open until each tracked file is owned and the full dependency graph is reviewed. NB-25 has locally migrated registries and shared JS/TS contracts and added an enforced architecture graph test; it remains open until the broader domain package graph and GitHub CI acceptance are complete.
+The migration audit/map and safe waves are in [`../migration/NEXUS_CANONICAL_ARCHITECTURE_MIGRATION.md`](../migration/NEXUS_CANONICAL_ARCHITECTURE_MIGRATION.md). It records existing versus target-only code, duplicate-boundary decisions, dependency ownership, and the verified daemon/Wire lifecycle. The local workspace now passes its package-boundary graph check; migration readiness packages remain open until PR integration and final path/runtime validation.
 
 ## 10. Email deletion gate
 
