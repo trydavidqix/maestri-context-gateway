@@ -36,10 +36,13 @@ test('dashboard serves read-only local endpoints', async t => {
   t.after(() => server.close());
   const port = server.address().port;
   const home = await get(port, '/');
+  const historyDeepLink = await get(port, '/?view=History');
   const stats = await get(port, '/api/stats');
   const tasks = await get(port, '/api/tasks');
   const health = await get(port, '/api/health');
   assert.equal(home.status, 200);
+  assert.equal(historyDeepLink.status, 200, 'a report URL must remain reloadable and shareable');
+  assert.match(historyDeepLink.body, /data-view="History"/);
   assert.match(home.body, /Tokens economizados/);
   assert.equal(stats.status, 200);
   assert.equal(tasks.status, 200);
@@ -97,7 +100,7 @@ test('dashboard exposes keyboard-accessible view navigation', async t => {
   assert.match(home.body, /coverage_percent:'Cobertura do mínimo'/);
   assert.match(home.body, /Relatório consultado em/);
   assert.match(home.body, /Falha ao carregar o relatório:/);
-  assert.match(home.body, /id="tasks" role="region" aria-label="Tabela de tarefas recentes" tabindex="0"/);
+  assert.match(home.body, /id="tasks" role="region" aria-label="Prévia das tarefas recentes" tabindex="0"/);
   assert.match(home.body, /const requestId=\+\+viewLoadId/);
   assert.match(home.body, /if\(requestId!==viewLoadId\)return/);
   assert.match(home.body, /fetch\('\/api\/views',\{cache:'no-store'\}\)/);
@@ -118,7 +121,13 @@ test('dashboard renders the observability layout shell and reference sections', 
   assert.match(home.body, /data-view="Overview"/);
   assert.match(home.body, /data-view="Validation"/);
   assert.match(home.body, /data-view="Graph"/);
+  assert.match(home.body, /data-view-link="Tasks"/);
+  assert.match(home.body, /data-view-link="Alerts"/);
+  assert.match(home.body, /id="task-filter-status" class="panel-sub" aria-live="polite"/);
+  assert.match(home.body, /filtered\.slice\(0,query\?20:1\)/, 'overview must show a compact recent-task preview');
+  assert.match(home.body, /items\.slice\(0,3\)/, 'overview must show a compact alert preview');
   assert.match(home.body, /prefers-reduced-motion/);
+  assert.match(home.body, /@media\(max-width:560px\)\{\.report-field\{grid-template-columns:minmax\(0,1fr\)/, 'nested report fields must stack on narrow screens');
   assert.match(home.body, /Skip to main content|Pular para o conteúdo/);
 });
 
@@ -287,6 +296,7 @@ test('dashboard exposes every M0.12 view without fake zero observations', async 
   assert.equal(response.status, 200);
   const views = JSON.parse(response.body).views;
   assert.deepEqual(Object.keys(views), ['Overview','History','Traces','Tasks','Agents','Tools','Plugins','MCPs','Graph','Executions','Cache','Memory','Validation','Alerts']);
+  assert.equal(views.History.status, 'UNAVAILABLE');
   assert.equal(views.Cache.status, 'UNAVAILABLE');
   assert.equal(views.Cache.samples, null);
   assert.equal(views.Cache.period, 'ALL_TIME');
@@ -352,6 +362,7 @@ test('history aggregate is unavailable when any history subtype is unavailable',
   assert.equal(response.status, 200);
   assert.equal(history.types.tasks.measurement_type, 'exact');
   assert.equal(history.measurement_type, 'unavailable');
+  assert.equal(history.status, 'PARTIAL');
 });
 
 test('dashboard exposes read-only graph view and source drill-down', async t => {

@@ -15,6 +15,19 @@ const readIfChangedOperation = z.object({
   expectedSha256: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
 }).strict();
 const searchOperation = z.object({ id: operationId, kind: z.literal("search"), query: z.string().min(1).max(1_000) }).strict();
+const gitDiffIfChangedOperation = z.object({
+  id: operationId,
+  kind: z.literal("git-diff-if-changed"),
+  correlation: z.object({
+    organizationId: z.string().min(1).max(256),
+    traceId: z.string().min(1).max(256),
+    sessionId: z.string().min(1).max(256).optional(),
+    taskId: z.string().min(1).max(256).optional(),
+    jobId: z.string().min(1).max(256).optional(),
+    stepId: z.string().min(1).max(256).optional(),
+  }).strict(),
+  expectedSha256: z.string().regex(/^[a-f0-9]{64}$/i).optional(),
+}).strict();
 const readLogOperation = z.object({
   id: operationId,
   kind: z.literal("read-log"),
@@ -23,7 +36,7 @@ const readLogOperation = z.object({
 }).strict();
 
 const mcpBatchInput = z.object({
-  operations: z.array(z.discriminatedUnion("kind", [readOperation, readIfChangedOperation, searchOperation, readLogOperation])).min(1).max(20),
+  operations: z.array(z.discriminatedUnion("kind", [readOperation, readIfChangedOperation, searchOperation, gitDiffIfChangedOperation, readLogOperation])).min(1).max(20),
   concurrency: z.number().int().min(1).max(8).optional(),
   maxOutputBytes: z.number().int().min(1).max(256_000).optional(),
 }).strict();
@@ -36,7 +49,7 @@ function safeErrorCode(error: unknown): string {
 export function createLocalRuntimeMcpServer(executor: ReadOnlyLocalExecutor): McpServer {
   const server = new McpServer({ name: "maestri-local-runtime", version: "0.1.0" });
   server.registerTool("mcg_read_batch", {
-    description: "Run up to 20 bounded, read-only workspace inspections in one call. Supports file read/read-if-changed, search, and log read. Paths are restricted to the workspace root; no writes, arbitrary commands, or network operations are exposed.",
+    description: "Run up to 20 bounded, read-only workspace inspections in one call. Supports file read/read-if-changed, search, log read, and a content-hashed tracked Git diff checkpoint that omits unchanged diff text. No writes or arbitrary commands are exposed.",
     inputSchema: mcpBatchInput,
   }, async ({ operations, concurrency, maxOutputBytes }) => {
     try {
@@ -54,7 +67,7 @@ async function createExecutorFromEnvironment(): Promise<ReadOnlyLocalExecutor> {
   if (!configuredRoot || !isAbsolute(configuredRoot)) throw new Error("runtime_workspace_root_required");
   const workspaceRoot = await realpath(configuredRoot);
   if (!(await stat(workspaceRoot)).isDirectory()) throw new Error("runtime_workspace_root_invalid");
-  const commandRunner = new SafeCommandRunner({ workspaceRoots: [workspaceRoot], allowedExecutables: [] });
+  const commandRunner = new SafeCommandRunner({ workspaceRoots: [workspaceRoot], allowedExecutables: ["git", "git.exe"] });
   return new ReadOnlyLocalExecutor({ workspaceRoot, commandRunner });
 }
 

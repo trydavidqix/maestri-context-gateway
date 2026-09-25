@@ -2,11 +2,53 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { dispatch, ingest, loadState, sliceEvidence } from '../src/core.mjs';
+import { compactResult, dispatch, ingest, loadState, sliceEvidence } from '../src/core.mjs';
 import { telemetryEvents } from '../src/telemetry.mjs';
 
 const root = await mkdtemp(join(tmpdir(), 'mcg-core-'));
 try {
+  const summarySecret = 'mcg-summary-redaction-canary-2026';
+  const summary = compactResult({
+    task_id: 'summary-redaction',
+    internal_state: 'DONE',
+    external_state: 'DONE',
+    result: `token=${summarySecret}`,
+    validation: `Authorization: Bearer ${summarySecret}`,
+    commit: `api_key=${summarySecret}`,
+    evidence_reference: `https://example.test/?access_token=${summarySecret}`
+  });
+  const serializedSummary = JSON.stringify(summary);
+  assert.equal(serializedSummary.includes(summarySecret), false, 'compact task summaries must redact credentials from every returned field');
+  assert.match(summary.RESULT, /\[REDACTED\]/);
+  assert.match(summary.VALIDATION, /\[REDACTED\]/);
+  assert.match(summary.COMMIT, /\[REDACTED\]/);
+  assert.match(summary.EVIDENCE, /\[REDACTED\]/);
+  const blockedSummary = compactResult({
+    task_id: 'blocked-summary-redaction',
+    internal_state: 'BLOCKED',
+    external_state: 'BLOCKED_OWNER',
+    blocker: { password: summarySecret },
+    owner_needed: `token=${summarySecret}`
+  });
+  assert.equal(JSON.stringify(blockedSummary).includes(summarySecret), false);
+  assert.equal(blockedSummary.BLOCKER, '{"password":"[REDACTED]"}');
+  assert.match(blockedSummary.OWNER_NEEDED, /\[REDACTED\]/);
+  const boundedSummary = compactResult({
+    task_id: `token=${summarySecret}`,
+    internal_state: 'DONE',
+    external_state: 'DONE',
+    result: 'r'.repeat(7000),
+    validation: 'v'.repeat(4000),
+    commit: 'c'.repeat(2000),
+    evidence_reference: 'e'.repeat(2000)
+  });
+  assert.equal(JSON.stringify(boundedSummary).includes(summarySecret), false);
+  assert.equal(boundedSummary.TASK.length <= 256, true);
+  assert.equal(boundedSummary.RESULT.length <= 6000, true);
+  assert.equal(boundedSummary.VALIDATION.length <= 3000, true);
+  assert.equal(boundedSummary.COMMIT.length <= 1000, true);
+  assert.equal(boundedSummary.EVIDENCE.length <= 1000, true);
+
   const task = await dispatch({ task_id: 'real-metadata', executor: 'codex', agent: 'Codex CTO', runtime: 'Codex CLI', ide: 'Codex CLI', source: { plugin_id: 'caveman', plugin_name: 'Caveman', skill_name: 'caveman', host_agent: 'Codex CTO' } }, root);
   assert.equal(task.source.plugin_id, 'caveman');
   await assert.rejects(ingest({ task_id: task.task_id, event_id: 'invalid-timestamp', state: 'WORKING', timestamp: 'not-a-date' }, root), /event contract invalid/);

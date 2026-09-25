@@ -1,5 +1,5 @@
 const SECRET_KEY = /pass(word)?|token|secret|private[_-]?key|api[_-]?key|authorization|cookie/i;
-const USAGE_KEY = /^(input_tokens|cached_input_tokens|output_tokens|reasoning_tokens|total_tokens|context_tokens|estimated_tokens|tokens)$/i;
+const USAGE_KEY = /^(?:(?:input|cached_input|cached|output|reasoning|total|context|estimated)_tokens|tokens?)(?:_(?:saved|avoided|original|delivered))?$/i;
 const SECRET_PATTERNS = [
   { pattern: /(\bAuthorization\s*[:=]\s*Bearer\s+)[^\s"'`,;]+/gi, replace: (_match, prefix) => `${prefix}[REDACTED]` },
   { pattern: /\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-(?:ant-)?[A-Za-z0-9_-]{20,}|AIza[A-Za-z0-9_-]{30,})\b/g, replace: () => '[REDACTED]' },

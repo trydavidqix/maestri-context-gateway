@@ -53,17 +53,20 @@ export function assertTaskId(id) {
 
 const COMPACT_RESULT_LIMIT = 6000;
 const COMPACT_VALIDATION_LIMIT = 3000;
+const COMPACT_METADATA_LIMIT = 1000;
+const COMPACT_TASK_LIMIT = 256;
 
 function compactText(value, limit) {
   if (value == null) return '';
-  const text = typeof value === 'string'
-    ? value
-    : JSON.stringify(value);
+  const safeValue = redact(value);
+  const text = typeof safeValue === 'string'
+    ? safeValue
+    : JSON.stringify(safeValue) ?? '';
 
   if (text.length <= limit) return text;
 
-  return `${text.slice(0, limit)}
-[MCG TRUNCATED: ${text.length - limit} chars omitted. Use mcg evidence/result references for details.]`;
+  const marker = `\n[MCG TRUNCATED: ${text.length - limit} chars omitted. Use mcg evidence/result references for details.]`;
+  return `${text.slice(0, Math.max(0, limit - marker.length))}${marker}`;
 }
 
 export function compactResult(state) {
@@ -71,7 +74,7 @@ export function compactResult(state) {
   if (!external) return { task_id: state.task_id, state: state.internal_state };
   const result = {
     STATUS: external,
-    TASK: state.task_id,
+    TASK: compactText(state.task_id, COMPACT_TASK_LIMIT),
     RESULT: compactText(
       state.result || (external === 'DONE' ? 'Task completed.' : ''),
       COMPACT_RESULT_LIMIT
@@ -80,10 +83,13 @@ export function compactResult(state) {
       state.validation || '',
       COMPACT_VALIDATION_LIMIT
     ),
-    COMMIT: state.commit || 'NONE',
-    EVIDENCE: state.evidence_reference || `${state.task_id}/manifest.json`,
+    COMMIT: compactText(state.commit || 'NONE', COMPACT_METADATA_LIMIT),
+    EVIDENCE: compactText(state.evidence_reference || `${state.task_id}/manifest.json`, COMPACT_METADATA_LIMIT),
   };
-  if (external === 'BLOCKED_OWNER') { result.BLOCKER = state.blocker || ''; result.OWNER_NEEDED = state.owner_needed || ''; }
+  if (external === 'BLOCKED_OWNER') {
+    result.BLOCKER = compactText(state.blocker || '', COMPACT_METADATA_LIMIT);
+    result.OWNER_NEEDED = compactText(state.owner_needed || '', COMPACT_METADATA_LIMIT);
+  }
   return result;
 }
 
