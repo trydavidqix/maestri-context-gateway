@@ -33,6 +33,7 @@ NEXUS BRAIN — ONE PLATFORM / ONE BRAIN / ONE CONTROL PLANE
 ├── Research Intelligence: evidence-first multi-source planning, fanout, normalization, dedupe, rerank, clustering and grounded findings
 ├── Reach: capability/provider resolver across API/MCP/CLI/browser transports with health/quota/cost/fallback policy
 ├── BrowserMesh: browser host/session routing, versioned recipes, policy/approval gates and replaceable browser backends
+├── Engineering Control Plane: mandatory task/risk/scope routing, methodology selection, verification and delivery gates for every coding agent
 ├── Execution: agent factory/supervisor, local runtime, Codex Cloud, Jules/provider adapters
 ├── Edge: Windows Everything 1.5 + Git + minimal Lumenva Edge/MCP bridge
 ├── Interfaces: Claude Code, Codex, Gemini CLI, Antigravity, Jules
@@ -64,6 +65,8 @@ Reuse the existing Nexus repository, tests, MCG dashboard, Local Runtime and tra
 | Context delivery | Nexus can assemble a bounded edit/context bundle combining current code structure, tests, blast radius, Git changes, verified memory and evidence; Maestri selects a minimal tool profile for the task. | Avoid exposing the full MCP/tool catalog or bulk repository/memory context to every agent by default. |
 | Web Research / Reach | Nexus owns `ResearchEngine`, `ReachEngine` and the normalized `Evidence` contract. Agent Reach (`Panniantong/Agent-Reach`, validated against v1.5.0) is an optional bootstrap provider/reference for capability routing/doctor behavior; Last30Days (`mvanhorn/last30days-skill`, validated against v3.25.0) is an optional bootstrap provider/reference for multi-source research/fanout/scoring/watchlist patterns. | Neither external project becomes the control plane, evidence authority or permanent dependency. Native Nexus routes replace provider-specific behavior incrementally behind stable contracts. |
 | BrowserMesh | Nexus owns browser host/session/policy/recipe lifecycle. Scrapling is the preferred V1 browser/data-extraction backend behind `BrowserBackend`; pin stable `D4Vinci/Scrapling` v0.4.15 first. The `v5-dev` branch declares 0.5 but is pre-release development and must remain opt-in until a released version passes contract/security/regression tests. | Playwright direct and remote-CDP adapters remain fallbacks. Browser backends never become policy authorities. |
+| Engineering Control Plane | Every Nexus-governed coding task receives a deterministic `EngineeringPlan` before edits: task type, risk, scope, contracts, autonomy level, required methodology modules and verification gates. The framework is mandatory; individual modules are loaded only when relevant. | Skills alone are advisory and cannot guarantee enforcement across runtimes. Nexus/Maestri policy, runtime hooks where supported, and CI/merge gates provide enforcement; provider-specific plugins/adapters are distribution surfaces, not authority. |
+| Engineering orchestration | Single-agent is default. Sequential, parallel fan-out, DAG, loop and hybrid orchestration are available only when task complexity/evidence justifies them. MegaBrain is a reference for orchestration patterns, self-healing, handoff and resume—not an autonomous authority. | No global zero-question rule, fixed coverage target or automatic dependency installation. Risk, project policy and evidence determine autonomy and gates. |
 | Research memory | Raw web evidence and research runs live in canonical PostgreSQL/object storage with provenance; only governed findings/observations enter Hindsight memory. | Do **not** deploy Graphiti as V1 research memory. Graphiti remains the already-deferred benchmark alternative unless a proven Nexus workload gap justifies it. |
 | MCP | One stable Brain MCP surface. V1 tools: `brain_context`, `brain_search`, `brain_reuse`, `brain_remember`, `local_search`, `brain_status`. | Earlier 8-tool variants remain in source archive; aliases may be added only for proven client compatibility. |
 | Compiler/decision | Deterministic rules first; one Gemini compiler for V1 behind provider-neutral interface; larger models only for ambiguous cases. | Multiple compilers, Laya/classifier choices and routing thresholds remain deferred/experimental until benchmarked. No custom training in V1. |
@@ -765,6 +768,320 @@ Compare at least:
 
 An optimization is accepted only if it lowers cost/latency/tool load **without reducing grounding, evidence quality or policy compliance**.
 
+## 3E. Mandatory Engineering Control Plane
+
+The Engineering Control Plane is the **mandatory quality/governance layer for every coding agent governed by Nexus**. It is not a separate product or a second orchestrator. Maestri remains the control plane; Engineering Control classifies the engineering work, selects the minimum methodology required, enforces objective gates and records evidence.
+
+The design consolidates reusable patterns from Ponytail, Boring Engineering, Code Discipline, Simple Engineering, Superpowers, glebis TDD, SpecMint-TDD, Anti-Slop and MegaBrain while preserving **one concern → one canonical owner**.
+
+### Mandatory framework, conditional modules
+
+“Mandatory for every agent” means the framework always runs, **not** that every skill is loaded into every prompt.
+
+```text
+coding task
+  ↓
+Engineering Router
+  ↓
+task type + risk + scope + contracts + autonomy
+  ↓
+required module set
+  ↓
+agent execution
+  ↓
+Verification Gate
+  ↓
+Delivery Gate
+```
+
+Always required:
+
+- `core-discipline`: no invented requirements, silent scope expansion, unsupported success claims or speculative infrastructure;
+- `engineering-router`: task/risk/scope/mode classification;
+- `risk-engine`: selects rigor/autonomy and escalation;
+- `scope-guard-lite`: records expected blast radius and flags unexplained expansion;
+- `verification`: fresh evidence before completion;
+- `delivery-gate`: required checks must pass or the result is explicitly partial/blocked.
+
+Conditionally loaded:
+
+- `lean-engineering`;
+- `tdd`;
+- `tdd-isolated`;
+- `systematic-debugging`;
+- `contract-guard`;
+- `specification`;
+- `review`;
+- `audit`;
+- `anti-slop-*`;
+- `branch-engineering`;
+- `dependency-discipline`;
+- `orchestration`.
+
+This keeps context small while still making the engineering policy mandatory.
+
+### Precedence and canonical owners
+
+```text
+SECURITY
+→ DATA INTEGRITY
+→ CORRECTNESS
+→ USER REQUIREMENTS
+→ EXISTING CONTRACTS
+→ TESTS / ACCEPTANCE CRITERIA
+→ MINIMUM BLAST RADIUS
+→ SIMPLICITY
+→ PERFORMANCE
+→ STYLE / ANTI-SLOP
+```
+
+```text
+YAGNI / reuse / stdlib / minimum design       → LEAN
+root-cause investigation                       → DEBUG
+RED→GREEN→REFACTOR                            → TDD
+scope drift / adjacent edits                   → SCOPE
+public/schema/event/CLI compatibility          → CONTRACT
+UI/copy/responsive/human/comment quality       → ANTI-SLOP
+repo-wide structural debt                      → AUDIT
+current diff correctness                       → REVIEW
+branch/worktree integration                    → BRANCH ENGINEERING
+multi-agent topology/recovery/handoffs         → ORCHESTRATION
+proof before DONE                              → VERIFY
+```
+
+A module may reference another owner but must not reimplement its rules.
+
+### EngineeringPlan contract
+
+```text
+EngineeringPlan
+├── task_type
+├── risk_level
+├── scope_size
+├── expected_files
+├── expected_tests
+├── contract_impact
+├── testability
+├── execution_mode
+├── autonomy_level
+├── required_modules[]
+├── forbidden_modules[]
+├── verification_gates[]
+└── delivery_policy
+```
+
+Initial task types: `BUG`, `FEATURE`, `REFACTOR`, `ARCHITECTURE`, `REVIEW`, `AUDIT`, `PROTOTYPE`, `MIGRATION`, `BRANCH_INTEGRATION`, `DEPENDENCY_CHANGE`, `UI`, `COPY`, `TEST_ONLY`, `PERFORMANCE`, `SECURITY_RELATED`.
+
+### Rigor and autonomy
+
+```text
+FAST      → CORE + LEAN + VERIFY
+STANDARD  → CORE + LEAN + TDD + VERIFY
+STRICT    → CORE + SCOPE + CONTRACT + TDD + REVIEW + VERIFY
+CRITICAL  → SPEC + CONTRACT + SCOPE + ISOLATED-TDD + REVIEW + INTEGRATION + VERIFY + DELIVERY GATE
+```
+
+Autonomy is separate:
+
+```text
+A0 assist / ask
+A1 execute read-only or trivially safe work
+A2 execute bounded work + recover
+A3 autonomous normal engineering within policy
+A4 autonomous multi-agent orchestration within explicit limits
+```
+
+Risk/project policy may lower autonomy. No external methodology may globally force A4.
+
+### Lean engineering
+
+```text
+required?
+  no → do not build
+already exists?
+  yes → reuse
+stdlib/native/existing dependency?
+  yes → use it
+direct simple implementation sufficient?
+  yes → implement directly
+abstraction proven necessary?
+  no → stay direct
+yes → create the minimum justified abstraction
+```
+
+Security, data integrity, accessibility and explicit compatibility requirements are never sacrificed merely to reduce LOC.
+
+### TDD and debugging
+
+Default TDD where behavior is testable:
+
+`RED → prove RED → GREEN → prove GREEN → REFACTOR → prove GREEN again`
+
+Critical/selected tasks may use isolated TDD with separate Test Writer and Implementer contexts. This is not the default because it increases cost/latency.
+
+Debugging follows:
+
+`OBSERVE → REPRODUCE → EVIDENCE → TRACE → HYPOTHESIS → PROVE/DISPROVE → REGRESSION TEST → FIX → VERIFY`
+
+Random multi-fix iteration before a root-cause attempt is rejected by policy.
+
+### Review, audit and branch engineering
+
+`review` evaluates the current diff and acceptance scope. `audit` evaluates repository-wide structural concerns and produces findings; it does not auto-delete.
+
+`branch-engineering` handles divergent branch/worktree consolidation:
+
+```text
+inventory
+→ commit/diff graph
+→ feature matrix
+→ duplicate-change detection
+→ conflict prediction
+→ baseline tests
+→ integration order
+→ isolated integration worktree/branch
+→ regression/TDD
+→ review
+→ verify
+→ residual implementation plan
+```
+
+No worker merges directly to `main`.
+
+### Orchestration patterns
+
+MegaBrain contributes useful reference patterns: sequential, parallel fan-out, DAG pipeline, loop/iterate and hybrid/sub-orchestration. Nexus places `EngineeringPlan`, risk/autonomy and project policy above the topology.
+
+Self-healing ladder:
+
+`failure → retry same executor only when retryable → alternate evidence-backed approach → different qualified executor → decompose smaller → BLOCKED`
+
+Retries are bounded by budget/attempt policy and preserve failure evidence.
+
+### OpenAI plugin packaging and cross-provider portability
+
+The canonical engineering rules remain Nexus-owned. Distribution is generated from one source:
+
+```text
+Nexus canonical engineering policy + skills
+          ↓
+adapter/package generator
+          ├── OpenAI portable plugin
+          ├── Codex compatibility overlay
+          ├── Claude Code adapter
+          ├── Gemini adapter
+          ├── Cursor adapter
+          ├── Copilot adapter
+          └── generic Agent Skills / project-instruction adapter
+```
+
+For OpenAI surfaces, portable packaging uses root `plugin.json`, `skills/`, optional root `mcp.json`, and optional lifecycle hooks. `.codex-plugin/plugin.json` is compatibility fallback, not the canonical portable manifest.
+
+Skills define judgment/workflows. MCP exposes deterministic evidence/actions only when instruction-only workflows are insufficient. Hooks enforce **objective** runtime gates where supported and trusted. CI/branch rules remain the final provider-independent enforcement layer.
+
+### Mandatory enforcement rings
+
+```text
+Ring 1 — ORCHESTRATION
+Maestri refuses to dispatch a coding task without EngineeringPlan.
+
+Ring 2 — PROVIDER ADAPTER
+Selected policy/skills/tool profile are injected using the provider-supported mechanism.
+
+Ring 3 — RUNTIME
+Trusted hooks or equivalent project controls check objective pre-edit/pre-completion rules where supported.
+
+Ring 4 — EVIDENCE
+Tests/typecheck/lint/build/contract/scope evidence is captured independently of agent claims.
+
+Ring 5 — DELIVERY
+CI/rulesets/merge policy reject delivery when mandatory project/risk gates fail.
+```
+
+An agent running completely outside Nexus may ignore an instruction/plugin. Therefore “all agents mandatory” is guaranteed at the **Nexus task/delivery boundary**, not by assuming every third-party runtime honors the same prompt mechanism.
+
+### Repository ownership
+
+Do not create a separate permanent `lumenva-engineering` product in V1. Place canonical logic inside Nexus:
+
+```text
+packages/governance/src/engineering/
+├── precedence
+├── risk
+├── scope
+├── contracts
+├── dependency-discipline
+├── verification
+└── delivery
+
+packages/control-plane/src/engineering/
+├── router
+├── execution-planner
+├── autonomy
+└── orchestration
+
+packages/evidence/src/engineering/
+├── verification-evidence
+├── review-findings
+└── metrics
+
+.agents/skills/engineering/
+├── core-discipline
+├── lean-engineering
+├── tdd
+├── tdd-isolated
+├── systematic-debugging
+├── scope-guard
+├── contract-guard
+├── specification
+├── review
+├── audit
+├── anti-slop
+├── branch-engineering
+└── verification
+
+tooling/generators/engineering-adapters/
+├── openai-plugin
+├── codex
+├── claude-code
+├── gemini
+├── cursor
+├── copilot
+└── generic
+
+evals/engineering/{datasets,graders,adversarial,reports}
+```
+
+Portable plugin build artifacts are generated; provider-specific copies are not hand-maintained.
+
+### Implementation maturity after migration readiness
+
+These are internal milestones, not new top-level Nexus work packages:
+
+```text
+E0 source/license/rule/conflict matrix + baseline evals
+E1 core + precedence + vocabulary
+E2 Engineering Router + Risk/Autonomy
+E3 Lean + TDD + Debug + Scope + Contract + Verify
+E4 Review + Audit + Branch Engineering + Specification + Anti-Slop
+E5 adapter generation + portable OpenAI plugin packaging
+E6 deterministic Engineering MCP only where evals prove it is needed
+E7 objective hooks/runtime enforcement
+E8 risk-gated multi-agent orchestration (MegaBrain patterns)
+E9 engineering metrics/intelligence
+E10 universal provider distribution + release gates
+```
+
+The first usable gate is E3. Do not build E6+ because it looks architecturally attractive; require evidence that E5/instruction-only execution cannot satisfy the need.
+
+### Engineering evals
+
+Every material change to the control plane is benchmarked against a no-policy baseline and selected reference approaches. Dataset classes include tiny bug, normal bug, feature, refactor, legacy repo, branch chaos, API/schema migration, dependency change, UI, ambiguous request and security-sensitive change.
+
+Measure task/acceptance success, regressions, unexplained files/LOC changed, new dependencies, unnecessary abstractions, scope drift, false completion claims, useful test quality, defects caught pre-merge, contract preservation, tokens, latency and cost.
+
+No upstream self-reported benchmark is adopted as Nexus truth. A new layer is accepted only when Nexus evals show a measurable problem that the simpler layer does not solve.
+
 ## 4. Current verified baseline
 
 - GitHub repository was renamed to `trydavidqix/nexus-brain`; it is public, `main` remains default, and no repository currently named `trydavidqix/nexus-brain` existed before the rename.
@@ -799,7 +1116,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
 | NB-01 | Nexus monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded Nexus-owned paths; dependency/import graph; safe folder rename; external projects remain independent | BLOCKED |
-| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral `MemoryEngine`, `CodeIntelligenceEngine`, `EvidenceEngine`, `TaskIntelligence`, `ResearchEngine`, `ReachEngine`, `BrowserMesh`/`BrowserBackend` contracts; untrusted-web-content boundary; R0–R4/browser authority boundaries; conflicts recorded as unresolved | TODO |
+| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral Brain/Research/Reach/Browser contracts plus `EngineeringPlan`, engineering risk/autonomy/module/delivery contracts; untrusted-content and engineering authority boundaries; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | TODO |
 | NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; global/project banks; session/task tags; append-only observations/events; research/evidence/sightings/run provenance; `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED`; `RECALLED/SELECTED/INJECTED/USED/VALIDATED/CONTRIBUTED`; raw web evidence remains untrusted and separate from memory promotion; ACL/scope; restore test | TODO |
 | NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus API/MCP fronts internal engines; external backends are never agent-facing authorities; authenticated context/search/remember/reuse/status plus bounded code/edit-context and research/web capability facade; `remember` stores observations/candidates unless policy passes; responses expose status/provenance/source/coverage/trust; contract tests; bounded context/tool surface | TODO |
@@ -807,20 +1124,20 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent/tool/browser permissions/budgets; memory bank + code-index + research/source/provider-policy bindings; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
 | NB-07 | Workspace index, Code Intelligence and capability evidence | NB-01, NB-06, NB-06A | `CodeIntelligenceEngine` with initial validated CBM adapter; per-project files/symbols/calls/imports/routes/tests/dependencies/Git-change evidence; incremental re-index; impact/blast-radius queries; coverage/confidence + source/commit/index-version metadata; bounded cross-repo links; safe direct-source fallback; no namespace collision | TODO |
 | NB-08 | Hybrid retrieval, research and reuse coverage | NB-05, NB-07 | Hindsight + code-evidence + governed research-evidence retrieval; task-boundary-aware selection; Research planner/fanout normalization/dedupe/fusion/rerank/grounding with bounded source/query/budget limits; project bank first and global separately; conflicted/revoked excluded; raw web evidence remains untrusted; abstention/partial-result semantics; safe reusable cross-project lookup; explainable coverage | TODO |
-| NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | `OBSERVED→CANDIDATE→source verification→dedup/conflict→VERIFIED→CANONICAL`; deterministic-first; Hindsight inference and derived Skills/SOPs remain candidates until validated; task-success evidence can generate procedural-memory candidates; project→global promotion requires compatibility/provenance gates; contradictions yield `CONFLICTED`; verified newer facts supersede without erasing history; abstention/fallback tests | TODO |
+| NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | Existing memory lifecycle plus canonical engineering-skill registry with one-concern/one-owner, precedence/conflict mapping and eval-gated promotion; generated/derived skills stay candidates until validated; provider adapters are generated from Nexus-owned source rather than hand-maintained copies; contradictions/version drift remain explicit | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
-| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use Nexus contracts; minimal task-specific tool profiles; initial optional adapters include Agent Reach v1.5.0, Last30Days v3.25.0 and pinned stable Scrapling v0.4.15 behind feature/contract gates; provider outputs/evidence never auto-promote; native provider dirs untouched; scoped auth; no duplicated control plane or memory | TODO |
-| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity before execution; owns task/research lifecycle and active-task selection; selects provider/tool profile and whether Research/Reach/BrowserMesh are needed; enforces research/browser budgets and stop conditions; Session/Event Store, Task DAG, Progress, scheduler, recovery and budgets are project-scoped; Maestri remains platform-wide | TODO |
-| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions, revocable scoped capability/tool profiles, R0–R4 browser/action policy, Approval Center gates, bounded loops, untrusted-content isolation and evidence-attribution hooks; no provider/browser route may bypass auth/access-control/human-verification/project policy | TODO |
+| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use Nexus contracts and generated Engineering Control adapters; OpenAI portable plugin packaging + Codex compatibility overlay are generated from the canonical skill/policy source; other provider adapters preserve equivalent mandatory task/delivery gates where supported; minimal tool profiles; native provider dirs untouched; no duplicated control plane/policy/memory | TODO |
+| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity then requires an `EngineeringPlan` for every coding task; selects task/risk/scope/contracts/autonomy/modules, single-agent vs sequential/parallel/DAG/loop/hybrid topology, provider/tool profile and Research/Reach/BrowserMesh needs; bounded self-healing/recovery; project-scoped lifecycle/budgets; Maestri remains platform-wide | TODO |
+| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions plus mandatory Engineering Control policy; risk/autonomy gates, objective scope/contract/dependency/verification enforcement, revocable capabilities, bounded loops, optional isolated-TDD contexts, R0–R4 browser/action approvals and evidence hooks; no provider/runtime may self-declare DONE or bypass project policy | TODO |
 | NB-15 | Local/cloud agent and BrowserMesh execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches and browser sessions; BrowserMesh host/session registry with VPS/Linux/Mac eligibility, capacity and expiry; pinned Scrapling backend plus Playwright/remote-CDP fallback; resumable jobs, error-aware escalation, quota-safe retries, independent tests and no direct main merge | TODO |
-| NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, mandatory structured report, owner approval and acceptance manifest | TODO |
-| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory + code + research evidence into bounded task/edit/research context bundles; keep bounded batch/redaction; dedupe/compact tool output; expose only small capability schemas (`web.search/read/extract/crawl/interact` etc.); quote/isolate untrusted source content; exclude conflicted/revoked/stale evidence; prove lower token/tool load without grounding/policy loss | IN_PROGRESS |
+| NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, current-diff review distinct from repo-wide audit, adversarial/second review when risk requires it, mandatory structured verification report, owner approval and acceptance manifest | TODO |
+| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory/code/research plus the compact `EngineeringPlan` into bounded context; load only selected engineering modules rather than every skill; dedupe/compact tool schemas; quote/isolate untrusted source content; prove mandatory engineering policy can remain active with lower token/tool load and no correctness/policy loss | IN_PROGRESS |
 | NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Portfolio + project drill-down; memory/task/code plus Research/Reach/BrowserMesh runs, provider routes/fallbacks, host/browser sessions, watchlists/briefings, evidence clusters/sightings, approvals, costs/quotas/incidents; clear project/source/scope/measurement/unavailable reports; no leakage; reference fidelity/accessibility | IN_PROGRESS |
-| NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security workflows, least token permissions, actual required checks/protection verified; audit current alert findings | IN_PROGRESS |
+| NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security plus provider-independent Engineering Delivery Gate: required project/risk checks, skill/adapter validation, duplicated-owner/routing regression checks and merge protection; least token permissions; audit current alert findings; local/plugin hooks remain supplementary to authoritative CI/rulesets | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
-| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Health/latency/sync/conflicts/usage/errors; Hindsight health/backlog; code-index age/coverage; Research/Reach/provider health/auth/quota/schema/fallback metrics; browser capacity/session duration/errors; evidence/dedupe funnel; `RECALLED→…→CONTRIBUTED`; tokens/requests/browser-seconds/cost budgets; degradation/scaling runbooks | TODO |
-| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing memory/code isolation gates plus Research/Reach/BrowserMesh E2E: multi-source partials, duplicate evidence, auth/rate-limit/quota/provider/schema failures, HTTP→dynamic escalation, browser/backend/host outage, hostile prompt-injection content, R0–R4 approvals, recipe rollback, no access-control bypass, watchlist change detection; paired evals for grounding, success, requests, tokens, browser-seconds, latency, cost and wrong-context rate | TODO |
+| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus engineering task type/risk/mode/modules, files/LOC, dependencies, TDD transitions, regressions, review findings, verification gates, orchestration retries, runtime/tokens/cost; no hidden reasoning storage; degradation/scaling/runbook evidence | TODO |
+| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules adapters: router/risk/scope/contract/TDD/debug/verification behavior, false-DONE prevention, branch-chaos integration, provider bypass attempts, hook-unavailable fallback to CI, isolated-TDD and multi-agent recovery; paired evals against baseline/reference methods for correctness, regressions, scope drift, LOC/files/dependencies, tokens, latency and cost | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
 ### Dependency waves
@@ -868,6 +1185,11 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 - No direct-main worker writes, force-push, destructive cleanup, auto-merge, auto-commit backup, Docker install, paid provider calls, model training, irreversible bucket lock, or CRM/voice migration without the applicable explicit authorization and gates.
 - Keep provider-native global directories and installations external to Nexus. Codex, Claude Code, Gemini/Antigravity and other provider runtimes retain their official install/config/state locations; Nexus must not require moving, forking, vendoring or patching those directories.
 - Project integration may add only supported project-level adapters/configuration (for example MCP, API, CLI, hooks or project instructions). A project instruction or skill does not prove a Windows-global config is active, and official provider updates must continue to work independently of Nexus.
+- Do not make every engineering module always-on. The Engineering Control framework is mandatory, but Router/Risk select the minimum relevant skill set to avoid duplicated work and token bloat.
+- Do not rely on a skill/plugin prompt as the sole enforcement mechanism. Objective completion/delivery rules must be backed by Nexus policy/evidence and provider-independent CI/rulesets.
+- Do not let generated orchestration skills self-grant autonomy, install dependencies, change public contracts, lower tests, merge to main or bypass approvals.
+- Do not adopt fixed universal coverage thresholds. Project policy, acceptance criteria and risk define the required evidence.
+- Do not hand-maintain divergent provider copies of Engineering Control; adapters/packages are generated from one canonical Nexus source.
 - Keep models/providers replaceable. The product owns contracts, evidence, memory, task state and recovery.
 
 ## 9. Objective progress
