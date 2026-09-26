@@ -2007,7 +2007,7 @@ Maestri Reflex is not production-ready until all are demonstrated:
 
 ## 4. Current verified baseline
 
-- GitHub repository is `trydavidqix/nexus-brain`; `main` is default. The canonical checkout is `C:\Users\David\Desktop\Projetos\nexus-brain`, and `origin` points to `https://github.com/trydavidqix/nexus-brain.git`.
+- GitHub repository is `trydavidqix/nexus-brain`; `main` is default. The canonical checkout matches the active Nexus workspace, and `origin` points to `https://github.com/trydavidqix/nexus-brain.git`.
 - Before reconciliation, local `main` was clean and matched `origin/main` at `0b0552a9216d731696861de579c62262063dd682`. PR #43 is open from `docs/provider-native-directory-boundary`; this revision reconciles its Blueprint with the newer migration/readiness status on `main`.
 - Migration packages NB-24–NB-29 are complete. Their status is recorded separately below and is not a product-feature completion claim.
 - The migrated codebase contains 10 packages and 3 apps. Post-merge checks recorded in the migration audit passed; legacy CodeQL findings remain visible and are not declared fixed by code movement.
