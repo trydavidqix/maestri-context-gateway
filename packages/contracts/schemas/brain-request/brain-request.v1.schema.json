@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.brain-request.v1",
+  "title": "Nexus Brain Request",
+  "type": "object",
+  "required": ["request_id", "project_id", "task_id", "agent_id", "operation", "input"],
+  "properties": {
+    "request_id": { "type": "string", "minLength": 1 }, "project_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 }, "agent_id": { "type": "string", "minLength": 1 },
+    "operation": { "enum": ["brain_context", "brain_search", "brain_reuse", "brain_remember", "local_search", "brain_status"] },
+    "input": { "type": "object" }
+  }
+}

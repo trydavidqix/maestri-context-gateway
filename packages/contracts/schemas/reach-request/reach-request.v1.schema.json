@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.reach-request.v1",
+  "title": "Nexus Reach Request",
+  "type": "object",
+  "required": ["project_id", "task_id", "agent_id", "capability", "input", "policy"],
+  "properties": {
+    "project_id": { "type": "string", "minLength": 1 }, "task_id": { "type": "string", "minLength": 1 },
+    "agent_id": { "type": "string", "minLength": 1 }, "capability": { "type": "string", "minLength": 1 },
+    "input": { "type": "object" }, "policy": { "type": "object" },
+    "constraints": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  }
+}

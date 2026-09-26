@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.browser-recipe.v1",
+  "title": "Nexus Versioned Browser Recipe",
+  "type": "object",
+  "required": ["recipe_id", "project_id", "version", "origin", "actions", "evidence_id", "validated_at", "content_hash"],
+  "properties": {
+    "recipe_id": { "type": "string", "minLength": 1 }, "project_id": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 }, "origin": { "type": "string", "minLength": 1 },
+    "actions": { "type": "array", "items": { "type": "object", "required": ["action_type", "parameters"], "properties": { "action_type": { "type": "string", "minLength": 1 }, "parameters": { "type": "object" } } } },
+    "evidence_id": { "type": "string", "minLength": 1 }, "validated_at": { "type": "string", "format": "date-time" },
+    "content_hash": { "type": "string", "minLength": 1 }
+  }
+}

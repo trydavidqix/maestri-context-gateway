@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.reach-outcome.v1",
+  "title": "Nexus Typed Reach Outcome",
+  "type": "object",
+  "required": ["project_id", "task_id", "agent_id", "status", "provider", "capability", "output", "evidence_ids"],
+  "properties": {
+    "project_id": { "type": "string", "minLength": 1 }, "task_id": { "type": "string", "minLength": 1 },
+    "agent_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["OK", "EMPTY", "PARTIAL", "DEGRADED", "AUTH_REQUIRED", "RATE_LIMITED", "QUOTA_EXHAUSTED", "PROVIDER_DOWN", "BLOCKED", "TIMEOUT", "SCHEMA_CHANGED", "HOST_UNAVAILABLE", "POLICY_DENIED", "APPROVAL_REQUIRED"] },
+    "provider": { "type": "string", "minLength": 1 }, "capability": { "type": "string", "minLength": 1 },
+    "output": { "type": "object" }, "evidence_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "error": { "type": "object" }
+  }
+}
