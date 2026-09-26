@@ -17,6 +17,8 @@ Implementation order for every work package:
 
 `DONE` requires the package acceptance criteria and evidence. A written design, skill, successful CI run, or agent claim alone is not implementation proof. Unknowns stay `UNRESOLVED`; no percentage is inferred from elapsed time or prose.
 
+**Current operational phase:** `MIGRATION READINESS`. The implementation additions below are the next phase only. Do not begin Hindsight rollout, Code Intelligence, Task Intelligence, new Skills/SOP extraction, tool-profile rollout or other Blueprint feature implementation until migration readiness is 100%, local/GitHub are synchronized, the working tree is clean, and the migration phase has explicitly stopped.
+
 ## 2. Canonical system boundary
 
 ```text
@@ -26,6 +28,8 @@ NEXUS BRAIN — ONE PLATFORM / ONE BRAIN / ONE CONTROL PLANE
 ├── Control plane (Maestri): session/task state, DAG, routing, approvals, budgets, scheduler and project-aware orchestration
 ├── Brain services: global/project/session/task memory, temporal facts, provenance, context, retrieval and reusable capabilities
 ├── Memory runtime: Hindsight API + dedicated background worker service(s) over canonical PostgreSQL/pgvector
+├── Task Intelligence: task-boundary detection, task-scoped retrieval, validated reusable Skills/SOPs
+├── Code Intelligence: replaceable structural-code backend for symbols, calls, dependencies, impact, tests, Git changes and cross-repo evidence
 ├── Execution: agent factory/supervisor, local runtime, Codex Cloud, Jules/provider adapters
 ├── Edge: Windows Everything 1.5 + Git + minimal Lumenva Edge/MCP bridge
 ├── Interfaces: Claude Code, Codex, Gemini CLI, Antigravity, Jules
@@ -52,6 +56,9 @@ Reuse the existing Nexus repository, tests, MCG dashboard, Local Runtime and tra
 | Local machine | Tiny Edge uses Everything 1.5 Journal + Git; queue/snapshots are bounded, encrypted, and non-authoritative. | Do not build a recursive scanner or parallel filesystem watcher. Fallback to Git status/diff if Everything is unavailable. |
 | Memory/indexing | One Nexus-owned memory API and canonical provenance/temporal model; **Hindsight is the V1 memory engine behind a replaceable `MemoryEngine` adapter, not the authority**. Agent/model/Hindsight outputs are observations or candidates, never truth by assertion. Memory lifecycle is `OBSERVED → CANDIDATE → VERIFIED → CANONICAL`, with `SUPERSEDED`, `CONFLICTED` and `REVOKED` states. Canonical promotion remains Nexus-owned and requires provenance, scope and supporting evidence. | **Graphiti is deferred as a benchmark alternative**, not installed in V1. Evaluate it only if a concrete graph/temporal retrieval limitation is proven. |
 | Retrieval/reuse | Hindsight V1 supplies semantic, lexical, graph/relationship and temporal retrieval over the PostgreSQL/pgvector memory stack; Nexus applies project/task scope, evidence/provenance/freshness policy and Context Compiler filtering before provider delivery. More memory is not automatically better context. | No Neo4j, Graphiti deployment, second vector DB, or second authoritative memory engine in V1. |
+| Code Intelligence | Nexus owns a provider-neutral `CodeIntelligenceEngine`; **codebase-memory-mcp is the initial V1 adapter/backend candidate after pinned-version, security, Windows and correctness validation**. It provides structural code evidence (AST/LSP graph, callers/callees, imports, routes, tests, Git changes, impact and cross-repo relationships), not canonical truth. | Do not make any code-graph backend authoritative. If coverage/confidence is insufficient, fall back to direct Git/file/test/runtime evidence. The adapter must remain replaceable. |
+| Task Intelligence | Nexus-native task-boundary detection separates multiple tasks inside a session, narrows retrieval to the active task, and can derive reusable Skills/SOP candidates only from evidenced successful work. | Patterns observed in TencentDB Agent Memory/community forks are implementation references, not a second memory/control plane. No automatic promotion of generated Skills to global/canonical status. |
+| Context delivery | Nexus can assemble a bounded edit/context bundle combining current code structure, tests, blast radius, Git changes, verified memory and evidence; Maestri selects a minimal tool profile for the task. | Avoid exposing the full MCP/tool catalog or bulk repository/memory context to every agent by default. |
 | MCP | One stable Brain MCP surface. V1 tools: `brain_context`, `brain_search`, `brain_reuse`, `brain_remember`, `local_search`, `brain_status`. | Earlier 8-tool variants remain in source archive; aliases may be added only for proven client compatibility. |
 | Compiler/decision | Deterministic rules first; one Gemini compiler for V1 behind provider-neutral interface; larger models only for ambiguous cases. | Multiple compilers, Laya/classifier choices and routing thresholds remain deferred/experimental until benchmarked. No custom training in V1. |
 | Agents/runtime | One task/session/event model; Agent Factory, policy, evidence and bounded loop are shared by local/cloud/Jules execution. | Council, C4, AutoImprove and learned Reflex are later gated modules, not duplicate control planes or V1 prerequisites. |
@@ -203,6 +210,150 @@ The Hindsight-specific implementation lives behind `HindsightAdapter`. Provider 
 
 Graphiti is **DEFERRED / BENCHMARK ALTERNATIVE** for V1. Do not operate Hindsight and Graphiti as parallel authoritative memory systems. Benchmark Graphiti only if a real Nexus workload demonstrates insufficient graph traversal, temporal relationship quality, retrieval accuracy or scale with Hindsight. Adoption requires same-task A/B evidence, migration/consistency design and no duplicate source of truth.
 
+## 3C. Task, code and evidence intelligence implementation model
+
+The reverse-engineering review of TencentDB Agent Memory, its task/team-memory derivatives, codebase-memory-mcp and related code-intelligence projects adds implementation detail **without adding new top-level work packages or creating another Brain**.
+
+### Internal contracts first
+
+Nexus code depends on internal contracts, not vendor APIs throughout the codebase:
+
+```text
+MemoryEngine
+├── retain()
+├── recall()
+├── search()
+├── relate()
+├── reflect()
+└── health()
+
+CodeIntelligenceEngine
+├── index()
+├── searchSymbol()
+├── getContext()
+├── getCallers()
+├── getCallees()
+├── getTests()
+├── analyzeImpact()
+├── getChanges()
+└── health()
+
+EvidenceEngine
+├── record()
+├── validate()
+├── supersede()
+├── conflict()
+└── trace()
+
+TaskIntelligence
+├── detectBoundary()
+├── currentTask()
+├── retrieveSkills()
+└── closeTask()
+```
+
+V1 mappings:
+
+- `MemoryEngine → HindsightAdapter`.
+- `CodeIntelligenceEngine → CBMAdapter` initially, subject to pinned-version/security/correctness validation.
+- `TaskIntelligence → Nexus-native`.
+- Provider agents call Nexus contracts; they do not call Hindsight or the code-intelligence backend as authorities.
+
+### Evidence lifecycle
+
+Retrieval alone does not prove usefulness. Nexus records a separate evidence lifecycle:
+
+```text
+RECALLED → SELECTED → INJECTED → USED → VALIDATED → CONTRIBUTED
+```
+
+A memory/Skill may be retrieved and still contribute nothing. Positive contribution requires a concrete link to a decision/change/tool action plus independent validation such as tests, CI, source inspection or another objective checker.
+
+### Task-aware context and Skills
+
+A session may contain multiple tasks. Nexus detects task boundaries and keeps task-scoped context separate:
+
+```text
+PROJECT → SESSION → TASK
+```
+
+On a new task, old task context is not bulk-carried forward. After evidenced successful work, Nexus may derive a procedural Skill/SOP as a `CANDIDATE`; it becomes project-level or global reusable knowledge only after provenance, compatibility and validation gates.
+
+### Code Intelligence boundary
+
+The initial code-intelligence backend supplies evidence about the **current code**:
+
+- symbols, definitions, callers/callees and imports;
+- routes/services and dependency relationships;
+- related tests and change/blast-radius analysis;
+- Git diff/history signals;
+- incremental indexing and bounded cross-repository relationships.
+
+Code-graph output can be incomplete for dynamic frameworks or parser/LSP edge cases. Therefore `CodeIntelligenceEngine` results carry source/project/commit/index version and coverage/confidence metadata. Nexus must fall back to direct file/Git/test/runtime verification when confidence is insufficient.
+
+### Bounded code context bundle
+
+Nexus may expose a provider-neutral edit/context operation that assembles only what a task needs:
+
+```text
+target symbol/file
++ current source
++ callers/callees
++ relevant dependencies
++ related tests
++ recent Git changes
++ blast radius
++ verified project memory
++ relevant evidence
+→ Context Compiler
+→ Token Firewall
+→ provider agent
+```
+
+This bundle is a Nexus feature, not a direct pass-through of any external MCP implementation.
+
+### Tool profiles
+
+Maestri selects a minimal tool surface per task instead of exposing every tool schema to every provider. Initial conceptual profiles:
+
+```text
+core    → context/search/status
+coding  → code context/impact/tests/changes
+review  → diff/impact/tests/evidence
+memory  → remember/search/history/evidence
+```
+
+Profiles are capability policies, not provider-native installation changes.
+
+### Cross-project intelligence
+
+Cross-project code/memory reuse is opt-in and policy-gated. Project-specific facts stay isolated. Only evidence-backed reusable abstractions, Skills/patterns or explicitly linked inter-repository relationships may cross project boundaries, with ACL/secrets/version/compatibility checks.
+
+### Implementation sequence after migration readiness
+
+Keep the canonical **25 work packages**. Implement these capabilities as subtasks/acceptance gates inside them:
+
+```text
+contracts
+→ Project Registry
+→ Hindsight memory
+→ evidence ledger/governance
+→ task intelligence
+→ code intelligence adapter
+→ incremental indexing
+→ bounded code-context bundle
+→ Context Compiler/Token Firewall
+→ tool profiles
+→ validated Skills/SOPs
+→ cross-project intelligence
+→ Maestri orchestration
+→ Control Center
+→ paired benchmarks
+→ failure/recovery E2E
+```
+
+No external project is copied wholesale into Nexus merely because its design is useful. Prefer adapters and independently owned Nexus contracts first; reuse/adaptation of source code requires explicit license, security, maintenance and version-pinning review.
+
 ## 4. Current verified baseline
 
 - GitHub repository was renamed to `trydavidqix/nexus-brain`; it is public, `main` remains default, and no repository currently named `trydavidqix/nexus-brain` existed before the rename.
@@ -237,28 +388,28 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
 | NB-01 | Nexus monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded Nexus-owned paths; dependency/import graph; safe folder rename; external projects remain independent | BLOCKED |
-| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; conflicts recorded as unresolved | TODO |
+| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral `MemoryEngine`, `CodeIntelligenceEngine`, `EvidenceEngine` and `TaskIntelligence` contracts; backend authority boundaries; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | TODO |
-| NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; one `global` bank + one `project:<project_id>` bank per registered project; session/task represented by scoped tags/metadata inside project banks; append-only observations/events; explicit `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED` lifecycle; evidence lineage; ACL/scope; restore test | TODO |
-| NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus Brain API/MCP fronts `MemoryEngine`; Hindsight is not called directly by agents; authenticated context/search/remember/reuse/status plus health; `remember` stores observations/candidates unless Nexus promotion policy passes; responses expose status/provenance/source; contract tests; bounded context | TODO |
+| NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; one `global` bank + one `project:<project_id>` bank per registered project; session/task represented by scoped tags/metadata; append-only observations/events; `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED`; evidence lineage plus `RECALLED/SELECTED/INJECTED/USED/VALIDATED/CONTRIBUTED` attribution; ACL/scope; restore test | TODO |
+| NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus Brain API/MCP fronts internal engines; Hindsight/code-intelligence backends are not called directly by agents as authorities; authenticated context/search/remember/reuse/status plus bounded code/edit-context capability; `remember` stores observations/candidates unless Nexus policy passes; responses expose status/provenance/source/coverage; contract tests; bounded context | TODO |
 | NB-06 | GitHub project indexer and sync/reconciliation | NB-02, NB-03, NB-04 | Idempotent webhook + scheduled reconciliation; branch/commit provenance; safe retry | TODO |
-| NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent permissions/budgets; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
-| NB-07 | Workspace index and capability evidence | NB-01, NB-06, NB-06A | Per-project manifests/files/symbols/capabilities indexed with project/repo/commit/test evidence and incremental updates; no cross-project namespace collision | TODO |
-| NB-08 | Hybrid retrieval and reuse coverage | NB-05, NB-07 | Hindsight-backed semantic + lexical + relationship/graph + temporal retrieval; Nexus queries the project bank first with session/task tags, queries the global bank separately only when relevant, then policy-filters/merges/deduplicates/ranks results; conflicted/revoked facts excluded by default; task-minimal context; safe cross-project reusable-capability lookup; explainable full/partial/missing coverage | TODO |
-| NB-09 | Memory/event compiler and decision tiers | NB-04, NB-05, NB-08 | `OBSERVED→CANDIDATE→source verification→dedup/conflict→VERIFIED→CANONICAL`; deterministic-first; Hindsight `reflect`/inference returns only observations/candidates; no model or memory-engine statement self-promotes to truth; contradictory evidence yields `CONFLICTED`; newer verified facts supersede older ones without erasing history; model abstention/fallback tests | TODO |
+| NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent permissions/budgets; memory bank + code-index binding/version/health; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
+| NB-07 | Workspace index, Code Intelligence and capability evidence | NB-01, NB-06, NB-06A | `CodeIntelligenceEngine` with initial validated CBM adapter; per-project files/symbols/calls/imports/routes/tests/dependencies/Git-change evidence; incremental re-index; impact/blast-radius queries; coverage/confidence + source/commit/index-version metadata; bounded cross-repo links; safe direct-source fallback; no namespace collision | TODO |
+| NB-08 | Hybrid retrieval, task-aware context and reuse coverage | NB-05, NB-07 | Hindsight semantic/lexical/relationship/temporal retrieval plus code-evidence retrieval; task-boundary-aware project/session/task selection; project bank first and global separately only when relevant; policy filter/merge/dedup/rank; conflicted/revoked excluded; minimal context; abstention when evidence is weak; safe reusable cross-project lookup; explainable full/partial/missing coverage | TODO |
+| NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | `OBSERVED→CANDIDATE→source verification→dedup/conflict→VERIFIED→CANONICAL`; deterministic-first; Hindsight inference and derived Skills/SOPs remain candidates until validated; task-success evidence can generate procedural-memory candidates; project→global promotion requires compatibility/provenance gates; contradictions yield `CONFLICTED`; verified newer facts supersede without erasing history; abstention/fallback tests | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
-| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude, Codex, Gemini/Antigravity and Jules use the same Nexus contracts through supported interfaces; provider outputs enter as observations/candidates, never automatic truth; native provider install/config/state directories remain provider-owned and untouched; official updates remain independently applicable; scoped auth; no duplicated memory | TODO |
-| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity before execution; Session/Event Store, Task DAG, Progress, scheduler, recovery and budgets are project-scoped and share Brain contracts; Maestri remains platform-wide, not tied to one repository | TODO |
-| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions, revocable scoped capabilities, risk gates, bounded loops and audit evidence | TODO |
+| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude, Codex, Gemini/Antigravity and Jules use the same Nexus contracts through supported interfaces; Maestri/Nexus assigns minimal task-specific tool profiles; provider outputs enter as observations/candidates, never automatic truth; native provider directories remain provider-owned/untouched; official updates remain independent; scoped auth; no duplicated memory | TODO |
+| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity before execution; owns task-boundary lifecycle and active-task selection; selects provider/tool profile; Session/Event Store, Task DAG, Progress, scheduler, recovery and budgets are project-scoped and share Brain contracts; Maestri remains platform-wide, not tied to one repository | TODO |
+| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions, revocable scoped capabilities/tool profiles, risk gates, bounded loops, evidence-attribution hooks and audit evidence; provider execution never bypasses project/task/code/memory scope | TODO |
 | NB-15 | Local Runtime, Codex Cloud and Jules execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches, resumable jobs, quota-safe retries, independent tests and no direct main merge | TODO |
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, mandatory structured report, owner approval and acceptance manifest | TODO |
-| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Consume Nexus-filtered Hindsight retrieval through Brain API; keep existing bounded batch/redaction; compile only task-relevant verified context; exclude conflicted/revoked memory by default; prove live provider path and paired tokens/round-trip benchmark with lower token/call cost and no quality/accuracy loss | IN_PROGRESS |
-| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Portfolio + project drill-down views; every registered view has clear project/source/scope/measurement/unavailable report; no cross-project state leakage; reference fidelity, keyboard, screen reader, touch | IN_PROGRESS |
+| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge Nexus-filtered Hindsight memory + Code Intelligence evidence into bounded task/edit-context bundles; keep existing bounded batch/redaction; dedupe/compact tool output; expose minimal tool schemas; exclude conflicted/revoked/stale evidence by default; prove live provider path and paired token/tool-call benchmark with lower cost and no quality/accuracy loss | IN_PROGRESS |
+| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Portfolio + project drill-down; project memory states/conflicts, task boundaries, Skills/SOP candidates, code-index health/coverage, evidence attribution, active agents/tasks/costs/incidents; clear project/source/scope/measurement/unavailable reports; no cross-project leakage; reference fidelity, keyboard, screen reader, touch | IN_PROGRESS |
 | NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security workflows, least token permissions, actual required checks/protection verified; audit current alert findings | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
-| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Health/latency/sync/conflicts/usage/errors and alert reports backed by real measurements; separate Hindsight API/worker health, queue/backlog/failure visibility and scaling runbook | TODO |
-| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Cross-write/read; project isolation; safe cross-project reusable knowledge; new project registration; new session/PC; offline recovery; hallucinated/contradictory/stale-memory injection tests; proof that one provider cannot promote unsupported claims; hostile inputs; authorization; disaster restore pass | TODO |
+| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Health/latency/sync/conflicts/usage/errors backed by real measurements; Hindsight API/worker health and backlog; Code Intelligence index age/coverage/failures/watchers; retrieval funnel and `RECALLED→…→CONTRIBUTED` metrics; token/tool-call budgets; fallback/degradation/scaling runbooks | TODO |
+| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Cross-write/read; project isolation; safe cross-project reusable knowledge/code links; new project/session/PC; task-boundary changes; stale/contradictory memory; incomplete/wrong code graph; dynamic-framework fallback; index lag/crash; Hindsight/worker/code-intelligence/provider outages; proof unsupported provider claims cannot become canonical; authorization/hostile inputs/restore; paired baseline vs memory vs task+code-context evals for success, tokens, tool calls, latency and wrong-context rate | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
 ### Dependency waves
@@ -293,6 +444,9 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 - Project banks are isolation boundaries. Session/task scoping uses tags/metadata inside the selected project bank; do not create separate session/task banks by default.
 - Project-bank and global-bank retrievals are performed separately and merged only by Nexus after scope, provenance, freshness, conflict and security checks.
 - Do not run Graphiti in parallel as a second authoritative V1 memory system. It remains a benchmark alternative until evidence justifies a migration or specialized adapter.
+- Do not run TencentDB Agent Memory, MARM, Total Agent Memory, CodeGraph memory, or codebase-memory-mcp memory as parallel authoritative Brains. Their useful patterns/backends may be adapted behind Nexus contracts only.
+- Code Intelligence is advisory evidence, not truth. Parser/LSP/graph misses or stale indexes must fall back to direct Git/file/test/runtime verification.
+- Task/Skill extraction must not convert a successful-looking agent narrative into reusable procedure without objective task outcome evidence.
 - Least privilege; no secrets in logs, context, execution records, reports or source archives. Edge receives only short-lived scoped identity, not cloud-admin or database credentials.
 - No direct-main worker writes, force-push, destructive cleanup, auto-merge, auto-commit backup, Docker install, paid provider calls, model training, irreversible bucket lock, or CRM/voice migration without the applicable explicit authorization and gates.
 - Keep provider-native global directories and installations external to Nexus. Codex, Claude Code, Gemini/Antigravity and other provider runtimes retain their official install/config/state locations; Nexus must not require moving, forking, vendoring or patching those directories.
