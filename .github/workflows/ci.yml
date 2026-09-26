@@ -6,6 +6,24 @@ on:
   pull_request:
 
 jobs:
+  tofu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: opentofu/setup-opentofu@v2.0.2
+        with:
+          tofu_version_file: infra/cloud/tofu/.opentofu-version
+          tofu_wrapper: false
+      - name: Check OpenTofu formatting
+        run: tofu fmt -check -recursive infra/cloud/tofu
+      - name: Initialize providers without a cloud backend
+        working-directory: infra/cloud/tofu
+        run: tofu init -backend=false -input=false
+      - name: Validate OpenTofu configuration
+        working-directory: infra/cloud/tofu
+        run: tofu validate
+
   mcg:
     runs-on: ubuntu-latest
     timeout-minutes: 20
