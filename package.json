@@ -1,39 +1,40 @@
 {
-  "name": "@lumenva/maestri-context-gateway",
+  "name": "@nexus-brain/workspace",
   "private": true,
   "type": "module",
   "exports": {
     "./context/compiler": {
-      "types": "./types/context/compiler.d.ts",
-      "import": "./src/context/compiler.mjs"
+      "types": "./packages/brain/src/compiler.d.ts",
+      "import": "./packages/brain/src/compiler.mjs"
     },
     "./dashboard": {
-      "types": "./types/dashboard.d.ts",
-      "import": "./src/dashboard.mjs"
+      "types": "./apps/control-center/src/dashboard.d.ts",
+      "import": "./apps/control-center/src/dashboard.mjs"
     },
     "./telemetry": {
-      "types": "./types/telemetry.d.ts",
-      "import": "./src/telemetry.mjs"
+      "types": "./packages/evidence/src/telemetry.d.ts",
+      "import": "./packages/evidence/src/telemetry.mjs"
     },
     "./traces": {
-      "types": "./types/traces.d.ts",
-      "import": "./src/traces.mjs"
+      "types": "./packages/evidence/src/traces.d.ts",
+      "import": "./packages/evidence/src/traces.mjs"
     }
   },
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "cli": "node bin/mcg.mjs",
-    "test": "node --test test/*.test.mjs",
-    "test:unit": "node --test test/*.test.mjs",
-    "check:syntax": "node scripts/check-syntax.mjs",
-    "scan:sensitive": "node scripts/scan-sensitive.mjs",
-    "smoke:dashboard": "node --test test/dashboard.test.mjs",
-    "smoke:contracts": "node --test test/contracts.test.mjs",
-    "eval:smoke": "node bin/mcg-eval.mjs smoke",
-    "eval:validation": "node bin/mcg-eval.mjs validation",
-    "eval:validation-v2": "node bin/mcg-eval.mjs validation-v2"
+    "cli": "node apps/cli/src/mcg.mjs",
+    "test": "pnpm test:integration",
+    "test:integration": "node --test tests/integration/*.test.mjs",
+    "check:architecture": "node tooling/scripts/check-package-architecture.mjs",
+    "check:syntax": "node tooling/scripts/check-syntax.mjs",
+    "scan:sensitive": "node tooling/scripts/scan-sensitive.mjs",
+    "smoke:dashboard": "node --test apps/control-center/tests/dashboard.test.mjs",
+    "smoke:contracts": "pnpm --dir packages/contracts test:unit",
+    "eval:smoke": "node apps/cli/src/mcg-eval.mjs smoke",
+    "eval:validation": "node apps/cli/src/mcg-eval.mjs validation",
+    "eval:validation-v2": "node apps/cli/src/mcg-eval.mjs validation-v2"
   },
   "devDependencies": {
     "@jazzer.js/core": "4.0.0"

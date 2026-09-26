@@ -2,7 +2,7 @@
 
 **Canonical project:** Nexus Brain (`trydavidqix/nexus-brain`)
 **Default branch:** `main`
-**Status:** ACTIVE — consolidation and implementation not complete
+**Status:** MIGRATION READINESS COMPLETE — implementation not started
 **Last reconciled:** 2026-09-26
 
 This is the only active cross-project implementation tracker. Nexus Brain itself is one product and one monorepo. The ecosystem it manages is explicitly multi-project: many independent projects, repositories, workspaces, sessions and agents may be registered and governed by Nexus without being moved into the Nexus monorepo. “Maestri”, “Lumenva Brain”, “Context Gateway/MCG”, “Local Runtime”, “Cloud Fabric”, “Command Center” and “Everything Edge” name historical designs or internal modules—not separate products or repositories. CRM, voice, social-business/Meta integrations, tenant business data and unrelated Lumenva code remain out of scope unless a later explicit decision identifies an exact owned path.
@@ -17,7 +17,7 @@ Implementation order for every work package:
 
 `DONE` requires the package acceptance criteria and evidence. A written design, skill, successful CI run, or agent claim alone is not implementation proof. Unknowns stay `UNRESOLVED`; no percentage is inferred from elapsed time or prose.
 
-**Current operational phase:** `MIGRATION READINESS`. The implementation additions below are the next phase only. Do not begin Hindsight rollout, Code Intelligence, Task Intelligence, new Skills/SOP extraction, tool-profile rollout or other Blueprint feature implementation until migration readiness is 100%, local/GitHub are synchronized, the working tree is clean, and the migration phase has explicitly stopped.
+**Current operational phase:** `BLUEPRINT IMPLEMENTATION`. Migration readiness NB-24–NB-29 is complete. Local `main` is clean and synchronized with GitHub. The first unimplemented package is NB-02; existing partial MCG, dashboard and security work does not satisfy their full acceptance gates. Do not skip dependency order or mark a package `DONE` without its evidence.
 
 ## 2. Canonical system boundary
 
@@ -561,7 +561,7 @@ The Research engine does not silently select an unrelated model. Model-assisted 
 
 BrowserMesh 2.0 is **not a greenfield browser product and not a second Maestri**. Nexus first harvests proven code, contracts, tests and safety patterns from the user's existing BrowserMesh/Maestri assets, then converges them behind Nexus-owned contracts. The target is a governed multi-agent browser execution capability with minimum tools/context, deterministic-first routing, explicit isolation and evidence.
 
-**Operational gate:** this section is future Blueprint work. No BrowserMesh feature code is ported, rewritten or activated while `MIGRATION READINESS / NB-29` is incomplete. A read-only source audit may be prepared earlier, but implementation begins only after the migration phase is explicitly closed, local/GitHub state is synchronized and the canonical checkout is clean.
+**Operational gate:** this section is future Blueprint work. BrowserMesh implementation follows its package dependencies and acceptance gates; migration readiness is complete.
 
 Core invariants:
 
@@ -666,7 +666,7 @@ X5 CLASSIFY
    ↓
 REUSE_AS_IS / ADAPT / REPLACE / ARCHIVE / DROP with explicit reason
 
----------------- NB-29 / MIGRATION READINESS 100% REQUIRED ----------------
+---------------- MIGRATION READINESS COMPLETE — IMPLEMENTATION MAY PROCEED ----------------
 
 X6 ISOLATED PORT
    ↓
@@ -1972,7 +1972,7 @@ DecisionInput
 
 Dataset rows preserve project/task scope, decision schema version, policy version, feature provenance and objective outcome. Secrets and unnecessary raw content are excluded. Cross-project reuse requires the same isolation/provenance rules as Nexus memory.
 
-### Implementation stages — only after MIGRATION READINESS / NB-29 is 100%
+### Implementation stages — migration readiness complete
 
 ```text
 R0  typed DecisionInput/DecisionResult contracts + reason/evidence schema
@@ -2007,9 +2007,10 @@ Maestri Reflex is not production-ready until all are demonstrated:
 
 ## 4. Current verified baseline
 
-- GitHub repository was renamed to `trydavidqix/nexus-brain`; it is public, `main` remains default, and no repository currently named `trydavidqix/nexus-brain` existed before the rename.
-- The local clone’s `origin` now points to `https://github.com/trydavidqix/nexus-brain.git`. The remote HEAD resolved after rename; local documentation and plan sources still need committing/pushing.
-- At the pre-change inspection, the checkout was clean on `main`, with no open PRs and only `main` on the remote. Recheck after this documentation change.
+- GitHub repository is `trydavidqix/nexus-brain`; `main` is default. The canonical checkout is `C:\Users\David\Desktop\Projetos\nexus-brain`, and `origin` points to `https://github.com/trydavidqix/nexus-brain.git`.
+- Before reconciliation, local `main` was clean and matched `origin/main` at `0b0552a9216d731696861de579c62262063dd682`. PR #43 is open from `docs/provider-native-directory-boundary`; this revision reconciles its Blueprint with the newer migration/readiness status on `main`.
+- Migration packages NB-24–NB-29 are complete. Their status is recorded separately below and is not a product-feature completion claim.
+- The migrated codebase contains 10 packages and 3 apps. Post-merge checks recorded in the migration audit passed; legacy CodeQL findings remain visible and are not declared fixed by code movement.
 - Existing `docs/MASTER_BLUEPRINT_CANONICAL.md` contains a prior Maestri-wide design and source-to-plan map. Its verified snapshot says MCG F0–F2 and F4 are accepted (**4/7 MCG phases, 57% MCG-only**); F3, F5 and F6 are partial. This is not a Nexus-wide percentage.
 - Existing plan/status records say Brain service/API/database, Git governance enforcement, provider-backed Cloud/Jules execution, full Cloud Fabric acceptance and cross-provider recovery are not yet proven complete. Treat them as pending until fresh tests/evidence confirm otherwise.
 - Seven Gmail source attachments have been copied into `docs/blueprints/sources/`; their recorded lengths match Gmail metadata and their local SHA-256 hashes are in `sources/SHA256SUMS.txt`. The seven exact source messages were moved to Gmail Trash on 2026-09-25 after source review and plan validation; they were not permanently deleted. The prior Maestri blueprint is retained behind a historical/superseded banner, not as a second active tracker.
@@ -2033,12 +2034,12 @@ No source capability is discarded merely because it is deferred from V1. Deferre
 
 ## 6. Work packages and dependency order
 
-Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage is plan/source reconciliation. Mark a package `DONE` only after its acceptance checks pass and evidence is linked here or in the package’s test/CI artifacts.
+Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage is NB-02, the first unimplemented package. Mark a package `DONE` only after its acceptance checks pass and evidence is linked here or in the package’s test/CI artifacts.
 
 | ID | Work package | Depends on | Acceptance gate | Initial status |
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
-| NB-01 | Nexus monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded Nexus-owned paths; dependency/import graph; safe folder rename; external projects remain independent | BLOCKED |
+| NB-01 | Nexus monorepo inventory and ownership map | NB-00 | Exact included/excluded Nexus-owned paths; ownership map; source/import/workspace graph; no CRM/voice migration. Final local path cutover is tracked by NB-29. | DONE |
 | NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral Brain/Research/Reach plus `BrowserPlan`, `BrowserTask`, `BrowserSession`, `BrowserObservation`, typed `BrowserAction`, `BrowserBackend`, `BrowserHost`, `BrowserProfile`, `BrowserRecipe`; `EngineeringPlan`, `SkillRegistryEntry`, `TaskSkillSet`, skill-load/compaction events; browser origin/redirect/trust/secret/upload/download/side-effect boundaries; engineering risk/autonomy/context-budget/delivery contracts; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | TODO |
 | NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; global/project banks; session/task tags; append-only observations/events; research/evidence/sightings/run provenance; `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED`; `RECALLED/SELECTED/INJECTED/USED/VALIDATED/CONTRIBUTED`; raw web evidence remains untrusted and separate from memory promotion; ACL/scope; restore test | TODO |
@@ -2055,9 +2056,9 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions plus mandatory Engineering Control policy; provider agents cannot bypass Skill Resolver; required/optional/forbidden skill policy and context budgets enforced per task+agent; browser R0–R4 effect classification, origin/redirect, credential/file/data-transmission and approval gates enforced before backend execution; risk/autonomy, scope/contract/dependency/verification gates, bounded loops, optional isolated-TDD contexts and evidence hooks; no runtime may self-declare DONE or bypass project/browser policy | TODO |
 | NB-15 | Local/cloud agent and BrowserMesh execution | NB-12, NB-13, NB-14 | Complete BrowserMesh B0 selective harvest from `trydavidqix/BrowserMesh`, Lumenva/Maestri Wave 4 and Playwright skill without duplicate control/state owners; isolated workspaces/branches and browser sessions; Playwright direct deterministic interaction core, Scrapling Web Retrieval/Crawl route, Stagehand/visual adapters only after eval-gated need, Direct CDP/Playwright Server remote path; host/session/lease/profile registry with Windows/VPS/Linux eligibility/capacity/expiry; resumable jobs, bounded error-aware recovery, quota-safe retries, independent tests and no direct main merge | TODO |
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, current-diff review distinct from repo-wide audit, adversarial/second review when risk requires it, mandatory structured verification report, owner approval and acceptance manifest | TODO |
-| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory/code/research plus compact `EngineeringPlan` and only Resolver-selected skill bodies into bounded per-task/per-agent context; never inject the full skill catalog; enforce skill-context budget; compact phase results and stop reinjecting completed skill bodies when possible; dedupe tool schemas; prove parallel isolated SkillSets and lower token load with no correctness/policy loss | IN_PROGRESS |
-| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent and BrowserMesh views for sessions/hosts/tasks/actions/live state/approvals/recipes/profiles/artifacts/failures/cost/tokens/browser-seconds; show EngineeringPlan, BrowserPlan, selected/loaded/completed skills, reasons for dynamic additions, context budget and verification/delivery state; parallel tasks remain isolated; no cross-task skill/browser-state leakage; reference fidelity/accessibility | IN_PROGRESS |
-| NB-19 | GitHub Actions, security, commit discipline and Git hygiene | NB-01, NB-02 | Provider-independent Engineering Delivery Gate plus concrete GitHub baseline: protected `main`, PR-only delivery, squash merge, required CI/security/dependency/CodeQL/secret gates, least-privilege Actions, pinned third-party actions, Dependabot grouping, OIDC for cloud auth, CODEOWNERS for sensitive paths; repository commit/PR titles follow `<area>: <imperative action>` and reject vague subjects such as `chore`, `misc`, `update`, `changes`, `WIP` or `final`; Nexus Git Hygiene Guard enforces task↔branch↔worktree ownership, detects empty/merged/orphaned/duplicate/stale resources, and only permits cleanup after proof that work is clean, merged/redundant and preserved; dirty/unmerged/unknown resources are never auto-deleted and become `STALE_REVIEW_REQUIRED`; local/plugin hooks remain supplementary to authoritative CI/rulesets | IN_PROGRESS |
+| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Preserve bounded batch/redaction; prove the live provider path and paired-token/round-trip benchmark without quality loss; merge governed memory/code/research plus compact `EngineeringPlan` and only Resolver-selected skill bodies into bounded per-task/per-agent context; never inject the full skill catalog; enforce skill-context budget; compact phase results and stop reinjecting completed skill bodies when possible; dedupe tool schemas; prove parallel isolated SkillSets and lower token load with no correctness/policy loss | TODO |
+| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent and BrowserMesh views for sessions/hosts/tasks/actions/live state/approvals/recipes/profiles/artifacts/failures/cost/tokens/browser-seconds; show EngineeringPlan, BrowserPlan, selected/loaded/completed skills, reasons for dynamic additions, context budget and verification/delivery state; parallel tasks remain isolated; no cross-task skill/browser-state leakage; reference fidelity/accessibility | TODO |
+| NB-19 | GitHub Actions, security, commit discipline and Git hygiene | NB-01, NB-02 | Provider-independent Engineering Delivery Gate plus concrete GitHub baseline: protected `main`, PR-only delivery, squash merge, required CI/security/dependency/CodeQL/secret gates, least-privilege Actions, pinned third-party actions, Dependabot grouping, OIDC for cloud auth, CODEOWNERS for sensitive paths; repository commit/PR titles follow `<area>: <imperative action>` and reject vague subjects such as `chore`, `misc`, `update`, `changes`, `WIP` or `final`; Nexus Git Hygiene Guard enforces task↔branch↔worktree ownership, detects empty/merged/orphaned/duplicate/stale resources, and only permits cleanup after proof that work is clean, merged/redundant and preserved; dirty/unmerged/unknown resources are never auto-deleted and become `STALE_REVIEW_REQUIRED`; local/plugin hooks remain supplementary to authoritative CI/rulesets | TODO |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
 | NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus Maestri decision source/confidence/reason, abstain/fallback rate, calibration error, routing accuracy, risk/approval false negatives, decision latency/cost and post-decision outcome; engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic-load events, regressions and verification gates; BrowserMesh route/escalation/actions/tokens/browser seconds/lease/recovery/approval/isolation/policy/secret metrics; no hidden reasoning storage; degradation/rollback runbooks | TODO |
 | NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules and BrowserMesh B20: automatic skill activation without full-catalog injection; 4+ parallel tasks with isolated task+agent SkillSets **and 4+ independent browser sessions/contexts/leases**; zero cross-task cookie/storage/profile/evidence leakage in acceptance corpus; justified dynamic load and completed-phase non-reinjection; Resolver/backend bypass attempts; hostile web/prompt-injection, wrong-origin redirect, secret transmission, upload/download, R3/R4 approval, lease expiry, recipe rollback, recovery/takeover and host-failover tests where supported; false-DONE prevention; paired evals for correctness, leakage, context size, regressions, scope drift, tokens/browser-seconds/latency/cost | TODO |
@@ -2291,7 +2292,7 @@ G9  safe retirement workflow for proven SAFE_MERGED_CLEAN/EMPTY resources
 G10 concurrency validation; enable merge queue only if real parallel PR load justifies it
 ```
 
-**Migration gate:** configuration that can move/delete/retire branches or worktrees is not activated while Migration Readiness / NB-29 or Lumenva recovery remains incomplete. During that phase the Git Hygiene Guard is discovery/report-only for protected resources.
+**Migration gate:** configuration that can move/delete/retire branches or worktrees remains subject to ownership, preservation and clean/merged proof. During any active recovery gate, the Git Hygiene Guard is discovery/report-only for protected resources.
 
 ### 7.9 NB-19 acceptance evidence
 
@@ -2353,11 +2354,26 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 
 The implementation tracker has **25 work packages total**: NB-00..NB-23 (24 packages) plus NB-06A (Project Registry). This denominator is canonical unless a future blueprint change explicitly adds/removes a package. Only `DONE` counts; `IN_PROGRESS`, `VALIDATING`, `BLOCKED` and `TODO` do not. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only); do not average it into the Nexus total.
 
-Current tracker snapshot: `DONE 1/25`, `BLOCKED 1/25`, `IN_PROGRESS 3/25`, `TODO 20/25`; **Nexus implementation progress: 4%, remaining: 96%**. Only NB-00 is complete; NB-01 is blocked by active processes/workspace references to the old local path. Dashboard, Token Firewall and GitHub/security work remain partial under their larger Nexus acceptance gates. This is not a claim that existing MCG code is absent.
+Current tracker snapshot: `DONE 2/25`, `BLOCKED 0/25`, `IN_PROGRESS 0/25`, `TODO 23/25`; **Nexus implementation progress: 8%, remaining: 92%**. NB-00 and NB-01 are accepted preparation/audit packages. NB-02 is the first unimplemented package. Existing partial MCG, dashboard and security work remains evidence only; NB-17–NB-19 stay `TODO` until their full acceptance gates pass.
 
 ### NB-01 audit record
 
-The read-only ownership and local-path audit is [`NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md`](NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md). It records the 53-branch Lumenva source inventory, the one-branch Nexus target, selective Maestri ownership boundaries, current dirty/active source worktrees, path-reference checks, and the live daemon/MCP blockers. No Lumenva branch/worktree or unrelated CRM/voice file was changed. Do not rename the local checkout until the recorded blockers are cleared and the full post-rename validation is possible.
+The ownership and local-path audit is [`NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md`](NB-01_SOURCE_OWNERSHIP_AND_LOCAL_PATH_AUDIT.md). NB-01 is accepted as source inventory/ownership work; final path cutover belongs to NB-29. The prior blocked snapshot is superseded by the completed migration record below. CRM/voice and separate project code remain out of scope.
+
+### Migration readiness completion record (NB-24–NB-29)
+
+Migration readiness is a separate preparation track, not part of the 25-package implementation denominator. All six gates are complete. NB-29 completion and the canonical repository path are confirmed by the active task state; local `main` was verified clean and synchronized with `origin/main` at `0b0552a9216d731696861de579c62262063dd682` before this PR reconciliation.
+
+| ID | Completed gate | Status |
+|---|---|---|
+| NB-24 | Canonical monorepo AS-IS→TARGET map and boundary proof | DONE |
+| NB-25 | Shared contracts, schemas, registries and architecture gates | DONE |
+| NB-26 | Domain package migration | DONE |
+| NB-27 | Executable apps and Windows Edge migration | DONE |
+| NB-28 | PNPM, integration tests, evals, docs and GitHub architecture | DONE |
+| NB-29 | Canonical local path cutover and final local/GitHub synchronization | DONE |
+
+The migration audit and implementation evidence remain in [`../migration/NEXUS_CANONICAL_ARCHITECTURE_MIGRATION.md`](../migration/NEXUS_CANONICAL_ARCHITECTURE_MIGRATION.md). The prior `NB-29 BLOCKED` statements in that historical audit are superseded by this completion record and the active task state. Do not infer implementation-package completion from migration gates, code movement, or migration CI.
 
 ## 10. Email deletion gate
 

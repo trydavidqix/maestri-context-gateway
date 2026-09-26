@@ -1,0 +1,22 @@
+{
+  "name": "@nexus-brain/governance",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./autonomy": "./src/autonomy/index.ts",
+    "./executive": "./src/executive/index.ts",
+    "./outcome-os": "./src/outcome-os/index.ts",
+    "./psyche": "./src/psyche/psyche.ts",
+    "./affect": "./src/psyche/affect.ts",
+    "./backup": "./src/backup/dr-engine.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run tests"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

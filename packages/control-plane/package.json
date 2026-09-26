@@ -1,0 +1,47 @@
+{
+  "name": "@nexus-brain/control-plane",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tasks/job-engine": {
+      "types": "./src/tasks/job-engine.ts",
+      "import": "./src/tasks/job-engine.ts"
+    },
+    "./tasks/job-claim-store": {
+      "types": "./src/tasks/job-claim-store.ts",
+      "import": "./src/tasks/job-claim-store.ts"
+    },
+    "./tasks/receipt-store": {
+      "types": "./src/tasks/receipt-store.ts",
+      "import": "./src/tasks/receipt-store.ts"
+    },
+    "./events/event-log-adapter": {
+      "types": "./src/events/event-log-adapter.ts",
+      "import": "./src/events/event-log-adapter.ts"
+    },
+    "./sessions": {
+      "types": "./src/sessions/session-engine.ts",
+      "import": "./src/sessions/session-engine.ts"
+    },
+    "./workforce/scheduler": {
+      "types": "./src/workforce/workforce-scheduler.ts",
+      "import": "./src/workforce/workforce-scheduler.ts"
+    },
+    "./scheduler/dag": "./src/scheduler/dag.mjs",
+    "./scheduler": "./src/scheduler/scheduler.mjs"
+  },
+  "scripts": {
+    "test:unit": "vitest run tests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nexus-brain/contracts": "workspace:*",
+    "@nexus-brain/evidence": "workspace:*",
+    "@nexus-brain/routing": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

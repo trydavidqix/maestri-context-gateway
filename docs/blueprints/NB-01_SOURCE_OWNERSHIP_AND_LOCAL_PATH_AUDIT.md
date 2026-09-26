@@ -1,8 +1,10 @@
 # NB-01 — Source ownership and local path audit
 
 **Audit date:** 2026-09-25
-**Status:** BLOCKED — do not rename the local checkout while consumers are active.
-**Scope:** read-only inspection of Nexus Brain, Lumenva source refs, Windows references and running consumers. No Lumenva branch, worktree, process, config or unrelated CRM/voice data was changed.
+**Status:** IN_PROGRESS — current Windows audit supersedes the historical 2026-09-25 snapshots below; stop legacy MCP/autostart and complete remote/local cutover before renaming.
+
+> All process/task/PID and `.mcg-state` observations below are time-sensitive. Use the latest dated audit section as authoritative; older entries are retained as history, not current state.
+**Scope:** initial inspection was read-only. A later evidence-backed re-audit disabled only the obsolete duplicate Scheduled Task; it did not stop a process, alter a repository/worktree, change the Startup shortcut, or touch CRM/voice data.
 
 ## Repository and branch inventory
 
@@ -60,10 +62,10 @@ Requested local move: `%USERPROFILE%\.lumenva\maestri-context-gateway` → `%USE
 | Project scripts/config/hooks | Exact old absolute path search across this repository found no matches. `core.hooksPath` is unset; only sample scripts exist in `.git/hooks`. | No repository hook/config rewrite identified yet. |
 | Global agent/editor config | Targeted search of Codex, Claude, Gemini and VS Code config roots found no active exact-path config entry; four matches are historical Codex sandbox log lines. | Keep historical logs; do not rewrite logs. |
 | Windows PATH/registry | Process PATH and persistent user/system PATH have no old checkout entry. | No PATH update identified. |
-| Scheduled tasks/services | No task action or Windows service command line points at the exact old checkout path. | None found. |
+| Scheduled tasks/services | Re-audit found the logon task `Maestri Context Gateway Daemon` targeting the separate Desktop legacy clone; it is now disabled (not deleted). No Windows service was found. | Prevent duplicate start from that non-canonical clone. |
 | Symlinks/junctions | No reparse-point child was found in `%USERPROFILE%\.lumenva`. | None found. |
 | Git worktrees | Nexus registers only the current old-path checkout. Other Lumenva worktrees are separate and include dirty/active work; a separate old-named clone, Codex worktree and Claude cache also exist elsewhere. | Do not rename or clean those unrelated paths. |
-| Running processes / workspace | One `node ...\bin\mcg.mjs daemon` process and **three** `tsx src/mcp-server.ts` Local Runtime MCP server instances have command lines resolving through the old checkout. The active Codex task itself is also opened with the old checkout as its workspace root. The new path fails process creation because it does not exist. | **BLOCKER:** active runtime clients and this workspace still depend on the old path. |
+| Running processes / workspace | Re-audit on 2026-09-25: PID 9756 runs `node %USERPROFILE%\.lumenva\maestri-context-gateway\bin\mcg.mjs daemon`; parent chain is `conhost.exe → codex.exe`; owner is David. It is healthy through its authenticated loopback control endpoint and has an established TCP connection to `127.0.0.1:7434`. Two current `run-local-runtime-mcp.mjs` launcher roots (PIDs 10960 and 11800) are children of `codex.exe`; each launches the old-path MCP server. The current Codex task/workspace also uses the old checkout path. | Keep NB-01/NB-29 blocked until these consumers are redirected/reloaded and the folder is unused. |
 | Open-handle inspection | `handle.exe` is unavailable; Windows `openfiles` local tracking is disabled and its query returned access denied. | Cannot prove the directory is otherwise unused. |
 
 ## Blocker protocol and safe resume
@@ -74,3 +76,70 @@ Requested local move: `%USERPROFILE%\.lumenva\maestri-context-gateway` → `%USE
 4. Validate `git status`, branch, `git remote -v`, `git worktree list`, GitHub repo/default branch, active config/hooks, app startup, daemon and MCP health, then run the applicable MCG test/syntax/security checks. Mark NB-01 `DONE` only if the path move and every check pass.
 
 Until those preconditions are met, NB-01 remains `BLOCKED`; this is not completion of the branch/path ownership map or local folder migration.
+
+## MCG daemon / Wire re-audit — 2026-09-25
+
+This section supersedes the earlier “purpose not established” assessment; it does not authorize a broad cleanup of the legacy clone or its data.
+
+| Report field | Verified result |
+|---|---|
+| PROCESSO | PID 9756, Node.js `bin/mcg.mjs daemon`; authenticated MCG health probe returns online. |
+| ORIGEM | Executable code is from the Nexus checkout at `%USERPROFILE%\.lumenva\maestri-context-gateway`; `HKCU\Environment\MCG_ROOT` points its state to `%USERPROFILE%\Desktop\Projetos\maestri-context-gateway\.mcg-state`. |
+| QUEM INICIA | The current PID’s parent chain is `conhost.exe → codex.exe`, under David’s Windows account. It was not started by the Maestri process or by the Scheduled Task. The exact Codex conversation/terminal that issued the start is not recoverable from process metadata alone. |
+| FUNÇÃO | Watches the MCG `events/inbox` task queue. When `<MCG_ROOT>\config\wire.json` exists, it also subscribes to Maestri Wire’s workspace feed, tracks mutation/snapshot cursors, and writes a compact feed state. It is a Wire client/bridge, not the Wire server. |
+| WIRE | Maestri’s running `Maestri.exe` process (PID 11208) owns loopback port 7434; its child CLI `--serve` is PID 14272. MCG Wire status succeeds for workspace `Lumenva`, role `guest`, protocol 1 and 42 advertised capabilities. PID 9756 has an established connection to that port. |
+| NECESSÁRIO? | Needed to preserve the currently configured MCG task-inbox and MCG↔Maestri-Wire behavior; not required for a standalone Brain API. Retain as a compatibility Edge/bridge capability until its replacement is implemented and validated. Do not leave two authoritative daemons. |
+| AÇÃO | Keep PID 9756 and the Wire feed running during code migration. Preserve all state. Disable only the obsolete duplicate Scheduled Task; keep the Startup shortcut as the single current autostart until it can be atomically redirected to the canonical path. |
+
+### Autostart, state and MCP evidence
+
+- The disabled task had a logon trigger and launched `%USERPROFILE%\Desktop\Projetos\maestri-context-gateway`, a separate clone whose Git remote is still `https://github.com/trydavidqix/maestri-context-gateway.git`; it is not the canonical Nexus checkout. Its last recorded result was exit code 1 while the live daemon already held the shared PID lock. The duplicate-lock explanation is consistent with the daemon’s lock code, but the task’s stdout/stderr was not captured, so it is not claimed as proven.
+- The Startup-folder shortcut `MCG-Daemon.lnk` runs `wscript.exe` → `%USERPROFILE%\.local\bin\start-mcg-daemon.vbs`, which points to the current Nexus checkout’s old directory name. It remains enabled so disabling the task does not remove all logon startup. It must be redirected or replaced during NB-29.
+- The Desktop `.mcg-state` is live, separately located data: inventory found 417 files under `state/`, 116 task files, 64 legacy-source files, and 3 backup files. No files were moved or deleted. Its contents must be backed up and migrated with hash/count verification before changing `MCG_ROOT`.
+- The project `.codex/config.toml` starts `scripts/run-local-runtime-mcp.mjs`. The current snapshot shows two independent Codex launcher roots (PIDs 10960 and 11800), not three; the earlier count of three is historical and the third is no longer present in this snapshot. Each session owns its stdio MCP child, so Maestri being closed would not itself stop those Codex-hosted MCPs. Current process metadata cannot map a PID to a Codex task ID.
+- The Maestri app is not fully stopped in the inspected Windows session: `Maestri.exe` and its `--serve` child are running. This contradicts the assumption that it is closed; it may be running in the background/tray.
+- The active Nexus checkout’s remote is `trydavidqix/nexus-brain`; the Desktop clone remains a different repository and is not to be merged, renamed, or cleaned as part of NB-01. Only its live `.mcg-state` data is a migration input.
+
+### Safe migration decision
+
+1. The daemon itself is **not** terminated because live evidence proves its Wire and inbox role is active.
+2. The duplicate Scheduled Task is disabled (not deleted); the currently used autostart shortcut remains the one launch mechanism until NB-29 can update it to the new path.
+3. Before path cutover: inventory/hash the state tree without printing task contents; choose the new state location; copy and verify data; update `MCG_ROOT` and the VBS/shortcut to the canonical Nexus path; wait for MCP/Codex consumers to exit or reload; gracefully stop PID 9756 through the authenticated daemon control API; then start and verify exactly one replacement daemon and Wire feed.
+4. Only after that controlled cutover may the old Desktop `.mcg-state` be retired. Preserve the Desktop clone itself; it is a separate Git repository and is not in scope for deletion.
+
+## Current Windows and checkout audit — 2026-09-26
+
+This section supersedes the 2026-09-25 process/state conclusions above. Read-only Windows process, task, environment, path and Git-worktree checks were rerun before any shutdown or rename.
+
+| PROCESSO | ORIGEM | QUEM INICIA | FUNÇÃO | NECESSÁRIO? | AÇÃO |
+|---|---|---|---|---|---|
+| MCG daemon / Maestri.exe / Maestri Wire server | No matching process is currently running. | None observed. | No active inbox watcher or Wire connection exists to preserve right now. | Not required for standalone Nexus Brain; Edge keeps an optional Wire bridge. | Do not start it. Disable its remaining autostart artifacts. |
+| Local Runtime MCP session 1 (PID 10960 with child command chain) | `%USERPROFILE%\.lumenva\maestri-context-gateway\scripts/run-local-runtime-mcp.mjs` → old `packages/local-runtime/src/mcp-server.ts`. | Codex host PID 7348; exact Codex task ID is not exposed by process metadata. | Old stdio MCP process for the legacy Local Runtime. | Not required after project config points to `apps/edge` and the standalone `mcg_read_batch` capability is verified there. | Stop only this identified MCP process tree, then relaunch from canonical config for validation. |
+| Local Runtime MCP session 2 (PID 11800 with child command chain) | Same old checkout and launcher as session 1. | Same Codex host PID 7348; exact task ID not recoverable. | Second old stdio MCP process; not a separate daemon. | Same as session 1. | Stop only this identified MCP process tree; do not stop Codex host or unrelated agents. |
+| Codex host/workspace processes (PIDs 13188/15676/10784) | Current task workspace is still the old checkout path; implementation edits are isolated in a separate Git worktree. | Codex desktop task runtime. | Owns the active task and paths used by the current turn. | Needed until migration work and final Git operations are complete. | Keep running during implementation; attempt physical rename only after old MCPs stop and all remaining commands can use the new path. |
+
+### Finalization update — 2026-09-26
+
+- Both identified Local Runtime MCP process trees were stopped by targeting their launcher roots; the Codex host and unrelated processes were not stopped. A fresh Node-process check found no MCG daemon, Maestri/Wire, or old MCP launcher.
+- The Startup shortcut and VBS launcher were moved, not deleted, to the user profile archive folder legacy-mcg-windows-2026-09-26. The disabled Scheduled Task XML was exported there and the stale task was unregistered. The stale user MCG_ROOT was cleared after confirming its configured Desktop folder and the exact old/new state locations are absent.
+- Global Codex trust entries for the absent Desktop clone and old checkout were replaced with the canonical nexus-brain path in config.toml and cto.config.toml; both parse as TOML. The user PATH launchers now dispatch CLI and graceful daemon stop through the future canonical checkout path; validate after rename. The project-scoped Edge MCP config will be exercised after GitHub integration and local worktree rename.
+- The earlier audit claim of 417 state files could not be reproduced. During this turn, an eval smoke command was stopped after it launched a real Codex provider call; it had created only a baseline JSONL and stderr file (18,571 bytes total) under the configured state path. Both files were copied into the checkout's ignored .nexus-state and verified by relative path and SHA-256; source files remain untouched. No other historical state was found, so the old 417-file inventory remains unexplained and cannot be claimed recovered.
+- No Desktop clone was found. The dirty mcg-finalization worktree remains preserved pending a complete delta comparison. The unregistered Codex folder named mcg-token-firewall-f3 contained no Git metadata or source files, only an empty marker, empty package directories and dependency links; no live thread/process referenced it. It was moved intact to the user-profile archive for recovery.
+
+### Current legacy controls and data evidence (pre-cleanup snapshot)
+
+- Startup shortcut: `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\MCG-Daemon.lnk` → `wscript.exe` → `%USERPROFILE%\.local\bin\start-mcg-daemon.vbs`, which launches the old checkout’s `bin/mcg.mjs daemon`. The shortcut is enabled; the VBS is present. Neither was changed yet.
+- Scheduled Task `\Maestri Context Gateway Daemon`: state `Disabled`; its stored action points to the former Desktop `Projetos\maestri-context-gateway\bin\mcg.mjs`. Leave disabled; it is not running. No matching Windows service was found.
+- User `MCG_ROOT` is `%USERPROFILE%\Desktop\Projetos\maestri-context-gateway\.mcg-state`; that directory and its parent Desktop project are currently absent. No `.mcg-state` or `.nexus-state` was found at the exact old checkout, configured Desktop path, or new canonical path. An earlier 2026-09-25 inventory reported 417 files under that state root; this conflicts with the present filesystem. No data was deleted by this migration, and those historical files cannot currently be copied or hash-verified. Keep this discrepancy explicit; do not claim the old data is migrated or recovered.
+- Git recognizes exactly three worktrees for this repository: old-path `main` (clean), isolated `codex/nexus-canonical-architecture`, and `codex/mcg-finalization` (dirty, preserved). The Desktop legacy clone path is absent. `%USERPROFILE%\.codex\worktrees\mcg-token-firewall-f3` exists as a directory but is not a Git checkout and must be inspected before cleanup. Do not erase the dirty MCG worktree; its launcher, Wire pinning and registry changes were compared with this branch and the substantive code/test changes are already present here, while its documentation changes remain uncommitted there.
+- `%USERPROFILE%\.codex\config.toml` has no old MCG server registration. Project config on this migration branch points to `nexus_local_runtime` and `tooling/scripts/run-edge-mcp.mjs`; live Codex sessions were started from the old checkout before that change and must be restarted to load it.
+- The Nexus Edge preserves bounded read-only batch/redaction/context capabilities. The optional Wire client is not the Maestri Wire server and is not needed for the standalone Nexus context gateway.
+
+### Safe finalization sequence (superseded by finalization update above)
+
+1. Complete code/docs/config validation and integrate the migration branch via PR; do not modify `main` directly or force-push.
+2. Stop the two identified old Local Runtime MCP process trees only. Preserve Codex host PID 7348 and unrelated processes.
+3. Reversibly rename the Startup shortcut and VBS launcher to `.disabled`; keep the Scheduled Task disabled. Remove the stale user `MCG_ROOT` only after retaining its exact value in this audit and confirming no state source exists.
+4. Reload/validate the project MCP from `tooling/scripts/run-edge-mcp.mjs`; verify the bounded batch tool and dashboard/CLI with the canonical state default.
+5. Confirm current Codex task processes no longer require the old path; rename the original checkout from its parent directory to `%USERPROFILE%\.lumenva\nexus-brain`, preserving `.git` and the `origin` remote.
+6. Re-run Git/worktree/path/process/hook/MCP checks and a scoped scan of active configs/scripts. Historical documents may retain the old name with this migration explanation.

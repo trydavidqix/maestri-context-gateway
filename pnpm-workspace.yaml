@@ -1,6 +1,17 @@
 packages:
-  - packages/operating-core
-  - packages/local-runtime
+  - packages/contracts
+  - packages/brain
+  - packages/control-plane
+  - packages/evidence
+  - packages/context-gateway
+  - packages/compat
+  - apps/edge
+  - apps/control-center
+  - apps/cli
+  - packages/execution
+  - packages/providers
+  - packages/routing
+  - packages/governance
 
 catalog:
   '@types/node': ^26.2.0
