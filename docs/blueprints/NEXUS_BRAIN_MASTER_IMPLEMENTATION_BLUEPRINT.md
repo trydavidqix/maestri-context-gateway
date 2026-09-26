@@ -2,7 +2,7 @@
 
 **Canonical project:** Nexus Brain (`trydavidqix/nexus-brain`)
 **Default branch:** `main`
-**Status:** MIGRATION READINESS COMPLETE — implementation not started
+**Status:** NB-02 COMPLETE — NB-03 BLOCKED pending approved cloud target and infrastructure decisions
 **Last reconciled:** 2026-09-26
 
 This is the only active cross-project implementation tracker. Nexus Brain itself is one product and one monorepo. The ecosystem it manages is explicitly multi-project: many independent projects, repositories, workspaces, sessions and agents may be registered and governed by Nexus without being moved into the Nexus monorepo. “Maestri”, “Lumenva Brain”, “Context Gateway/MCG”, “Local Runtime”, “Cloud Fabric”, “Command Center” and “Everything Edge” name historical designs or internal modules—not separate products or repositories. CRM, voice, social-business/Meta integrations, tenant business data and unrelated Lumenva code remain out of scope unless a later explicit decision identifies an exact owned path.
@@ -17,7 +17,7 @@ Implementation order for every work package:
 
 `DONE` requires the package acceptance criteria and evidence. A written design, skill, successful CI run, or agent claim alone is not implementation proof. Unknowns stay `UNRESOLVED`; no percentage is inferred from elapsed time or prose.
 
-**Current operational phase:** `BLUEPRINT IMPLEMENTATION`. Migration readiness NB-24–NB-29 is complete. Local `main` is clean and synchronized with GitHub. The first unimplemented package is NB-02; existing partial MCG, dashboard and security work does not satisfy their full acceptance gates. Do not skip dependency order or mark a package `DONE` without its evidence.
+**Current operational phase:** `BLUEPRINT IMPLEMENTATION`. Migration readiness NB-24–NB-29 and implementation NB-02 are complete. NB-03 is the next package, blocked before provisioning because the Nexus Google Cloud target and IaC/runtime choices are not defined. Existing partial MCG, dashboard and security work does not satisfy their full acceptance gates. Do not skip dependency order or mark a package `DONE` without its evidence.
 
 ## 2. Canonical system boundary
 
@@ -2034,14 +2034,14 @@ No source capability is discarded merely because it is deferred from V1. Deferre
 
 ## 6. Work packages and dependency order
 
-Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage is NB-02, the first unimplemented package. Mark a package `DONE` only after its acceptance checks pass and evidence is linked here or in the package’s test/CI artifacts.
+Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage is NB-03. Mark a package `DONE` only after its acceptance checks pass and evidence is linked here or in the package’s test/CI artifacts.
 
 | ID | Work package | Depends on | Acceptance gate | Initial status |
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
 | NB-01 | Nexus monorepo inventory and ownership map | NB-00 | Exact included/excluded Nexus-owned paths; ownership map; source/import/workspace graph; no CRM/voice migration. Final local path cutover is tracked by NB-29. | DONE |
 | NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral Brain/Research/Reach plus `BrowserPlan`, `BrowserTask`, `BrowserSession`, `BrowserObservation`, typed `BrowserAction`, `BrowserBackend`, `BrowserHost`, `BrowserProfile`, `BrowserRecipe`; `EngineeringPlan`, `SkillRegistryEntry`, `TaskSkillSet`, skill-load/compaction events; browser origin/redirect/trust/secret/upload/download/side-effect boundaries; engineering risk/autonomy/context-budget/delivery contracts; conflicts recorded as unresolved | DONE |
-| NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | TODO |
+| NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | BLOCKED |
 | NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; global/project banks; session/task tags; append-only observations/events; research/evidence/sightings/run provenance; `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED`; `RECALLED/SELECTED/INJECTED/USED/VALIDATED/CONTRIBUTED`; raw web evidence remains untrusted and separate from memory promotion; ACL/scope; restore test | TODO |
 | NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus API/MCP fronts internal engines; external backends are never agent-facing authorities; authenticated context/search/remember/reuse/status plus bounded code/edit-context and research/web capability facade; `remember` stores observations/candidates unless policy passes; responses expose status/provenance/source/coverage/trust; contract tests; bounded context/tool surface | TODO |
 | NB-06 | GitHub project indexer and sync/reconciliation | NB-02, NB-03, NB-04 | Idempotent webhook + scheduled reconciliation; branch/commit provenance; safe retry | TODO |
@@ -2354,7 +2354,7 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 
 The implementation tracker has **25 work packages total**: NB-00..NB-23 (24 packages) plus NB-06A (Project Registry). This denominator is canonical unless a future blueprint change explicitly adds/removes a package. Only `DONE` counts; `IN_PROGRESS`, `VALIDATING`, `BLOCKED` and `TODO` do not. Component-specific acceptance remains separately labeled (for example, MCG 4/7 = 57% MCG-only); do not average it into the Nexus total.
 
-Current tracker snapshot: `DONE 3/25`, `BLOCKED 0/25`, `IN_PROGRESS 0/25`, `TODO 22/25`; **Nexus implementation progress: 12%, remaining: 88%**. NB-00 and NB-01 are accepted preparation/audit packages. NB-02 is accepted; NB-03 is next in dependency order. Versioned schemas and TypeScript types cover identity, task, memory, evidence, permission, EngineeringPlan, Brain, Research, Reach, BrowserPlan/task/session/observation/action/backend/host/profile/recipe, Skill Registry entries, TaskSkillSets and skill events. Evidence: [`threat-and-scope.md`](../architecture/threat-and-scope.md), focused tests under `packages/contracts/tests`, package typecheck, workspace integration tests, architecture and syntax checks, and sensitive-data scan. The threat/scope model records unresolved policy vocabularies for later runtime enforcement. Existing partial MCG, dashboard and security work remains evidence only; NB-17–NB-19 stay `TODO` until their full acceptance gates pass.
+Current tracker snapshot: `DONE 3/25`, `BLOCKED 1/25`, `IN_PROGRESS 0/25`, `TODO 21/25`; **Nexus implementation progress: 12%, remaining: 88%**. NB-00 and NB-01 are accepted preparation/audit packages. NB-02 is accepted; NB-03 is next in dependency order and blocked by the missing Nexus cloud target and infrastructure decisions documented below. Versioned schemas and TypeScript types cover identity, task, memory, evidence, permission, EngineeringPlan, Brain, Research, Reach, BrowserPlan/task/session/observation/action/backend/host/profile/recipe, Skill Registry entries, TaskSkillSets and skill events. Evidence: [`threat-and-scope.md`](../architecture/threat-and-scope.md), focused tests under `packages/contracts/tests`, package typecheck, workspace integration tests, architecture and syntax checks, and sensitive-data scan. The threat/scope model records unresolved policy vocabularies for later runtime enforcement. Existing partial MCG, dashboard and security work remains evidence only; NB-17–NB-19 stay `TODO` until their full acceptance gates pass.
 
 ### NB-01 audit record
 
@@ -2374,6 +2374,14 @@ Migration readiness is a separate preparation track, not part of the 25-package 
 | NB-29 | Canonical local path cutover and final local/GitHub synchronization | DONE |
 
 The migration audit and implementation evidence remain in [`../migration/NEXUS_CANONICAL_ARCHITECTURE_MIGRATION.md`](../migration/NEXUS_CANONICAL_ARCHITECTURE_MIGRATION.md). The prior `NB-29 BLOCKED` statements in that historical audit are superseded by this completion record and the active task state. Do not infer implementation-package completion from migration gates, code movement, or migration CI.
+
+### NB-03 cloud baseline preflight (2026-09-26)
+
+The canonical architecture selects Google Cloud, Cloud SQL PostgreSQL + pgvector, Cloud Storage for recovery artifacts, and independently deployable Hindsight API/worker services. Repository inspection found only `infra/cloud/database/postgres-schema.sql`; no IaC framework or cloud deployment configuration is present. The workstation has no Terraform, OpenTofu or Pulumi executable available.
+
+No Nexus-approved Google Cloud project ID, region, resource naming convention, IaC framework, deployment runtime, service/API enablement list, or cloud budget ceiling is recorded in this Blueprint or repository. The local gcloud default is outside the approved Nexus target; it was not used. No cloud resources, APIs, IAM, billing or secrets were changed. No Lumenva or PR #72 resources were accessed.
+
+NB-03 remains `BLOCKED` until the owner defines or identifies an existing approved Nexus cloud target and resolves the project ID, region, naming convention, IaC framework, deployment runtime, required services/IAM policy and budget ceiling. Once defined, continue with local IaC and validation before any provisioning; provisioning still requires applicable authorization.
 
 ## 10. Email deletion gate
 
