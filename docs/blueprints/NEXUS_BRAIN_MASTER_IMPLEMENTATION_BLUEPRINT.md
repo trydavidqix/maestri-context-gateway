@@ -30,6 +30,9 @@ NEXUS BRAIN — ONE PLATFORM / ONE BRAIN / ONE CONTROL PLANE
 ├── Memory runtime: Hindsight API + dedicated background worker service(s) over canonical PostgreSQL/pgvector
 ├── Task Intelligence: task-boundary detection, task-scoped retrieval, validated reusable Skills/SOPs
 ├── Code Intelligence: replaceable structural-code backend for symbols, calls, dependencies, impact, tests, Git changes and cross-repo evidence
+├── Research Intelligence: evidence-first multi-source planning, fanout, normalization, dedupe, rerank, clustering and grounded findings
+├── Reach: capability/provider resolver across API/MCP/CLI/browser transports with health/quota/cost/fallback policy
+├── BrowserMesh: browser host/session routing, versioned recipes, policy/approval gates and replaceable browser backends
 ├── Execution: agent factory/supervisor, local runtime, Codex Cloud, Jules/provider adapters
 ├── Edge: Windows Everything 1.5 + Git + minimal Lumenva Edge/MCP bridge
 ├── Interfaces: Claude Code, Codex, Gemini CLI, Antigravity, Jules
@@ -59,6 +62,9 @@ Reuse the existing Nexus repository, tests, MCG dashboard, Local Runtime and tra
 | Code Intelligence | Nexus owns a provider-neutral `CodeIntelligenceEngine`; **codebase-memory-mcp is the initial V1 adapter/backend candidate after pinned-version, security, Windows and correctness validation**. It provides structural code evidence (AST/LSP graph, callers/callees, imports, routes, tests, Git changes, impact and cross-repo relationships), not canonical truth. | Do not make any code-graph backend authoritative. If coverage/confidence is insufficient, fall back to direct Git/file/test/runtime evidence. The adapter must remain replaceable. |
 | Task Intelligence | Nexus-native task-boundary detection separates multiple tasks inside a session, narrows retrieval to the active task, and can derive reusable Skills/SOP candidates only from evidenced successful work. | Patterns observed in TencentDB Agent Memory/community forks are implementation references, not a second memory/control plane. No automatic promotion of generated Skills to global/canonical status. |
 | Context delivery | Nexus can assemble a bounded edit/context bundle combining current code structure, tests, blast radius, Git changes, verified memory and evidence; Maestri selects a minimal tool profile for the task. | Avoid exposing the full MCP/tool catalog or bulk repository/memory context to every agent by default. |
+| Web Research / Reach | Nexus owns `ResearchEngine`, `ReachEngine` and the normalized `Evidence` contract. Agent Reach (`Panniantong/Agent-Reach`, validated against v1.5.0) is an optional bootstrap provider/reference for capability routing/doctor behavior; Last30Days (`mvanhorn/last30days-skill`, validated against v3.25.0) is an optional bootstrap provider/reference for multi-source research/fanout/scoring/watchlist patterns. | Neither external project becomes the control plane, evidence authority or permanent dependency. Native Nexus routes replace provider-specific behavior incrementally behind stable contracts. |
+| BrowserMesh | Nexus owns browser host/session/policy/recipe lifecycle. Scrapling is the preferred V1 browser/data-extraction backend behind `BrowserBackend`; pin stable `D4Vinci/Scrapling` v0.4.15 first. The `v5-dev` branch declares 0.5 but is pre-release development and must remain opt-in until a released version passes contract/security/regression tests. | Playwright direct and remote-CDP adapters remain fallbacks. Browser backends never become policy authorities. |
+| Research memory | Raw web evidence and research runs live in canonical PostgreSQL/object storage with provenance; only governed findings/observations enter Hindsight memory. | Do **not** deploy Graphiti as V1 research memory. Graphiti remains the already-deferred benchmark alternative unless a proven Nexus workload gap justifies it. |
 | MCP | One stable Brain MCP surface. V1 tools: `brain_context`, `brain_search`, `brain_reuse`, `brain_remember`, `local_search`, `brain_status`. | Earlier 8-tool variants remain in source archive; aliases may be added only for proven client compatibility. |
 | Compiler/decision | Deterministic rules first; one Gemini compiler for V1 behind provider-neutral interface; larger models only for ambiguous cases. | Multiple compilers, Laya/classifier choices and routing thresholds remain deferred/experimental until benchmarked. No custom training in V1. |
 | Agents/runtime | One task/session/event model; Agent Factory, policy, evidence and bounded loop are shared by local/cloud/Jules execution. | Council, C4, AutoImprove and learned Reflex are later gated modules, not duplicate control planes or V1 prerequisites. |
@@ -354,6 +360,411 @@ contracts
 
 No external project is copied wholesale into Nexus merely because its design is useful. Prefer adapters and independently owned Nexus contracts first; reuse/adaptation of source code requires explicit license, security, maintenance and version-pinning review.
 
+## 3D. Research, Reach and BrowserMesh implementation model
+
+This section validates and adapts the proposed Lumenva Intelligence/Research/Reach/BrowserMesh design into the **Nexus-owned** architecture. The useful external DNA is retained behind Nexus contracts; no external project becomes another control plane.
+
+Validated upstream references as of 2026-09-26:
+
+- **Agent Reach** — `Panniantong/Agent-Reach`, MIT, latest validated release `v1.5.0`. Its strongest reusable pattern is a capability layer with ordered backends plus real health/doctor probes.
+- **Last30Days** — `mvanhorn/last30days-skill`, MIT, latest validated release `v3.25.0`. Its strongest reusable patterns are multi-source fanout, source-aware normalization/scoring, host-model judgment, clustering, watchlist deltas, explicit partial-result handling and untrusted-content hardening.
+- **Scrapling** — `D4Vinci/Scrapling`, BSD-3-Clause. Stable `main` is `v0.4.15`; branch `v5-dev` declares `0.5` and is development-only. V1 must pin a stable release and treat 0.5 browser-agent features as experimental until released and regression-tested.
+
+### Canonical flow
+
+```text
+Operator
+  ↓
+Maestri
+  ↓
+Task/Research Router
+  ↓
+ResearchEngine
+  ↓
+ReachEngine
+  ↓
+Capability Registry + Provider Registry
+  ↓
+API / MCP / CLI / BrowserMesh
+                  ↓
+             BrowserBackend
+             ├─ Scrapling
+             ├─ Playwright fallback
+             └─ Remote CDP
+                  ↓
+         Content Boundary / Sanitizer
+                  ↓
+              Evidence[]
+                  ↓
+        PostgreSQL + Object Storage
+                  ↓
+      Research fusion / grounding
+                  ↓
+                Maestri
+                  ↓
+        answer / task / automation
+
+Governed findings only:
+Evidence → OBSERVED/CANDIDATE → verification → Hindsight memory
+```
+
+The separation is strict:
+
+- **Maestri** decides what work exists, budget, risk, approvals and continuation.
+- **ResearchEngine** decides how to investigate and combine evidence.
+- **ReachEngine** decides which capability/provider/transport can satisfy a source request.
+- **BrowserMesh** decides where/how an authorized browser session runs.
+- **BrowserBackend** performs page retrieval/interaction behind BrowserMesh.
+- **EvidenceEngine** normalizes provenance and result state.
+- **Memory Governance** decides what, if anything, becomes durable memory.
+
+### Internal contracts
+
+```text
+ResearchEngine
+  research(request) -> ResearchResult
+
+ReachEngine
+  execute(capability, input, policy) -> ReachOutcome
+
+ProviderRegistry
+  resolve(capability, constraints) -> ProviderRoute[]
+
+BrowserMesh
+  openSession(request)
+  execute(session, action)
+  snapshot(session)
+  close(session)
+
+BrowserBackend
+  fetch()
+  open()
+  observe()
+  act()
+  screenshot()
+  close()
+
+EvidenceEngine
+  normalize()
+  dedupe()
+  recordSighting()
+  ground()
+  trace()
+
+PolicyEngine
+  evaluate(action) -> PolicyDecision
+```
+
+No provider-specific type may leak above its adapter boundary.
+
+### Capability vocabulary and typed outcomes
+
+Initial external capability surface stays intentionally small:
+
+```text
+web.search
+web.read
+web.extract
+web.crawl
+web.interact
+
+github.search / github.read
+reddit.search / reddit.read
+youtube.search / youtube.transcript
+x.search / x.read
+```
+
+Internal providers can be API, MCP, CLI or browser transports. Outcomes are typed rather than collapsed to generic errors:
+
+```text
+OK
+EMPTY
+PARTIAL
+DEGRADED
+AUTH_REQUIRED
+RATE_LIMITED
+QUOTA_EXHAUSTED
+PROVIDER_DOWN
+BLOCKED
+TIMEOUT
+SCHEMA_CHANGED
+HOST_UNAVAILABLE
+POLICY_DENIED
+APPROVAL_REQUIRED
+```
+
+Fallback is **error-aware**, not “any failure → stealth”. Authentication/access-control failures stop or enter the credential/approval workflow; rate limits back off or switch provider; JavaScript requirements can escalate to a dynamic browser; browser/stealth routes run only when the project policy and source terms allow them.
+
+### Evidence contract
+
+Every source normalizes to the same envelope:
+
+```text
+Evidence
+├── evidence_id
+├── project_id
+├── run_id
+├── source
+├── provider
+├── capability
+├── url / canonical_url
+├── title / body / snippet
+├── author
+├── published_at / fetched_at
+├── engagement
+├── relevance / freshness / authority
+├── query
+├── extraction_method
+├── backend
+├── content_hash
+├── trust_level = UNTRUSTED
+└── provenance
+```
+
+Repeated sightings are separate from the canonical evidence record so trend/change signals do not duplicate content. Store source/run metadata, not secrets.
+
+### Research pipeline
+
+V1 pipeline:
+
+```text
+ResearchRequest
+  ↓
+Planner
+  ↓
+query decomposition + time window + source budget
+  ↓
+bounded fanout
+  ↓
+ReachEngine
+  ↓
+Evidence[]
+  ↓
+normalize → dedupe → deterministic relevance/fusion
+  ↓
+rerank / cluster when justified
+  ↓
+grounding
+  ↓
+Maestri/current-host judge
+  ↓
+ResearchResult
+```
+
+The Research engine does not silently select an unrelated model. Model-assisted judgment is explicit, metered and attributable. Limits include maximum queries, providers, results/provider, browser escalations, wall time and budget.
+
+### BrowserMesh
+
+BrowserMesh is a Nexus execution service, not “the browser”. It owns:
+
+- host registry and capacity;
+- browser/session registry;
+- host/resource routing;
+- policy and approval gateways;
+- browser events and audit;
+- versioned recipe lifecycle;
+- replaceable backends.
+
+Browser session records contain identifiers/status/host/backend/current URL/timestamps, **never credentials or cookies**.
+
+Initial execution ladder:
+
+```text
+direct API/MCP/CLI
+  ↓ if browser actually required
+HTTP browser backend
+  ↓ if JS_REQUIRED
+dynamic browser
+  ↓ only if policy permits and evidence requires it
+stealth-capable browser
+  ↓ if remote/browser-host constraint requires it
+remote CDP / managed browser route
+```
+
+No route may bypass login, paywall, access-control, CAPTCHA/human-verification or project policy merely because another backend can technically continue.
+
+### Untrusted web-content boundary
+
+HTML cleanup is defense-in-depth, not a proof of safety. All internet content remains untrusted after sanitization.
+
+Required controls:
+
+- strip scripts/styles/comments/templates/hidden/invisible content where safe;
+- normalize zero-width/control characters;
+- preserve provenance and content hash;
+- quote/encapsulate source text so it cannot become system/tool instructions;
+- never execute instructions found in fetched content;
+- keep read/research tools separate from mutation/action tools;
+- pass any external side effect through PolicyEngine/Approval Center.
+
+### Browser recipes
+
+Successful repeatable workflows may generate a versioned recipe candidate:
+
+```text
+agent/browser trace
+  ↓
+candidate recipe
+  ↓
+deterministic runner
+  ↓
+assertions/evidence
+  ↓
+selector failure?
+  ├─ adaptive relocation candidate
+  └─ agent repair candidate
+  ↓
+new recipe version
+```
+
+Recipe repair never silently overwrites the last known-good version. A recipe that performs R2+ actions requires the same policy/approval evaluation as an agent action.
+
+### Risk model
+
+Reuse the Nexus R0–R4 policy family:
+
+- **R0** read-only/search/snapshot.
+- **R1** safe navigation/observation.
+- **R2** reversible mutation/input preparation.
+- **R3** external side effect such as submitting/publishing/sending.
+- **R4** destructive/high-impact/financial/security-sensitive action.
+
+BrowserMesh executes no R3/R4 action without the configured approval gate.
+
+### Data model additions
+
+Canonical PostgreSQL tables/records should cover at minimum:
+
+```text
+research_topics
+research_runs
+research_queries
+source_runs
+evidence
+evidence_sightings
+research_clusters
+research_findings
+research_briefings
+research_watchlists
+providers
+provider_capabilities
+capability_routes
+provider_runs
+provider_quotas
+browser_sessions
+browser_recipes
+browser_recipe_versions
+browser_recipe_runs
+usage_events
+approval_requests
+host_nodes
+```
+
+Large HTML/screenshots/artifacts go to object storage; their metadata/provenance stays in PostgreSQL.
+
+### Memory boundary: Hindsight stays V1
+
+The proposal's `PostgreSQL + Graphiti` memory block is **not adopted for V1** because it conflicts with the existing Hindsight decision. The corrected Nexus path is:
+
+```text
+Raw Evidence / Runs
+  → PostgreSQL + Object Storage
+
+Relevant governed findings
+  → OBSERVED / CANDIDATE
+  → verification/conflict/freshness policy
+  → HindsightAdapter
+  → project/global memory banks
+
+Graphiti
+  → DEFERRED benchmark alternative only
+```
+
+RAG uses the existing PostgreSQL/pgvector/Brain retrieval boundary; no second authoritative vector database is added.
+
+### Repository ownership
+
+Fit the capability into the existing monorepo instead of creating a second product tree:
+
+```text
+packages/
+├── contracts/            # research/reach/browser/evidence contracts
+├── routing/              # provider/cost/quota/reliability selection
+├── evidence/             # normalization/provenance/sightings
+├── governance/           # policy/approval/risk
+├── brain/                # governed research-memory integration
+├── research/             # planner/fanout/fusion/rerank/grounding/watchlists
+├── reach/                # capability registry/resolver/provider health
+└── browsermesh/          # host/session/recipe/backend abstractions
+
+packages/providers/
+├── agent-reach/
+├── last30days/
+└── scrapling/
+
+apps/
+├── worker/               # research/reach/browser jobs
+├── brain-api/            # provider-neutral intelligence endpoints
+└── control-center/       # research/reach/browser/approval views
+```
+
+If the existing package layout can host one of these domains cleanly, prefer a submodule over creating another package.
+
+### Implementation milestones after migration readiness
+
+These are **milestones inside the existing 25 work packages**, not new top-level WPs:
+
+```text
+M0  contracts + threat model
+M1  Capability Registry
+M2  Provider Registry + health
+M3  Reach deterministic router
+M4  Agent Reach optional adapter
+M5  Scrapling stable HTTP/dynamic/stealth adapter
+M6  BrowserMesh sessions
+M7  untrusted-content boundary/sanitizer
+M8  Evidence Store + sightings
+M9  Research MVP                         ← first production-useful milestone
+M10 dedupe/fusion/rerank/grounding
+M11 governed research-memory integration (Hindsight; Graphiti deferred)
+M12 interactive browser actions after stable backend contract
+M13 R0–R4 policy + Approval Center
+M14 versioned browser recipes + repair candidates
+M15 Host Router/capacity
+M16 cost + quota + reliability routing
+M17 watchlists + briefings + change detection
+M18 autonomous intelligence only after E2E/security/eval gates
+```
+
+M9 acceptance proves the end-to-end path:
+
+```text
+Maestri → ResearchEngine → ReachEngine
+        → native/Agent-Reach/Scrapling providers
+        → Evidence → PostgreSQL
+        → grounded ResearchResult
+```
+
+before recipes, Graphiti experiments, broad browser autonomy or multi-host optimization are allowed to expand scope.
+
+### Required evaluation gates
+
+Compare at least:
+
+- direct/native provider route vs adapter route;
+- HTTP vs dynamic-browser escalation;
+- research without vs with multi-source fusion;
+- provider fallback correctness;
+- evidence precision/deduplication and wrong-source rate;
+- total requests, browser seconds, latency and monetary cost;
+- prompt-injection/hostile-content resilience;
+- R0–R4 authorization behavior;
+- outage/rate-limit/quota/auth/schema-change degradation;
+- recipe reproducibility and rollback;
+- Windows/VPS/Linux host behavior where supported.
+
+An optimization is accepted only if it lowers cost/latency/tool load **without reducing grounding, evidence quality or policy compliance**.
+
 ## 4. Current verified baseline
 
 - GitHub repository was renamed to `trydavidqix/nexus-brain`; it is public, `main` remains default, and no repository currently named `trydavidqix/nexus-brain` existed before the rename.
@@ -388,28 +799,28 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
 | NB-01 | Nexus monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded Nexus-owned paths; dependency/import graph; safe folder rename; external projects remain independent | BLOCKED |
-| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral `MemoryEngine`, `CodeIntelligenceEngine`, `EvidenceEngine` and `TaskIntelligence` contracts; backend authority boundaries; conflicts recorded as unresolved | TODO |
+| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral `MemoryEngine`, `CodeIntelligenceEngine`, `EvidenceEngine`, `TaskIntelligence`, `ResearchEngine`, `ReachEngine`, `BrowserMesh`/`BrowserBackend` contracts; untrusted-web-content boundary; R0–R4/browser authority boundaries; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | TODO |
-| NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; one `global` bank + one `project:<project_id>` bank per registered project; session/task represented by scoped tags/metadata; append-only observations/events; `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED`; evidence lineage plus `RECALLED/SELECTED/INJECTED/USED/VALIDATED/CONTRIBUTED` attribution; ACL/scope; restore test | TODO |
-| NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus Brain API/MCP fronts internal engines; Hindsight/code-intelligence backends are not called directly by agents as authorities; authenticated context/search/remember/reuse/status plus bounded code/edit-context capability; `remember` stores observations/candidates unless Nexus policy passes; responses expose status/provenance/source/coverage; contract tests; bounded context | TODO |
+| NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; global/project banks; session/task tags; append-only observations/events; research/evidence/sightings/run provenance; `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED`; `RECALLED/SELECTED/INJECTED/USED/VALIDATED/CONTRIBUTED`; raw web evidence remains untrusted and separate from memory promotion; ACL/scope; restore test | TODO |
+| NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus API/MCP fronts internal engines; external backends are never agent-facing authorities; authenticated context/search/remember/reuse/status plus bounded code/edit-context and research/web capability facade; `remember` stores observations/candidates unless policy passes; responses expose status/provenance/source/coverage/trust; contract tests; bounded context/tool surface | TODO |
 | NB-06 | GitHub project indexer and sync/reconciliation | NB-02, NB-03, NB-04 | Idempotent webhook + scheduled reconciliation; branch/commit provenance; safe retry | TODO |
-| NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent permissions/budgets; memory bank + code-index binding/version/health; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
+| NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent/tool/browser permissions/budgets; memory bank + code-index + research/source/provider-policy bindings; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
 | NB-07 | Workspace index, Code Intelligence and capability evidence | NB-01, NB-06, NB-06A | `CodeIntelligenceEngine` with initial validated CBM adapter; per-project files/symbols/calls/imports/routes/tests/dependencies/Git-change evidence; incremental re-index; impact/blast-radius queries; coverage/confidence + source/commit/index-version metadata; bounded cross-repo links; safe direct-source fallback; no namespace collision | TODO |
-| NB-08 | Hybrid retrieval, task-aware context and reuse coverage | NB-05, NB-07 | Hindsight semantic/lexical/relationship/temporal retrieval plus code-evidence retrieval; task-boundary-aware project/session/task selection; project bank first and global separately only when relevant; policy filter/merge/dedup/rank; conflicted/revoked excluded; minimal context; abstention when evidence is weak; safe reusable cross-project lookup; explainable full/partial/missing coverage | TODO |
+| NB-08 | Hybrid retrieval, research and reuse coverage | NB-05, NB-07 | Hindsight + code-evidence + governed research-evidence retrieval; task-boundary-aware selection; Research planner/fanout normalization/dedupe/fusion/rerank/grounding with bounded source/query/budget limits; project bank first and global separately; conflicted/revoked excluded; raw web evidence remains untrusted; abstention/partial-result semantics; safe reusable cross-project lookup; explainable coverage | TODO |
 | NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | `OBSERVED→CANDIDATE→source verification→dedup/conflict→VERIFIED→CANONICAL`; deterministic-first; Hindsight inference and derived Skills/SOPs remain candidates until validated; task-success evidence can generate procedural-memory candidates; project→global promotion requires compatibility/provenance gates; contradictions yield `CONFLICTED`; verified newer facts supersede without erasing history; abstention/fallback tests | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
-| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude, Codex, Gemini/Antigravity and Jules use the same Nexus contracts through supported interfaces; Maestri/Nexus assigns minimal task-specific tool profiles; provider outputs enter as observations/candidates, never automatic truth; native provider directories remain provider-owned/untouched; official updates remain independent; scoped auth; no duplicated memory | TODO |
-| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity before execution; owns task-boundary lifecycle and active-task selection; selects provider/tool profile; Session/Event Store, Task DAG, Progress, scheduler, recovery and budgets are project-scoped and share Brain contracts; Maestri remains platform-wide, not tied to one repository | TODO |
-| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions, revocable scoped capabilities/tool profiles, risk gates, bounded loops, evidence-attribution hooks and audit evidence; provider execution never bypasses project/task/code/memory scope | TODO |
-| NB-15 | Local Runtime, Codex Cloud and Jules execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches, resumable jobs, quota-safe retries, independent tests and no direct main merge | TODO |
+| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use Nexus contracts; minimal task-specific tool profiles; initial optional adapters include Agent Reach v1.5.0, Last30Days v3.25.0 and pinned stable Scrapling v0.4.15 behind feature/contract gates; provider outputs/evidence never auto-promote; native provider dirs untouched; scoped auth; no duplicated control plane or memory | TODO |
+| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity before execution; owns task/research lifecycle and active-task selection; selects provider/tool profile and whether Research/Reach/BrowserMesh are needed; enforces research/browser budgets and stop conditions; Session/Event Store, Task DAG, Progress, scheduler, recovery and budgets are project-scoped; Maestri remains platform-wide | TODO |
+| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions, revocable scoped capability/tool profiles, R0–R4 browser/action policy, Approval Center gates, bounded loops, untrusted-content isolation and evidence-attribution hooks; no provider/browser route may bypass auth/access-control/human-verification/project policy | TODO |
+| NB-15 | Local/cloud agent and BrowserMesh execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches and browser sessions; BrowserMesh host/session registry with VPS/Linux/Mac eligibility, capacity and expiry; pinned Scrapling backend plus Playwright/remote-CDP fallback; resumable jobs, error-aware escalation, quota-safe retries, independent tests and no direct main merge | TODO |
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, mandatory structured report, owner approval and acceptance manifest | TODO |
-| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge Nexus-filtered Hindsight memory + Code Intelligence evidence into bounded task/edit-context bundles; keep existing bounded batch/redaction; dedupe/compact tool output; expose minimal tool schemas; exclude conflicted/revoked/stale evidence by default; prove live provider path and paired token/tool-call benchmark with lower cost and no quality/accuracy loss | IN_PROGRESS |
-| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Portfolio + project drill-down; project memory states/conflicts, task boundaries, Skills/SOP candidates, code-index health/coverage, evidence attribution, active agents/tasks/costs/incidents; clear project/source/scope/measurement/unavailable reports; no cross-project leakage; reference fidelity, keyboard, screen reader, touch | IN_PROGRESS |
+| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory + code + research evidence into bounded task/edit/research context bundles; keep bounded batch/redaction; dedupe/compact tool output; expose only small capability schemas (`web.search/read/extract/crawl/interact` etc.); quote/isolate untrusted source content; exclude conflicted/revoked/stale evidence; prove lower token/tool load without grounding/policy loss | IN_PROGRESS |
+| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Portfolio + project drill-down; memory/task/code plus Research/Reach/BrowserMesh runs, provider routes/fallbacks, host/browser sessions, watchlists/briefings, evidence clusters/sightings, approvals, costs/quotas/incidents; clear project/source/scope/measurement/unavailable reports; no leakage; reference fidelity/accessibility | IN_PROGRESS |
 | NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security workflows, least token permissions, actual required checks/protection verified; audit current alert findings | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
-| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Health/latency/sync/conflicts/usage/errors backed by real measurements; Hindsight API/worker health and backlog; Code Intelligence index age/coverage/failures/watchers; retrieval funnel and `RECALLED→…→CONTRIBUTED` metrics; token/tool-call budgets; fallback/degradation/scaling runbooks | TODO |
-| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Cross-write/read; project isolation; safe cross-project reusable knowledge/code links; new project/session/PC; task-boundary changes; stale/contradictory memory; incomplete/wrong code graph; dynamic-framework fallback; index lag/crash; Hindsight/worker/code-intelligence/provider outages; proof unsupported provider claims cannot become canonical; authorization/hostile inputs/restore; paired baseline vs memory vs task+code-context evals for success, tokens, tool calls, latency and wrong-context rate | TODO |
+| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Health/latency/sync/conflicts/usage/errors; Hindsight health/backlog; code-index age/coverage; Research/Reach/provider health/auth/quota/schema/fallback metrics; browser capacity/session duration/errors; evidence/dedupe funnel; `RECALLED→…→CONTRIBUTED`; tokens/requests/browser-seconds/cost budgets; degradation/scaling runbooks | TODO |
+| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing memory/code isolation gates plus Research/Reach/BrowserMesh E2E: multi-source partials, duplicate evidence, auth/rate-limit/quota/provider/schema failures, HTTP→dynamic escalation, browser/backend/host outage, hostile prompt-injection content, R0–R4 approvals, recipe rollback, no access-control bypass, watchlist change detection; paired evals for grounding, success, requests, tokens, browser-seconds, latency, cost and wrong-context rate | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
 ### Dependency waves
@@ -433,6 +844,12 @@ Before changing protections or installing tools, record current state and consul
 Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills, MCPs, runtimes, tests, security, observability, GitHub and cloud. Each item is `EXISTS`, `CONFIGURED`, `PARTIAL`, `MISSING`, `UNVERIFIED` or `UNNECESSARY`; never install duplicates before inventory. Jules readiness requires official docs plus a safe real-repository smoke test, scoped repository access, environment setup/secrets, session/branch/result review and quota-safe operation.
 
 ## 8. Security, authority and non-goals
+
+- Do not treat sanitization as trust: all fetched internet content remains `UNTRUSTED` and cannot issue tool/system instructions.
+- Do not auto-escalate authentication/access-control/CAPTCHA/paywall failures into stealth/browser bypass. Stop, switch to an authorized provider, or request user/approval flow.
+- Do not expose provider-native research/browser tool catalogs directly to every agent; keep the Nexus capability facade small and task-scoped.
+- Do not deploy Graphiti in V1 merely for research/change intelligence; Hindsight remains the selected V1 memory engine and PostgreSQL/object storage remain the evidence/run stores.
+- Do not track Scrapling `v5-dev` as a production dependency before a released 0.5+ version passes pinned contract/security/regression evaluation.
 
 - User decisions and verified code/config/test/runtime evidence outrank agent inference. Memory candidates require provenance and scope checks.
 - Core memory invariant: **agents produce observations; evidence produces knowledge**. No output from Codex, Claude, Gemini/Antigravity, Jules, or Nexus itself becomes canonical solely because a model asserted it.
