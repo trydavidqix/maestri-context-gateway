@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.brain-response.v1",
+  "title": "Nexus Brain Response",
+  "type": "object",
+  "required": ["request_id", "project_id", "task_id", "agent_id", "status", "source", "provenance", "coverage", "trust_level"],
+  "properties": {
+    "request_id": { "type": "string", "minLength": 1 }, "project_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 }, "agent_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["OK", "EMPTY", "PARTIAL", "DEGRADED", "AUTH_REQUIRED", "RATE_LIMITED", "QUOTA_EXHAUSTED", "PROVIDER_DOWN", "BLOCKED", "TIMEOUT", "SCHEMA_CHANGED", "HOST_UNAVAILABLE", "POLICY_DENIED", "APPROVAL_REQUIRED"] },
+    "source": { "type": "string", "minLength": 1 }, "provenance": { "type": "object" },
+    "coverage": { "enum": ["FULL", "PARTIAL", "MISSING"] }, "trust_level": { "type": "string", "minLength": 1 },
+    "data": { "type": "object" }
+  }
+}

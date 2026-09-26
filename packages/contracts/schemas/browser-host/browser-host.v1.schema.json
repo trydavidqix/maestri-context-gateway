@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.browser-host.v1",
+  "title": "Nexus Browser Host",
+  "type": "object",
+  "required": ["host_id", "host_type", "online", "resources", "browser_slots", "active_sessions", "supported_backends", "profiles", "region", "heartbeat"],
+  "properties": {
+    "host_id": { "type": "string", "minLength": 1 }, "host_type": { "type": "string", "minLength": 1 },
+    "online": { "type": "boolean" }, "resources": { "type": "object" },
+    "browser_slots": { "type": "integer", "minimum": 0 }, "active_sessions": { "type": "integer", "minimum": 0 },
+    "supported_backends": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "profiles": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "region": { "type": "string", "minLength": 1 }, "heartbeat": { "type": "string", "format": "date-time" }
+  }
+}

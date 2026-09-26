@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.identity.v1",
+  "title": "Nexus Project, Task, and Agent Identity",
+  "type": "object",
+  "required": ["project_id", "task_id", "agent_id"],
+  "properties": {
+    "project_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
+    "agent_id": { "type": "string", "minLength": 1 },
+    "session_id": { "type": "string", "minLength": 1 },
+    "trace_id": { "type": "string", "minLength": 1 }
+  }
+}

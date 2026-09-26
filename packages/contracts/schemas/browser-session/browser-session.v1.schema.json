@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.browser-session.v1",
+  "title": "Nexus Isolated Browser Session",
+  "type": "object",
+  "required": ["session_id", "project_id", "task_id", "agent_id", "host_id", "backend_id", "profile_id", "lease_expires_at", "state"],
+  "properties": {
+    "session_id": { "type": "string", "minLength": 1 }, "project_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 }, "agent_id": { "type": "string", "minLength": 1 },
+    "host_id": { "type": "string", "minLength": 1 }, "backend_id": { "type": "string", "minLength": 1 },
+    "profile_id": { "type": "string", "minLength": 1 }, "lease_expires_at": { "type": "string", "format": "date-time" },
+    "state": { "type": "string", "minLength": 1 }
+  }
+}

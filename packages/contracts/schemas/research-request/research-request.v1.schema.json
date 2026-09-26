@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.research-request.v1",
+  "title": "Nexus Bounded Research Request",
+  "type": "object",
+  "required": ["research_id", "project_id", "task_id", "agent_id", "query", "time_window", "source_budget", "limits", "budget"],
+  "properties": {
+    "research_id": { "type": "string", "minLength": 1 }, "project_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 }, "agent_id": { "type": "string", "minLength": 1 },
+    "query": { "type": "string", "minLength": 1 }, "time_window": { "type": "object" }, "source_budget": { "type": "object" },
+    "limits": {
+      "type": "object", "required": ["max_queries", "max_providers", "max_results_per_provider", "max_browser_escalations", "max_wall_time_seconds"],
+      "properties": {
+        "max_queries": { "type": "integer", "minimum": 0 }, "max_providers": { "type": "integer", "minimum": 0 },
+        "max_results_per_provider": { "type": "integer", "minimum": 0 }, "max_browser_escalations": { "type": "integer", "minimum": 0 },
+        "max_wall_time_seconds": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "budget": { "type": "object" }, "judge_provider": { "type": "string", "minLength": 1 }
+  }
+}

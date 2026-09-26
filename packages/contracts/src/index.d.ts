@@ -1,6 +1,18 @@
 export type ContractType =
   | "task" | "event" | "trace" | "telemetry" | "agent" | "runtime"
-  | "tool" | "plugin" | "mcp" | "alert" | "eval" | "artifact";
+  | "tool" | "plugin" | "mcp" | "alert" | "eval" | "artifact" | "engineering-plan" | "identity" | "nexus-task" | "memory" | "evidence" | "permission" | "browser-plan" | "browser-task" | "browser-session" | "browser-observation" | "browser-action" | "browser-backend" | "browser-host" | "browser-profile" | "browser-recipe" | "brain-request" | "brain-response" | "research-request" | "research-result" | "reach-request" | "reach-outcome" | "skill-registry-entry" | "task-skill-set" | "skill-event";
+
+export type { EngineeringAutonomyLevel, EngineeringPlan, EngineeringSkillPolicy, EngineeringTaskType } from "./engineering/plan.js";
+export type { NexusIdentity } from "./identity.js";
+export type { NexusTask } from "./nexus-task.js";
+export type { NexusEvidence } from "./evidence.js";
+export type { NexusMemoryRecord, MemoryScope, MemoryStatus } from "./memory.js";
+export type { NexusPermission, PermissionState } from "./permission.js";
+export type { BrowserAction, BrowserBackend, BrowserHost, BrowserObservation, BrowserPlan, BrowserProfile, BrowserRecipe, BrowserRecipeAction, BrowserSession, BrowserTask } from "./browser.js";
+export type { BrainCoverage, BrainOperation, BrainRequest, BrainResponse, ReachStatus } from "./brain.js";
+export type { ResearchLimits, ResearchRequest, ResearchResult, ResearchStatus } from "./research.js";
+export type { ReachOutcome, ReachRequest } from "./reach.js";
+export type { SkillEvent, SkillRegistryEntry, TaskSkillSet } from "./skills.js";
 
 export interface ContractValidationResult {
   valid: boolean;

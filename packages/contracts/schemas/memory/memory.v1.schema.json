@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.memory.v1",
+  "title": "Nexus Scoped Memory Record",
+  "type": "object",
+  "required": ["memory_id", "scope", "scope_id", "status", "content", "evidence_ids", "provenance"],
+  "properties": {
+    "memory_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "scope": { "enum": ["GLOBAL", "PROJECT", "SESSION", "TASK"] },
+    "scope_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["OBSERVED", "CANDIDATE", "VERIFIED", "CANONICAL", "SUPERSEDED", "CONFLICTED", "REVOKED"] },
+    "content": { "type": "string", "minLength": 1 },
+    "evidence_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "provenance": { "type": "object" }
+  }
+}

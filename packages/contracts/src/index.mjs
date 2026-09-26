@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const TYPES=['task','event','trace','telemetry','agent','runtime','tool','plugin','mcp','alert','eval','artifact'];
+const TYPES=['task','event','trace','telemetry','agent','runtime','tool','plugin','mcp','alert','eval','artifact','engineering-plan','identity','nexus-task','memory','evidence','permission','browser-plan','browser-task','browser-session','browser-observation','browser-action','browser-backend','browser-host','browser-profile','browser-recipe','brain-request','brain-response','research-request','research-result','reach-request','reach-outcome','skill-registry-entry','task-skill-set','skill-event'];
 const SET=new Set(TYPES);
 const DIR=join(dirname(fileURLToPath(import.meta.url)),'..','schemas');
 const SCHEMAS=Object.fromEntries(TYPES.map(type=>[type,JSON.parse(readFileSync(join(DIR,type,`${type}.v1.schema.json`),'utf8'))]));
@@ -36,10 +36,15 @@ function check(schema,value,path,errors){
     if(Number.isFinite(schema.minimum)&&value<schema.minimum) errors.push(`${path}: below minimum`);
     if(Number.isFinite(schema.maximum)&&value>schema.maximum) errors.push(`${path}: above maximum`);
   }
-  if(Array.isArray(value)&&schema.items) value.forEach((item,index)=>check(schema.items,item,`${path}[${index}]`,errors));
+  if(Array.isArray(value)){
+    if(Number.isFinite(schema.minItems)&&value.length<schema.minItems) errors.push(`${path}: fewer than minItems`);
+    if(schema.items) value.forEach((item,index)=>check(schema.items,item,`${path}[${index}]`,errors));
+  }
   if(value&&typeof value==='object'&&!Array.isArray(value)){
     for(const field of schema.required||[]) if(value[field]===undefined||value[field]===null||value[field]==='') errors.push(`${path}.${field}: required`);
-    for(const [field,child] of Object.entries(schema.properties||{})) if(value[field]!==undefined) check(child,value[field],`${path}.${field}`,errors);
+    const properties=schema.properties||{};
+    for(const [field,child] of Object.entries(properties)) if(value[field]!==undefined) check(child,value[field],`${path}.${field}`,errors);
+    if(schema.additionalProperties===false) for(const field of Object.keys(value)) if(!Object.hasOwn(properties,field)) errors.push(`${path}.${field}: additional property not allowed`);
   }
 }
 export function contractSchema(type){return SET.has(type)?structuredClone(SCHEMAS[type]):null;}

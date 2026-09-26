@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.permission.v1",
+  "title": "Nexus Scoped Permission Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["permission_id", "project_id", "task_id", "agent_id", "capability", "actions", "risk_level", "state", "expires_at", "issued_by"],
+  "properties": {
+    "permission_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "task_id": { "type": "string", "minLength": 1 },
+    "agent_id": { "type": "string", "minLength": 1 },
+    "capability": { "type": "string", "minLength": 1 },
+    "actions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "risk_level": { "enum": ["R0", "R1", "R2", "R3", "R4"] },
+    "state": { "enum": ["APPROVAL_REQUIRED", "APPROVED", "DENIED", "REVOKED"] },
+    "approval_id": { "type": "string", "minLength": 1 },
+    "policy_id": { "type": "string", "minLength": 1 },
+    "expires_at": { "type": "string", "format": "date-time" },
+    "issued_by": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.browser-backend.v1",
+  "title": "Nexus Browser Backend Adapter",
+  "type": "object",
+  "required": ["backend_id", "backend_type", "capabilities", "health"],
+  "properties": {
+    "backend_id": { "type": "string", "minLength": 1 }, "backend_type": { "type": "string", "minLength": 1 },
+    "capabilities": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "health": { "enum": ["healthy", "degraded", "unavailable"] }, "version": { "type": "string", "minLength": 1 }
+  }
+}

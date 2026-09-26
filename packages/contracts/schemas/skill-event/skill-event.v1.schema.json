@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.skill-event.v1",
+  "title": "Nexus Skill Load and Compaction Event",
+  "type": "object",
+  "required": ["event_id", "task_id", "agent_id", "event_type", "skill_ids", "occurred_at"],
+  "properties": {
+    "event_id": { "type": "string", "minLength": 1 }, "task_id": { "type": "string", "minLength": 1 },
+    "agent_id": { "type": "string", "minLength": 1 },
+    "event_type": { "enum": ["LOADED", "COMPLETED", "COMPACTED"] },
+    "skill_ids": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "occurred_at": { "type": "string", "format": "date-time" }, "reason": { "type": "string" }
+  }
+}

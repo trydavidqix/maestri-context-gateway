@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.browser-profile.v1",
+  "title": "Nexus Task-Agent Browser Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile_id", "project_id", "allowed_origins", "credential_refs", "isolation"],
+  "properties": {
+    "profile_id": { "type": "string", "minLength": 1 }, "project_id": { "type": "string", "minLength": 1 },
+    "allowed_origins": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "credential_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "storage_state_ref": { "type": "string", "minLength": 1 }, "isolation": { "const": "TASK_AGENT" }
+  }
+}

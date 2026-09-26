@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexus.evidence.v1",
+  "title": "Nexus Normalized Evidence",
+  "type": "object",
+  "required": ["evidence_id", "project_id", "run_id", "source", "provider", "capability", "fetched_at", "trust_level", "provenance"],
+  "properties": {
+    "evidence_id": { "type": "string", "minLength": 1 },
+    "project_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "provider": { "type": "string", "minLength": 1 },
+    "capability": { "type": "string", "minLength": 1 },
+    "url": { "type": "string", "minLength": 1 },
+    "canonical_url": { "type": "string", "minLength": 1 },
+    "title": { "type": "string" },
+    "body": { "type": "string" },
+    "snippet": { "type": "string" },
+    "author": { "type": "string" },
+    "published_at": { "type": "string", "format": "date-time" },
+    "fetched_at": { "type": "string", "format": "date-time" },
+    "engagement": { "type": ["object", "null"] },
+    "relevance": { "type": "number", "minimum": 0, "maximum": 1 },
+    "freshness": { "type": "number", "minimum": 0, "maximum": 1 },
+    "authority": { "type": "number", "minimum": 0, "maximum": 1 },
+    "query": { "type": "string" },
+    "extraction_method": { "type": "string" },
+    "backend": { "type": "string" },
+    "content_hash": { "type": "string", "minLength": 1 },
+    "trust_level": { "const": "UNTRUSTED" },
+    "provenance": { "type": "object" }
+  }
+}
