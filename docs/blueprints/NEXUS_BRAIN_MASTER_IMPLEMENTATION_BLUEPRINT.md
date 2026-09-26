@@ -64,7 +64,7 @@ Reuse the existing Nexus repository, tests, MCG dashboard, Local Runtime and tra
 | Task Intelligence | Nexus-native task-boundary detection separates multiple tasks inside a session, narrows retrieval to the active task, and can derive reusable Skills/SOP candidates only from evidenced successful work. | Patterns observed in TencentDB Agent Memory/community forks are implementation references, not a second memory/control plane. No automatic promotion of generated Skills to global/canonical status. |
 | Context delivery | Nexus can assemble a bounded edit/context bundle combining current code structure, tests, blast radius, Git changes, verified memory and evidence; Maestri selects a minimal tool profile for the task. | Avoid exposing the full MCP/tool catalog or bulk repository/memory context to every agent by default. |
 | Web Research / Reach | Nexus owns `ResearchEngine`, `ReachEngine` and the normalized `Evidence` contract. Agent Reach (`Panniantong/Agent-Reach`, validated against v1.5.0) is an optional bootstrap provider/reference for capability routing/doctor behavior; Last30Days (`mvanhorn/last30days-skill`, validated against v3.25.0) is an optional bootstrap provider/reference for multi-source research/fanout/scoring/watchlist patterns. | Neither external project becomes the control plane, evidence authority or permanent dependency. Native Nexus routes replace provider-specific behavior incrementally behind stable contracts. |
-| BrowserMesh | Nexus owns browser host/session/policy/recipe lifecycle. Scrapling is the preferred V1 browser/data-extraction backend behind `BrowserBackend`; pin stable `D4Vinci/Scrapling` v0.4.15 first. The `v5-dev` branch declares 0.5 but is pre-release development and must remain opt-in until a released version passes contract/security/regression tests. | Playwright direct and remote-CDP adapters remain fallbacks. Browser backends never become policy authorities. |
+| BrowserMesh | Nexus owns browser intent, plan, host/session/lease/profile/policy/recipe/evidence lifecycle. **Playwright direct is the deterministic interaction core** behind a narrow Nexus `BrowserBackend`; **Scrapling is the Web Retrieval/Crawl backend** for HTTP/read/extract/crawl before Chromium; **Stagehand is an eval-gated semantic resolver**; visual computer-use providers are last-resort adapters; Direct CDP/Playwright Server are the first remote-host transports. Existing `trydavidqix/BrowserMesh`, Lumenva/Maestri Wave 4 BrowserMesh code and the Playwright CLI skill are harvested selectively before new implementation. | WebMCP/native API/MCP/CLI routes remain preferred when structured capability exists. Steel/managed browser infrastructure, Browser Use and Skyvern remain optional adapters/references until Nexus evals justify them. Browser backends never become policy or task-state authorities. |
 | Engineering Control Plane | Every Nexus-governed coding task receives a deterministic `EngineeringPlan` before edits: task type, risk, scope, contracts, autonomy level, required methodology modules and verification gates. The framework is mandatory; individual modules are loaded only when relevant. | Skills alone are advisory and cannot guarantee enforcement across runtimes. Nexus/Maestri policy, runtime hooks where supported, and CI/merge gates provide enforcement; provider-specific plugins/adapters are distribution surfaces, not authority. |
 | Engineering orchestration | Single-agent is default. Sequential, parallel fan-out, DAG, loop and hybrid orchestration are available only when task complexity/evidence justifies them. MegaBrain is a reference for orchestration patterns, self-healing, handoff and resume—not an autonomous authority. | No global zero-question rule, fixed coverage target or automatic dependency installation. Risk, project policy and evidence determine autonomy and gates. |
 | Research memory | Raw web evidence and research runs live in canonical PostgreSQL/object storage with provenance; only governed findings/observations enter Hindsight memory. | Do **not** deploy Graphiti as V1 research memory. Graphiti remains the already-deferred benchmark alternative unless a proven Nexus workload gap justifies it. |
@@ -556,35 +556,622 @@ ResearchResult
 
 The Research engine does not silently select an unrelated model. Model-assisted judgment is explicit, metered and attributable. Limits include maximum queries, providers, results/provider, browser escalations, wall time and budget.
 
-### BrowserMesh
+### BrowserMesh 2.0 — selective extraction, convergence and governed deployment
 
-BrowserMesh is a Nexus execution service, not “the browser”. It owns:
+BrowserMesh 2.0 is **not a greenfield browser product and not a second Maestri**. Nexus first harvests proven code, contracts, tests and safety patterns from the user's existing BrowserMesh/Maestri assets, then converges them behind Nexus-owned contracts. The target is a governed multi-agent browser execution capability with minimum tools/context, deterministic-first routing, explicit isolation and evidence.
 
-- host registry and capacity;
-- browser/session registry;
-- host/resource routing;
-- policy and approval gateways;
-- browser events and audit;
-- versioned recipe lifecycle;
-- replaceable backends.
+**Operational gate:** this section is future Blueprint work. No BrowserMesh feature code is ported, rewritten or activated while `MIGRATION READINESS / NB-29` is incomplete. A read-only source audit may be prepared earlier, but implementation begins only after the migration phase is explicitly closed, local/GitHub state is synchronized and the canonical checkout is clean.
 
-Browser session records contain identifiers/status/host/backend/current URL/timestamps, **never credentials or cookies**.
-
-Initial execution ladder:
+Core invariants:
 
 ```text
-direct API/MCP/CLI
-  ↓ if browser actually required
-HTTP browser backend
-  ↓ if JS_REQUIRED
-dynamic browser
-  ↓ only if policy permits and evidence requires it
-stealth-capable browser
-  ↓ if remote/browser-host constraint requires it
-remote CDP / managed browser route
+BROWSERMESH != CONTROL PLANE
+BROWSERMESH != SECOND TASK STORE
+BROWSERMESH != SECOND SKILL REGISTRY
+BROWSERMESH != SECOND EVIDENCE AUTHORITY
+BROWSERMESH != UNRESTRICTED COMPUTER CONTROL
+
+MAESTRI owns task/risk/budget/approval/continuation.
+NEXUS GOVERNANCE owns policy and side-effect authorization.
+NEXUS EVIDENCE owns durable evidence/provenance.
+NEXUS SKILL REGISTRY owns browser skill metadata and lazy loading.
+BROWSERMESH owns browser execution/session/host/recipe lifecycle.
 ```
 
-No route may bypass login, paywall, access-control, CAPTCHA/human-verification or project policy merely because another backend can technically continue.
+#### Source harvest: copy the useful Maestri/BrowserMesh DNA, not the old product boundary
+
+The mandatory harvest set is:
+
+| Source | Frozen evidence baseline | What to inspect first |
+|---|---|---|
+| `trydavidqix/BrowserMesh` | `main@061e38292dc850e06750dc99c66dc9dc8df503f6` | `src/browser/*`, `src/action-bus/*`, `src/approval/*`, `src/evidence/*`, `src/runtime/*`, `src/state/*`, `bridge/server.mjs`, WebMCP bridge, tests and master plan |
+| Lumenva/Maestri Wave 4 | `trydavidqix/Lumenva` audited source paths | `apps/crm/lib/agent-engine/wave4/{action-bus,event-wake,event-idempotency}*` plus security reviews |
+| Lumenva browser skill | `trydavidqix/Lumenva/.agents/skills/playwright-cli/*` | snapshots/refs, sessions, storage state, CDP/extension attach, tracing, network, video and Playwright test patterns |
+| BrowserMesh persistence/security references | Lumenva migrations and Wave 4 evidence | BrowserMesh event idempotency, replay protection, tenant/RLS patterns, signed wake/HMAC, actor/capability validation |
+| Nexus current runtime | canonical `main` after migration readiness | existing contracts, governance, evidence, execution, control-plane, Edge MCP and package-DAG constraints to prevent duplicate owners |
+
+Every source artifact receives a harvest record:
+
+```text
+SOURCE_ID
+SOURCE_REPO
+SOURCE_REF
+SOURCE_PATH
+BLOB_SHA / CONTENT_HASH
+PURPOSE
+CURRENT_TESTS
+SECURITY_BOUNDARY
+DEPENDENCIES
+COUPLING
+CURRENT_NEXUS_OWNER
+DUPLICATE_OWNER?
+LICENSE / PROVENANCE
+CLASSIFICATION = REUSE_AS_IS | ADAPT | REPLACE | ARCHIVE | DROP
+TARGET_PATH
+REQUIRED_CONTRACT_TESTS
+REQUIRED_MIGRATION_TESTS
+NOTES / EVIDENCE
+```
+
+Preserve source history and exact refs. Never edit the source repositories merely to make extraction easier, and never copy a module into Nexus before ownership/dependency/security/tests are understood.
+
+#### Initial extraction classification
+
+This is the starting hypothesis; the harvest audit may tighten it with evidence:
+
+| Existing capability | Initial disposition | Nexus target |
+|---|---|---|
+| BrowserMesh `BrowserDriver` + origin allowlist | **ADAPT** | provider-neutral `BrowserBackend`/action executor contracts |
+| BrowserMesh capability order (WebMCP → bridge → semantic DOM → visual) | **REUSE + EXTEND** | Browser Intent/Execution Resolver with API/MCP/CLI and HTTP/Scrapling ahead of Chromium |
+| BrowserMesh direct CDP bridge | **ADAPT** | `DirectCDPBrowserHost`/remote transport; keep behind narrow contract |
+| BrowserMesh WebMCP bridge | **ADAPT** | structured native capability route before browser automation |
+| BrowserMesh Action Bus | **SELECTIVE ADAPT** | browser-specific action envelope/idempotency only; do not create a second Nexus Action Bus/control plane |
+| BrowserMesh approvals | **MERGE INTO OWNER** | `packages/governance` Approval/Policy owner |
+| BrowserMesh evidence store/collectors | **MERGE INTO OWNER** | `packages/evidence`; no second evidence authority |
+| BrowserMesh graph executor | **DROP AS AUTHORITY / KEEP AS REFERENCE** | Maestri/control-plane already owns DAG/orchestration |
+| BrowserMesh Claude/Codex adapters | **DROP AS DUPLICATE / KEEP TEST IDEAS** | Nexus `packages/providers` owns provider adapters |
+| BrowserMesh SQLite/Neon state | **ARCHIVE AS MIGRATION REFERENCE** | canonical Nexus stores/contracts own durable state |
+| Maestri Wave 4 `ActionEnvelope`, worker identity and evidence envelope | **ADAPT** | browser task/action contracts with project/task/agent scope |
+| Wave 4 event wake + idempotency/replay prevention | **REUSE/ADAPT AFTER TEST REVIEW** | browser event/lease/recovery inputs behind Nexus Event/Policy contracts |
+| Wave 4 HMAC/actor/capability checks | **REUSE SECURITY PATTERNS** | governance/runtime boundary |
+| Wave 4 tenant/RLS migrations | **REFERENCE, DO NOT BLINDLY COPY** | adapt to Nexus project isolation and canonical DB schema |
+| Playwright CLI skill | **HARVEST RULES, NOT A SECOND REGISTRY** | Nexus Skill Registry entries `browser-*`, lazy-loaded per `task_id + agent_id` |
+| Old BrowserMesh UI/graph | **SELECTIVE UI REUSE ONLY** | Control Center BrowserMesh views; no second dashboard/product |
+
+#### Extraction protocol
+
+```text
+X0 FREEZE SOURCE REFS
+   ↓
+record repo/ref/tree/blob hashes and source provenance
+
+X1 INVENTORY
+   ↓
+files + contracts + tests + runtime dependencies + data stores + security assumptions
+
+X2 DUPLICATE/OWNER MAP
+   ↓
+compare each capability against current Nexus control-plane/governance/evidence/providers/execution owners
+
+X3 TEST/EVIDENCE HARVEST
+   ↓
+preserve useful unit/integration/security fixtures before porting implementation
+
+X4 CONTRACT NORMALIZATION
+   ↓
+derive provider-neutral Nexus BrowserPlan/BrowserAction/Observation/Backend/Host/Profile/Recipe contracts
+
+X5 CLASSIFY
+   ↓
+REUSE_AS_IS / ADAPT / REPLACE / ARCHIVE / DROP with explicit reason
+
+---------------- NB-29 / MIGRATION READINESS 100% REQUIRED ----------------
+
+X6 ISOLATED PORT
+   ↓
+one bounded capability at a time in an isolated branch/worktree; tests first
+
+X7 COMPATIBILITY + SECURITY GATE
+   ↓
+old-source fixtures + new Nexus contract tests + package-DAG + sensitive/prompt-injection gates
+
+X8 CUTOVER
+   ↓
+only after Nexus owner is proven; no duplicate runtime/state/router remains
+
+X9 ARCHIVE PROVENANCE
+   ↓
+retain source mapping and superseded compatibility notes; never erase source history
+```
+
+A source module is not accepted because it once worked in Lumenva. It is accepted only when its Nexus owner, contract, tests, dependency boundary, security assumptions and migration evidence pass.
+
+#### Browser Intent Router and BrowserPlan
+
+Before allocating Chromium, Maestri/Reach classifies:
+
+```text
+READ
+SEARCH
+EXTRACT
+CRAWL
+INTERACT
+AUTHENTICATED_INTERACT
+FILE_DOWNLOAD
+FILE_UPLOAD
+VISUAL_INTERACT
+MONITOR
+RECIPE_RUN
+```
+
+Every browser-required task receives a bounded `BrowserPlan` subordinate to the Nexus task/EngineeringPlan:
+
+```text
+BrowserPlan
+├── browser_task_id
+├── project_id
+├── task_id
+├── agent_id
+├── engineering_plan_id?
+├── intent
+├── risk_level
+├── autonomy_level
+├── allowed_origins[]
+├── allowed_redirect_origins[]
+├── blocked_origins[]
+├── download_origins[]
+├── upload_origins[]
+├── interaction_mode
+├── observation_mode
+├── backend_preference[]
+├── host_requirements
+├── profile_policy
+├── secret_policy
+├── tool_profile
+├── context_budget
+├── max_actions
+├── max_pages
+├── max_runtime
+├── max_browser_seconds
+├── max_cost
+├── approval_gates[]
+├── success_assertions[]
+└── stop_conditions[]
+```
+
+BrowserPlan is not another task authority. Maestri owns lifecycle; BrowserMesh executes the authorized plan.
+
+#### Execution ladder
+
+```text
+REQUEST
+  ↓
+Can API / MCP / CLI / WebMCP solve it?
+  ├─ YES → structured native route
+  └─ NO
+       ↓
+Can HTTP solve it?
+  ├─ YES → Scrapling Web Retrieval/Crawl
+  └─ NO
+       ↓
+Needs deterministic DOM/accessibility interaction?
+  ├─ YES → Playwright direct
+  └─ NO
+       ↓
+DOM target is brittle/semantic?
+  ├─ YES → Stagehand SemanticResolver → typed BrowserAction[]
+  └─ NO
+       ↓
+Visual-only/canvas/opaque UI?
+  ├─ YES → VisualResolver / computer-use adapter → typed BrowserAction[]
+  └─ NO
+       ↓
+HUMAN TAKEOVER / BLOCKED
+```
+
+**Failure does not automatically escalate privilege.** `AUTH_REQUIRED`, CAPTCHA/human verification, access-control, `POLICY_DENIED`, secret-scope violation or high-risk side effects stop or enter the explicit approval/takeover flow.
+
+#### Deterministic core and narrow action surface
+
+Playwright direct is the primary interaction backend. Do not expose the full Playwright MCP/tool catalog to every agent.
+
+External/task-scoped facade:
+
+```text
+web.read
+web.extract
+web.crawl
+web.interact
+browser.takeover
+```
+
+Internal typed actions remain narrow:
+
+```text
+open
+navigate
+observe
+find
+click
+type
+scroll
+upload
+download
+screenshot
+network
+console
+checkpoint
+restore
+close
+```
+
+Stagehand and visual providers propose/resolve typed `BrowserAction[]`; they do not bypass Nexus Policy to perform side effects directly.
+
+#### Browser skill loading
+
+Browser skills use the **same canonical Nexus Skill Registry** and lazy loader as Engineering Control:
+
+```text
+browser-read
+browser-extract
+browser-crawl
+browser-interact
+browser-authenticated
+browser-files
+browser-debug
+browser-visual
+browser-recipe
+```
+
+Only compact metadata is globally visible. Full bodies are loaded only for the current `task_id + agent_id`. No browser skill catalog is injected wholesale and no task inherits another task's browser SkillSet.
+
+#### Session/profile isolation
+
+Default invariant:
+
+```text
+1 browser task + 1 agent
+        ↓
+1 isolated BrowserSession
+        ↓
+1 BrowserContext / isolated state
+        ↓
+independent ToolProfile + EvidenceScope + ArtifactScope + CostBudget
+
+NO shared cookies by default
+NO shared tabs
+NO shared localStorage/sessionStorage
+NO implicit profile sharing
+NO cross-task browser memory
+```
+
+Profile classes:
+
+```text
+EPHEMERAL      task-scoped, destroy at close
+PROJECT        bounded persistent project state
+USER_ATTACHED  explicitly authorized existing Chrome/Edge session; exclusive lease
+SERVICE        service-specific automated identity with explicit policy
+```
+
+Credentials remain outside model context:
+
+```text
+Vault / Secret Store
+       ↓
+Credential Broker
+       ↓
+profile/session reference
+       ↓
+BrowserContext
+
+Agent sees authentication_state/profile reference, not password/cookie/token.
+```
+
+#### Observation and context boundary
+
+Prefer the minimum sufficient observation:
+
+```text
+1 accessibility snapshot/subset
+2 targeted DOM
+3 structured extracted content
+4 relevant network response
+5 screenshot region
+6 full screenshot
+```
+
+`BrowserObservation` carries URL/title/origin, bounded accessibility/DOM/text, relevant elements/network/console, optional screenshot/artifact refs, trust=`UNTRUSTED`, provenance and content hash.
+
+After use:
+
+```text
+OBSERVE → USE → RECORD RESULT/EVIDENCE → COMPACT → STOP REINJECTING OLD SNAPSHOT
+```
+
+Internet/page content never becomes system/tool instruction merely because it is visible in DOM, accessibility text, network payload, screenshot/OCR, PDF or downloaded artifact.
+
+#### Risk, origin, files and secret policy
+
+Use the Nexus R0–R4 family, but classify the **effect**, not merely the primitive action:
+
+- **R0:** read/search/snapshot/extract.
+- **R1:** navigation/tab/scroll/expand with no external mutation.
+- **R2:** reversible mutation or form preparation with bounded data sensitivity.
+- **R3:** submit/send/publish/commit external state or transmit sensitive data.
+- **R4:** destructive, financial, security-sensitive or high-impact action.
+
+R3/R4 follow the Approval Center policy. Typing a secret into an external form is treated as data transmission, not a harmless `type()`.
+
+Every plan enforces origin/redirect/download/upload policies. A redirect outside the authorized origin set stops before data is transmitted.
+
+Downloads:
+
+```text
+browser → quarantine → type/hash/size → policy/security scan → Artifact Store → metadata/ref to agent
+```
+
+Uploads:
+
+```text
+file → project/scope check → data classification → destination/origin check → approval if required → upload
+```
+
+Downloaded files never auto-execute.
+
+#### Human takeover, recovery and leases
+
+`browser.takeover()` pauses autonomous execution for SSO/2FA/consent, policy approval, visual ambiguity or uncertain consequential actions. Resume returns through the same BrowserPlan/Policy boundary.
+
+State machine:
+
+```text
+CREATED → ALLOCATING → STARTING → READY → BUSY
+                           ↓
+          WAITING / APPROVAL / HUMAN_TAKEOVER
+                           ↓
+                RECOVERING / DEGRADED
+                           ↓
+             BLOCKED / CLOSING / CLOSED / ERROR
+```
+
+Every session has `lease_owner`, `lease_expires_at`, heartbeat, idle timeout and hard timeout. Agent/runtime death expires the lease, checkpoints what policy permits and releases resources.
+
+Recovery is bounded:
+
+```text
+classify failure
+→ retry only if retryable
+→ re-observe
+→ deterministic DOM route
+→ semantic resolver
+→ visual resolver if authorized
+→ alternate host/backend if policy-compatible
+→ human takeover
+→ BLOCKED
+```
+
+Never loop indefinitely.
+
+#### Recipes 2.0
+
+Successful traces become candidates, never immediate canonical automation:
+
+```text
+agent exploration
+→ successful evidenced trace
+→ RecipeCandidate
+→ normalize typed actions
+→ success assertions
+→ validation runs
+→ RecipeVersion
+```
+
+Replay prefers deterministic execution. Failure triggers targeted semantic repair and a **new candidate version**; it never silently overwrites the last known-good recipe.
+
+Track at minimum:
+
+```text
+success_rate
+last_validated
+site_version_hint
+average_actions
+average_runtime
+failure_types
+repair_count
+```
+
+Low-confidence recipes fall back to assisted/fresh exploration according to policy.
+
+#### Host Mesh and remote infrastructure
+
+Browser hosts are provider-neutral:
+
+```text
+Windows workstation  → local Chrome/Edge, USER_ATTACHED
+VPS/Linux            → headless browser slots
+Linux heavy host     → browser pool when justified
+Remote               → Direct CDP / Playwright Server first
+Optional later       → Steel / managed provider adapters
+```
+
+`BrowserHost` reports host ID/type/online state/resources/browser slots/active sessions/supported backends/profiles/region/heartbeat. Routing is deterministic-first: eligibility → policy → capability → profile → host health/quota → score reliability/latency/cost/load/locality.
+
+No ML router is required initially.
+
+#### Backend contract
+
+```text
+BrowserBackend
+├── health()
+├── createContext()
+├── open()
+├── navigate()
+├── observe()
+├── execute(actions)
+├── extract()
+├── screenshot()
+├── network()
+├── download()
+├── upload()
+├── checkpoint()
+├── restore()
+└── close()
+```
+
+Provider-native Playwright/Stagehand/Scrapling/visual/CDP types do not leak above adapters.
+
+#### Data model additions
+
+Browser-specific canonical records include at minimum:
+
+```text
+browser_tasks
+browser_plans
+browser_sessions
+browser_contexts
+browser_hosts
+browser_leases
+browser_actions
+browser_observations
+browser_artifacts
+browser_profiles
+credential_bindings
+browser_recipes
+browser_recipe_versions
+browser_recipe_runs
+browser_failures
+browser_recovery_attempts
+browser_usage
+browser_provider_runs
+browser_approvals
+browser_takeovers
+```
+
+Secrets remain outside these records.
+
+#### Repository ownership during implementation
+
+Do **not** create `packages/browsermesh` on the first implementation commit merely because the target domain has a name. Start inside existing canonical owners:
+
+```text
+packages/contracts/src/browser/      # BrowserPlan/Action/Observation/Backend/Host/Profile/Recipe contracts
+packages/execution/src/browsermesh/  # sessions/actions/hosts/leases/recipes/recovery/routing
+packages/providers/src/browser/      # playwright/scrapling/stagehand/visual/remote-cdp/steel adapters
+packages/governance/src/browser/     # risk/origins/credentials/files/approvals
+packages/evidence/src/browser/       # browser evidence/artifact/trace integration
+apps/edge/src/browser-host/          # local/host bridge when required
+apps/control-center/src/browsermesh/ # operator views
+evals/browser/                       # fixtures/benchmarks/adversarial/isolation/reports
+```
+
+After the BrowserMesh MVP gate, extract a dedicated `packages/browsermesh` only if the measured package DAG shows a cohesive domain, reduced coupling, one clear owner and no new cycles/duplicate authority.
+
+#### BrowserMesh implementation milestones B0–B20
+
+These are **sub-milestones inside existing Nexus work packages**, not new top-level WPs.
+
+```text
+B0  Legacy/source harvest: BrowserMesh repo + Maestri Wave 4 + Playwright skill + migrations/tests
+B1  Browser contracts + BrowserPlan + typed action/result/error vocabulary
+B2  Policy/trust/origin/side-effect/secret/file contracts before real interaction
+B3  Backend + Host + Capability registries
+B4  Session/lease/profile isolation core
+B5  Playwright deterministic backend
+B6  Observation Engine + browser-aware Context Compiler budget
+B7  Scrapling Web Retrieval/Crawl backend
+B8  BrowserMesh MVP: Maestri → BrowserPlan → Playwright/Scrapling → Evidence → Verify
+B9  Stagehand SemanticResolver, only after measured selector/DOM failures
+B10 VisualResolver/computer-use adapters, only for cases B9 cannot solve
+B11 Trace/artifact/evidence pipeline using native Playwright traces where possible
+B12 Profiles + Credential Broker + human takeover
+B13 Parallel isolation gate: 4+ agents/tasks, independent contexts/leases/SkillSets, zero leakage
+B14 Recipes v1 deterministic replay
+B15 Recipe validation/repair/versioning
+B16 Host Router: Windows + VPS + Linux
+B17 Remote infrastructure: Direct CDP/Playwright Server first; Steel/managed adapters experimental
+B18 Control Center BrowserMesh views
+B19 Browser eval suite: Nexus fixtures + BrowserGym/WebArena-Verified/WorkArena/VisualWebArena/AssistantBench where appropriate
+B20 Production hardening + release gate
+```
+
+**First production-useful BrowserMesh gate: B8.** B9/B10/B17 are not prerequisites for useful browser automation and must not be built merely because they are architecturally attractive.
+
+#### BrowserMesh evaluation and release gates
+
+Measure at minimum:
+
+```text
+task_success_rate
+action_success_rate
+first_route_success
+recipe_success_rate
+actions_per_task
+llm_turns_per_task
+tokens_per_task
+browser_seconds
+latency
+cost
+http_to_browser_escalation_rate
+dom_to_semantic_escalation_rate
+semantic_to_visual_escalation_rate
+wrong_action_rate
+unnecessary_action_rate
+recovery_rate
+human_takeover_rate
+approval_rate
+recipe_reuse_rate
+recipe_repair_rate
+policy_violation_rate
+unauthorized_side_effect
+cross_task_leakage
+secret_exposure
+```
+
+Production acceptance requires contract/unit/integration tests plus parallel isolation, hostile-content/prompt-injection, approval, wrong-origin redirect, upload/download, secret-boundary, recipe replay, recovery, lease expiry, host failover where supported, evidence/observability and cost-budget gates.
+
+Target invariants for security/isolation failures are zero observed violations in the acceptance corpus:
+
+```text
+unauthorized_side_effect = 0
+cross_task_leakage = 0
+secret_exposure = 0
+policy_bypass = 0
+```
+
+External benchmarks are reference suites, not Nexus truth. BrowserGym/AgentLab/WebArena-family results are combined with Nexus-specific tests for project isolation, approvals, profile safety, host leases, credential boundary, artifacts and multi-agent leakage.
+
+#### BrowserMesh observability
+
+Emit browser events through the canonical Nexus event/evidence path:
+
+```text
+browser.action.started/completed/failed
+browser.navigation
+browser.download
+browser.upload
+browser.policy_denied
+browser.approval_requested
+browser.takeover_started/ended
+browser.recovery
+browser.session_closed
+```
+
+Record `trace_ref`, screenshot/artifact refs, network summary, console errors, action timeline, recipe version and backend/provider without leaking secrets.
+
+Browser runtime state is not automatically Brain memory:
+
+```text
+Browser run
+→ operational evidence
+→ task result
+→ verified useful?
+   ├─ no  → operational history only
+   └─ yes → candidate knowledge/recipe
+             → Nexus governance
+```
+
+The global memory invariant remains: **Agents produce observations; evidence produces knowledge.**
 
 ### Untrusted web-content boundary
 
@@ -654,10 +1241,26 @@ provider_capabilities
 capability_routes
 provider_runs
 provider_quotas
+browser_tasks
+browser_plans
 browser_sessions
+browser_contexts
+browser_hosts
+browser_leases
+browser_actions
+browser_observations
+browser_artifacts
+browser_profiles
+credential_bindings
 browser_recipes
 browser_recipe_versions
 browser_recipe_runs
+browser_failures
+browser_recovery_attempts
+browser_usage
+browser_provider_runs
+browser_approvals
+browser_takeovers
 usage_events
 approval_requests
 host_nodes
@@ -687,31 +1290,30 @@ RAG uses the existing PostgreSQL/pgvector/Brain retrieval boundary; no second au
 
 ### Repository ownership
 
-Fit the capability into the existing monorepo instead of creating a second product tree:
+Fit Research/Reach/Browser capabilities into existing canonical owners first; do not create a second product tree or a new package solely because a conceptual domain has a name.
 
 ```text
 packages/
 ├── contracts/            # research/reach/browser/evidence contracts
 ├── routing/              # provider/cost/quota/reliability selection
-├── evidence/             # normalization/provenance/sightings
-├── governance/           # policy/approval/risk
+├── evidence/             # normalization/provenance/sightings + browser evidence
+├── governance/           # policy/approval/risk + browser trust/origin/file policy
 ├── brain/                # governed research-memory integration
-├── research/             # planner/fanout/fusion/rerank/grounding/watchlists
-├── reach/                # capability registry/resolver/provider health
-└── browsermesh/          # host/session/recipe/backend abstractions
-
-packages/providers/
-├── agent-reach/
-├── last30days/
-└── scrapling/
+├── execution/            # BrowserMesh sessions/actions/hosts/leases/recipes initially
+├── providers/            # research + playwright/scrapling/stagehand/visual/CDP adapters
+├── research/             # create only when its ownership is proven cohesive
+└── reach/                # create only when its ownership is proven cohesive
 
 apps/
-├── worker/               # research/reach/browser jobs
-├── brain-api/            # provider-neutral intelligence endpoints
+├── edge/                 # local browser-host bridge when required
+├── worker/               # research/reach/browser jobs when real owned runtime exists
+├── brain-api/            # provider-neutral intelligence endpoints when implemented
 └── control-center/       # research/reach/browser/approval views
 ```
 
-If the existing package layout can host one of these domains cleanly, prefer a submodule over creating another package.
+A dedicated `packages/browsermesh` is an **optional post-B8 extraction**, not an initial requirement. Create it only when the measured dependency graph proves a cohesive browser domain, reduced coupling, one owner and no new cycle/duplicate state authority.
+
+External BrowserMesh/Lumenva source is harvested by exact ref and selectively adapted; it is not vendored wholesale. Provider-specific implementations stay behind Nexus adapters.
 
 ### Implementation milestones after migration readiness
 
@@ -723,20 +1325,20 @@ M1  Capability Registry
 M2  Provider Registry + health
 M3  Reach deterministic router
 M4  Agent Reach optional adapter
-M5  Scrapling stable HTTP/dynamic/stealth adapter
-M6  BrowserMesh sessions
+M5  Scrapling stable Web Retrieval/Crawl adapter
+M6  BrowserMesh source harvest + contracts/policy/session foundations (B0–B4)
 M7  untrusted-content boundary/sanitizer
 M8  Evidence Store + sightings
-M9  Research MVP                         ← first production-useful milestone
+M9  Research MVP                         ← first production-useful research milestone
 M10 dedupe/fusion/rerank/grounding
 M11 governed research-memory integration (Hindsight; Graphiti deferred)
-M12 interactive browser actions after stable backend contract
-M13 R0–R4 policy + Approval Center
-M14 versioned browser recipes + repair candidates
-M15 Host Router/capacity
+M12 BrowserMesh deterministic interaction core (B5–B8)
+M13 semantic/visual browser escalation only after measured need (B9–B10)
+M14 versioned browser recipes + repair candidates (B14–B15)
+M15 Host Router/capacity + remote infrastructure experiments (B16–B17)
 M16 cost + quota + reliability routing
 M17 watchlists + briefings + change detection
-M18 autonomous intelligence only after E2E/security/eval gates
+M18 autonomous intelligence only after BrowserMesh B20 + platform E2E/security/eval gates
 ```
 
 M9 acceptance proves the end-to-end path:
@@ -1198,15 +1800,15 @@ These are internal milestones, not new top-level Nexus work packages:
 
 ```text
 E0 source/license/rule/conflict matrix + baseline evals
-E1 core + precedence + vocabulary + compact Skill Registry schema + compact Skill Registry schema
-E2 Engineering Router + Risk/Autonomy + Skill Resolver + per-task context budget + Skill Resolver + per-task context budget
-E3 Lean + TDD + Debug + Scope + Contract + Verify + lazy Skill Loader + lazy Skill Loader
-E4 Review + Audit + Branch Engineering + Specification + Anti-Slop + dynamic skill escalation/compaction + dynamic skill escalation/compaction
+E1 core + precedence + vocabulary + compact Skill Registry schema
+E2 Engineering Router + Risk/Autonomy + Skill Resolver + per-task context budget
+E3 Lean + TDD + Debug + Scope + Contract + Verify + lazy Skill Loader
+E4 Review + Audit + Branch Engineering + Specification + Anti-Slop + dynamic skill escalation/compaction
 E5 permanent provider/project auto-activation adapters + portable OpenAI plugin packaging
 E6 deterministic Engineering MCP only where evals prove it is needed
 E7 objective hooks/runtime enforcement
 E8 risk-gated multi-agent orchestration with isolated per-task SkillSets (MegaBrain patterns)
-E9 engineering metrics/intelligence including skill-load/context-cost telemetry including skill-load/context-cost telemetry
+E9 engineering metrics/intelligence including skill-load/context-cost telemetry
 E10 universal provider distribution + release gates
 ```
 
@@ -1254,7 +1856,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
 | NB-01 | Nexus monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded Nexus-owned paths; dependency/import graph; safe folder rename; external projects remain independent | BLOCKED |
-| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral Brain/Research/Reach/Browser contracts plus `EngineeringPlan`, `SkillRegistryEntry`, `TaskSkillSet`, skill-load/compaction events, engineering risk/autonomy/context-budget/delivery contracts; untrusted-content and engineering authority boundaries; conflicts recorded as unresolved | TODO |
+| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral Brain/Research/Reach plus `BrowserPlan`, `BrowserTask`, `BrowserSession`, `BrowserObservation`, typed `BrowserAction`, `BrowserBackend`, `BrowserHost`, `BrowserProfile`, `BrowserRecipe`; `EngineeringPlan`, `SkillRegistryEntry`, `TaskSkillSet`, skill-load/compaction events; browser origin/redirect/trust/secret/upload/download/side-effect boundaries; engineering risk/autonomy/context-budget/delivery contracts; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | TODO |
 | NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; global/project banks; session/task tags; append-only observations/events; research/evidence/sightings/run provenance; `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED`; `RECALLED/SELECTED/INJECTED/USED/VALIDATED/CONTRIBUTED`; raw web evidence remains untrusted and separate from memory promotion; ACL/scope; restore test | TODO |
 | NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus API/MCP fronts internal engines; external backends are never agent-facing authorities; authenticated context/search/remember/reuse/status plus bounded code/edit-context and research/web capability facade; `remember` stores observations/candidates unless policy passes; responses expose status/provenance/source/coverage/trust; contract tests; bounded context/tool surface | TODO |
@@ -1267,15 +1869,15 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
 | NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use generated Engineering Control adapters with permanent automatic activation for coding tasks; user never manually invokes mandatory skills; adapters receive only Resolver-selected task-specific SkillSets/tool profiles, never the full catalog; OpenAI portable plugin/Codex compatibility and other provider packages generated from one canonical source; native provider dirs untouched | TODO |
 | NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity then automatically requires an `EngineeringPlan` for every coding task; Skill Resolver selects the minimum task-specific SkillSet/context budget without user prompting; parallel tasks/agents receive isolated SkillSets; dynamic skill escalation requires justified re-resolution; selects topology/provider/tool profile and bounded recovery; Maestri remains platform-wide | TODO |
-| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions plus mandatory Engineering Control policy; provider agents cannot bypass Skill Resolver; required/optional/forbidden skill policy and context budgets enforced per task+agent; risk/autonomy, scope/contract/dependency/verification gates, bounded loops, optional isolated-TDD contexts and evidence hooks; no runtime may self-declare DONE or bypass project policy | TODO |
-| NB-15 | Local/cloud agent and BrowserMesh execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches and browser sessions; BrowserMesh host/session registry with VPS/Linux/Mac eligibility, capacity and expiry; pinned Scrapling backend plus Playwright/remote-CDP fallback; resumable jobs, error-aware escalation, quota-safe retries, independent tests and no direct main merge | TODO |
+| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions plus mandatory Engineering Control policy; provider agents cannot bypass Skill Resolver; required/optional/forbidden skill policy and context budgets enforced per task+agent; browser R0–R4 effect classification, origin/redirect, credential/file/data-transmission and approval gates enforced before backend execution; risk/autonomy, scope/contract/dependency/verification gates, bounded loops, optional isolated-TDD contexts and evidence hooks; no runtime may self-declare DONE or bypass project/browser policy | TODO |
+| NB-15 | Local/cloud agent and BrowserMesh execution | NB-12, NB-13, NB-14 | Complete BrowserMesh B0 selective harvest from `trydavidqix/BrowserMesh`, Lumenva/Maestri Wave 4 and Playwright skill without duplicate control/state owners; isolated workspaces/branches and browser sessions; Playwright direct deterministic interaction core, Scrapling Web Retrieval/Crawl route, Stagehand/visual adapters only after eval-gated need, Direct CDP/Playwright Server remote path; host/session/lease/profile registry with Windows/VPS/Linux eligibility/capacity/expiry; resumable jobs, bounded error-aware recovery, quota-safe retries, independent tests and no direct main merge | TODO |
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, current-diff review distinct from repo-wide audit, adversarial/second review when risk requires it, mandatory structured verification report, owner approval and acceptance manifest | TODO |
 | NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory/code/research plus compact `EngineeringPlan` and only Resolver-selected skill bodies into bounded per-task/per-agent context; never inject the full skill catalog; enforce skill-context budget; compact phase results and stop reinjecting completed skill bodies when possible; dedupe tool schemas; prove parallel isolated SkillSets and lower token load with no correctness/policy loss | IN_PROGRESS |
-| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent: EngineeringPlan, selected/loaded/completed skills, reasons for dynamic skill additions, context budget/estimated skill cost, verification/delivery status; parallel tasks remain isolated; no cross-task skill leakage; reference fidelity/accessibility | IN_PROGRESS |
+| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent and BrowserMesh views for sessions/hosts/tasks/actions/live state/approvals/recipes/profiles/artifacts/failures/cost/tokens/browser-seconds; show EngineeringPlan, BrowserPlan, selected/loaded/completed skills, reasons for dynamic additions, context budget and verification/delivery state; parallel tasks remain isolated; no cross-task skill/browser-state leakage; reference fidelity/accessibility | IN_PROGRESS |
 | NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security plus provider-independent Engineering Delivery Gate: required project/risk checks, skill/adapter validation, duplicated-owner/routing regression checks and merge protection; least token permissions; audit current alert findings; local/plugin hooks remain supplementary to authoritative CI/rulesets | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
-| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic-load events, isolation violations, files/LOC, dependencies, TDD transitions, regressions, review/verification gates, orchestration retries, runtime/tokens/cost; no hidden reasoning storage; degradation runbooks | TODO |
-| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules: automatic activation without user naming skills; prevention of full-catalog injection; 4+ parallel tasks with isolated task+agent SkillSets; justified dynamic load and completed-phase non-reinjection; Resolver bypass attempts; false-DONE prevention; hook-unavailable CI fallback; isolated-TDD/multi-agent recovery; paired evals for correctness, leakage, context size, regressions, scope drift, tokens/latency/cost | TODO |
+| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic-load events, files/LOC, dependencies, TDD transitions, regressions, review/verification gates; BrowserMesh route/escalation, actions/task, LLM turns, tokens, browser seconds, host/session/lease state, recipe reuse/repair, recovery/takeover/approval, wrong-action and isolation/policy/secret metrics; orchestration retries, runtime/cost; no hidden reasoning storage; degradation runbooks | TODO |
+| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules and BrowserMesh B20: automatic skill activation without full-catalog injection; 4+ parallel tasks with isolated task+agent SkillSets **and 4+ independent browser sessions/contexts/leases**; zero cross-task cookie/storage/profile/evidence leakage in acceptance corpus; justified dynamic load and completed-phase non-reinjection; Resolver/backend bypass attempts; hostile web/prompt-injection, wrong-origin redirect, secret transmission, upload/download, R3/R4 approval, lease expiry, recipe rollback, recovery/takeover and host-failover tests where supported; false-DONE prevention; paired evals for correctness, leakage, context size, regressions, scope drift, tokens/browser-seconds/latency/cost | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
 ### Dependency waves
