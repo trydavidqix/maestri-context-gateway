@@ -832,16 +832,27 @@ permanent project/provider engineering rule
 Engineering Router
   ↓
 EngineeringPlan
-  ↓
-Skill Resolver
-  ↓
-selected SkillSet
-  ↓
-agent execution
-  ↓
-Verification Gate
-  ↓
-Delivery Gate
+├── task_id
+├── agent_id
+├── task_type
+├── risk_level
+├── scope_size
+├── expected_files
+├── expected_tests
+├── contract_impact
+├── testability
+├── execution_mode
+├── autonomy_level
+├── skill_policy
+│   ├── required[]
+│   ├── optional[]
+│   ├── forbidden[]
+│   ├── loaded[]
+│   └── completed[]
+├── context_budget
+├── tool_profile
+├── verification_gates[]
+└── delivery_policy
 ```
 
 Provider-specific permanent instructions are distribution mechanisms only. The canonical rule remains Nexus-owned. The user must not need to manually trigger mandatory skills.
@@ -1187,15 +1198,15 @@ These are internal milestones, not new top-level Nexus work packages:
 
 ```text
 E0 source/license/rule/conflict matrix + baseline evals
-E1 core + precedence + vocabulary + compact Skill Registry schema
-E2 Engineering Router + Risk/Autonomy + Skill Resolver + per-task context budget
-E3 Lean + TDD + Debug + Scope + Contract + Verify + lazy Skill Loader
-E4 Review + Audit + Branch Engineering + Specification + Anti-Slop + dynamic skill escalation/compaction
+E1 core + precedence + vocabulary + compact Skill Registry schema + compact Skill Registry schema
+E2 Engineering Router + Risk/Autonomy + Skill Resolver + per-task context budget + Skill Resolver + per-task context budget
+E3 Lean + TDD + Debug + Scope + Contract + Verify + lazy Skill Loader + lazy Skill Loader
+E4 Review + Audit + Branch Engineering + Specification + Anti-Slop + dynamic skill escalation/compaction + dynamic skill escalation/compaction
 E5 permanent provider/project auto-activation adapters + portable OpenAI plugin packaging
 E6 deterministic Engineering MCP only where evals prove it is needed
 E7 objective hooks/runtime enforcement
 E8 risk-gated multi-agent orchestration with isolated per-task SkillSets (MegaBrain patterns)
-E9 engineering metrics/intelligence including skill-load/context-cost telemetry
+E9 engineering metrics/intelligence including skill-load/context-cost telemetry including skill-load/context-cost telemetry
 E10 universal provider distribution + release gates
 ```
 
@@ -1251,20 +1262,20 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent/tool/browser permissions/budgets; memory bank + code-index + research/source/provider-policy bindings; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
 | NB-07 | Workspace index, Code Intelligence and capability evidence | NB-01, NB-06, NB-06A | `CodeIntelligenceEngine` with initial validated CBM adapter; per-project files/symbols/calls/imports/routes/tests/dependencies/Git-change evidence; incremental re-index; impact/blast-radius queries; coverage/confidence + source/commit/index-version metadata; bounded cross-repo links; safe direct-source fallback; no namespace collision | TODO |
 | NB-08 | Hybrid retrieval, research and reuse coverage | NB-05, NB-07 | Hindsight + code-evidence + governed research-evidence retrieval; task-boundary-aware selection; Research planner/fanout normalization/dedupe/fusion/rerank/grounding with bounded source/query/budget limits; project bank first and global separately; conflicted/revoked excluded; raw web evidence remains untrusted; abstention/partial-result semantics; safe reusable cross-project lookup; explainable coverage | TODO |
-| NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | Existing memory lifecycle plus compact canonical Skill Registry with one-concern/one-owner, triggers/risk/dependencies/conflicts/context-cost metadata, precedence mapping and eval-gated promotion; full skill bodies lazy-loaded only after Resolver selection; generated/derived skills stay candidates until validated; provider adapters generated from Nexus-owned source; contradictions/version drift explicit | TODO |
+| NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | Existing memory lifecycle plus compact canonical Skill Registry with one-concern/one-owner, trigger/risk/dependency/conflict/context-cost metadata, precedence mapping and eval-gated promotion; full skill bodies lazy-loaded only after Resolver selection; generated/derived skills stay candidates until validated; provider adapters generated from one Nexus-owned source; contradictions/version drift explicit | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
-| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use generated Engineering Control adapters with permanent auto-activation for coding tasks; user does not manually invoke mandatory skills; adapters receive only task-specific SkillSets/tool profiles from Resolver, never the full catalog; OpenAI portable plugin/Codex compatibility and other provider packages generated from one canonical source; native provider dirs untouched | TODO |
-| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity then automatically requires an `EngineeringPlan` for every coding task; Skill Resolver selects minimum task-specific SkillSet/context budget without user prompting; parallel agents/tasks receive isolated SkillSets; dynamic skill escalation requires justified re-resolution; selects topology/provider/tool profile and bounded recovery; Maestri remains platform-wide | TODO |
+| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use generated Engineering Control adapters with permanent automatic activation for coding tasks; user never manually invokes mandatory skills; adapters receive only Resolver-selected task-specific SkillSets/tool profiles, never the full catalog; OpenAI portable plugin/Codex compatibility and other provider packages generated from one canonical source; native provider dirs untouched | TODO |
+| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity then automatically requires an `EngineeringPlan` for every coding task; Skill Resolver selects the minimum task-specific SkillSet/context budget without user prompting; parallel tasks/agents receive isolated SkillSets; dynamic skill escalation requires justified re-resolution; selects topology/provider/tool profile and bounded recovery; Maestri remains platform-wide | TODO |
 | NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions plus mandatory Engineering Control policy; provider agents cannot bypass Skill Resolver; required/optional/forbidden skill policy and context budgets enforced per task+agent; risk/autonomy, scope/contract/dependency/verification gates, bounded loops, optional isolated-TDD contexts and evidence hooks; no runtime may self-declare DONE or bypass project policy | TODO |
 | NB-15 | Local/cloud agent and BrowserMesh execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches and browser sessions; BrowserMesh host/session registry with VPS/Linux/Mac eligibility, capacity and expiry; pinned Scrapling backend plus Playwright/remote-CDP fallback; resumable jobs, error-aware escalation, quota-safe retries, independent tests and no direct main merge | TODO |
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, current-diff review distinct from repo-wide audit, adversarial/second review when risk requires it, mandatory structured verification report, owner approval and acceptance manifest | TODO |
 | NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory/code/research plus compact `EngineeringPlan` and only Resolver-selected skill bodies into bounded per-task/per-agent context; never inject the full skill catalog; enforce skill-context budget; compact phase results and stop reinjecting completed skill bodies when possible; dedupe tool schemas; prove parallel isolated SkillSets and lower token load with no correctness/policy loss | IN_PROGRESS |
-| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent: EngineeringPlan, selected/loaded/completed skills, reason for dynamic skill additions, context budget/estimated skill cost, verification/delivery status; parallel tasks remain isolated; no cross-task skill leakage; reference fidelity/accessibility | IN_PROGRESS |
+| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent: EngineeringPlan, selected/loaded/completed skills, reasons for dynamic skill additions, context budget/estimated skill cost, verification/delivery status; parallel tasks remain isolated; no cross-task skill leakage; reference fidelity/accessibility | IN_PROGRESS |
 | NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security plus provider-independent Engineering Delivery Gate: required project/risk checks, skill/adapter validation, duplicated-owner/routing regression checks and merge protection; least token permissions; audit current alert findings; local/plugin hooks remain supplementary to authoritative CI/rulesets | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
-| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic load events, per-agent isolation violations, files/LOC, dependencies, TDD transitions, regressions, review/verification gates, orchestration retries, runtime/tokens/cost; no hidden reasoning storage; degradation runbooks | TODO |
-| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules: automatic activation without user naming skills; full-catalog injection prevention; 4+ parallel tasks with isolated task+agent SkillSets; justified dynamic load and completed-phase non-reinjection; Router bypass attempts; false-DONE prevention; hook-unavailable CI fallback; isolated-TDD/multi-agent recovery; paired evals for correctness, leakage, context size, regressions, scope drift, tokens/latency/cost | TODO |
+| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic-load events, isolation violations, files/LOC, dependencies, TDD transitions, regressions, review/verification gates, orchestration retries, runtime/tokens/cost; no hidden reasoning storage; degradation runbooks | TODO |
+| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules: automatic activation without user naming skills; prevention of full-catalog injection; 4+ parallel tasks with isolated task+agent SkillSets; justified dynamic load and completed-phase non-reinjection; Resolver bypass attempts; false-DONE prevention; hook-unavailable CI fallback; isolated-TDD/multi-agent recovery; paired evals for correctness, leakage, context size, regressions, scope drift, tokens/latency/cost | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
 ### Dependency waves
