@@ -69,7 +69,8 @@ Reuse the existing Nexus repository, tests, MCG dashboard, Local Runtime and tra
 | Engineering orchestration | Single-agent is default. Sequential, parallel fan-out, DAG, loop and hybrid orchestration are available only when task complexity/evidence justifies them. MegaBrain is a reference for orchestration patterns, self-healing, handoff and resume—not an autonomous authority. | No global zero-question rule, fixed coverage target or automatic dependency installation. Risk, project policy and evidence determine autonomy and gates. |
 | Research memory | Raw web evidence and research runs live in canonical PostgreSQL/object storage with provenance; only governed findings/observations enter Hindsight memory. | Do **not** deploy Graphiti as V1 research memory. Graphiti remains the already-deferred benchmark alternative unless a proven Nexus workload gap justifies it. |
 | MCP | One stable Brain MCP surface. V1 tools: `brain_context`, `brain_search`, `brain_reuse`, `brain_remember`, `local_search`, `brain_status`. | Earlier 8-tool variants remain in source archive; aliases may be added only for proven client compatibility. |
-| Compiler/decision | Deterministic rules first; one Gemini compiler for V1 behind provider-neutral interface; larger models only for ambiguous cases. | Multiple compilers, Laya/classifier choices and routing thresholds remain deferred/experimental until benchmarked. No custom training in V1. |
+| Context compiler | Deterministic filtering, scope/provenance checks and token budgeting first; one provider-neutral compiler path in V1, with Gemini only where a model pass is objectively required. | Multiple compiler providers remain replaceable and benchmark-gated; context compilation is not the decision router. |
+| Decision / Maestri Reflex | **One Nexus-owned `maestri.decide()` authority**: hard rules + Policy Engine first, then an optional local semantic/classification layer with calibrated confidence and explicit `abstain`, then strong-model fallback only for unresolved cases. **Jev is a reference pattern, not a dependency; no paid Jev runtime is required.** | V1 ships the typed decision contract, deterministic baseline and benchmarkable open-component adapters; learned/custom Maestri Reflex training is a later gated phase after sufficient evidenced traces/outcomes. No second Jev/Fast/Resource/Council router authority. |
 | Agents/runtime | One task/session/event model; Agent Factory, policy, evidence and bounded loop are shared by local/cloud/Jules execution. | Council, C4, AutoImprove and learned Reflex are later gated modules, not duplicate control planes or V1 prerequisites. |
 | Provider/native directories | Codex, Claude Code, Gemini/Antigravity and other provider runtimes keep their official global install/config/state directories under provider ownership. Nexus integrates only through supported interfaces such as MCP, API, CLI, hooks and project-level configuration; it must not relocate, fork, vendor, patch or convert provider home/install directories into Nexus-owned paths. | Project-scoped adapter/config files may live in Nexus when officially supported. Official provider updates must remain independently applicable without requiring Nexus directory migration. |
 | Recovery | GitHub for committed code; unique create-only snapshots for uncommitted work; Cloud SQL backup/PITR and a separate GCS recovery vault. | Never use mutable `latest.zip`, auto-commit as backup, or irreversible retention locks before restore tests. |
@@ -1822,6 +1823,188 @@ Measure task/acceptance success, regressions, unexplained files/LOC changed, new
 
 No upstream self-reported benchmark is adopted as Nexus truth. A new layer is accepted only when Nexus evals show a measurable problem that the simpler layer does not solve.
 
+
+## 3F. Maestri Reflex — Nexus-native System-One decision engine
+
+**Decision:** Nexus does not depend on paid Jev. The useful System-One pattern is implemented inside the existing Maestri authority as a Nexus-owned, local-first, typed decision layer. Jev remains an external reference for fast typed decisions; it does not become a runtime dependency, provider authority or second control plane.
+
+Canonical owner:
+
+```text
+maestri.decide()
+```
+
+No parallel authorities:
+
+```text
+NO Jev Router
+NO Fast Decision Router
+NO Resource Router authority
+NO Council Router authority
+```
+
+Resource selection, Council invocation and provider routing are outputs/sub-decisions of the same Maestri decision authority.
+
+### Canonical decision flow
+
+```text
+EVENT / TASK
+     ↓
+Hard Rules + Policy Engine
+     ↓
+Fast deterministic features
+(project / task / tool / risk / cost / latency / quota / evidence)
+     ↓
+Local semantic + classification layer [when useful]
+     ↓
+Calibrated confidence
+     ├── confident typed decision → EXECUTE
+     ├── low confidence / conflict → ABSTAIN
+     └── unresolved / high-risk ambiguity → strong-model fallback
+                                      ↓
+                               typed decision
+                                      ↓
+                           Maestri execution plane
+                                      ↓
+                        outcome + evidence + telemetry
+```
+
+Hard policy always outranks learned/model output. A classifier can recommend a decision but cannot override an approval requirement, security boundary, project policy, protected-branch rule or other deterministic prohibition.
+
+### Typed decision contract
+
+Minimum decision dimensions:
+
+```text
+route
+risk
+priority
+retry_allowed
+needs_review
+needs_approval
+needs_ceo
+escalation_target
+abstain
+confidence
+decision_source
+reason_codes
+evidence_refs
+```
+
+The contract must support deterministic, classifier, contextual and fallback decisions without changing the caller-facing schema.
+
+### Open-component implementation map
+
+These projects/models are **replaceable components or implementation references**, never new authorities:
+
+| Need | V1 candidate/reference | Nexus role |
+|---|---|---|
+| Policy / hard rules | existing Nexus Governance; OPA concepts as reference | deterministic deny/allow/approval constraints before learned decisions |
+| Semantic routing patterns | vLLM Semantic Router; Aurelio `semantic-router` | reference implementations for embedding/classifier routing and fast local decisions |
+| Default embedding candidate | `multilingual-e5-small` | compact multilingual task/intent representation suitable for local CPU evaluation |
+| Embedding challenger | BGE-M3 | benchmark challenger where larger representation measurably improves decisions |
+| Few-shot classifier | SetFit + scikit-learn | small supervised classifiers for typed decision dimensions |
+| Task/complexity reference | NVIDIA prompt task/complexity classifier | reference taxonomy/features for task type and complexity; not an authority |
+| Probability calibration | scikit-learn calibration / temperature scaling | convert raw scores into measured confidence used by `abstain` policy |
+| Local inference | ONNX Runtime | CPU-first portable inference behind a Nexus adapter |
+| Router training/eval reference | RouteLLM | methodology/reference for routing datasets, comparative evaluation and thresholds |
+| Incremental learning [later] | River | optional online-learning challenger only after replay/safety gates |
+| Precedent retrieval | canonical PostgreSQL + pgvector | retrieve scoped prior decisions/outcomes as contextual features, not truth by similarity |
+| Telemetry | OpenTelemetry + Nexus traces; Langfuse patterns/reference where useful | latency, calibration, fallback, outcome and regression evidence |
+
+Dependencies must be pinned, security-reviewed and benchmarked before adoption. The table does not authorize installing all components. Start with the smallest stack that passes Nexus evals.
+
+### Hybrid decision model
+
+Do not rely on embeddings alone. The decision input combines:
+
+```text
+deterministic policy/features
++ task/project metadata
++ tool/provider health and quota
++ risk and side-effect class
++ bounded context/memory precedents
++ semantic embedding when useful
++ calibrated classifier output
+```
+
+Negation, short prompts, ambiguous language, stale memory and cross-project similarity are explicit failure cases. Low-confidence or conflicting outputs must `abstain` instead of guessing.
+
+### Confidence, calibration and abstention
+
+No universal confidence threshold is hard-coded as truth. Thresholds are selected from versioned evaluation data and may differ by decision dimension/risk class.
+
+Track at minimum:
+
+```text
+routing_accuracy
+risk_false_negative_rate
+approval_false_negative_rate
+abstain_rate
+fallback_rate
+calibration_error
+decision_latency_ms
+decision_cost
+policy_override_attempts
+post_decision_success_rate
+```
+
+High-risk dimensions bias toward abstention/fallback. A fast wrong approval/risk decision is worse than a slower escalation.
+
+### Evidence-backed learning flywheel
+
+Learning data comes from verified operational traces, not from agent self-report:
+
+```text
+DecisionInput
+→ Decision
+→ Execution
+→ Objective Outcome
+→ Evidence
+→ Review/Correction
+→ Versioned Decision Dataset
+→ Offline benchmark
+→ Candidate model
+→ Shadow
+→ Canary
+→ Promote / Reject / Rollback
+```
+
+Dataset rows preserve project/task scope, decision schema version, policy version, feature provenance and objective outcome. Secrets and unnecessary raw content are excluded. Cross-project reuse requires the same isolation/provenance rules as Nexus memory.
+
+### Implementation stages — only after MIGRATION READINESS / NB-29 is 100%
+
+```text
+R0  typed DecisionInput/DecisionResult contracts + reason/evidence schema
+R1  deterministic hard-rule/Policy baseline + golden decision corpus
+R2  local embedding/classifier adapter benchmark; no production authority
+R3  probability calibration + explicit abstain/fallback policy
+R4  ONNX/local CPU packaging + latency/resource benchmarks
+R5  shadow mode against real Maestri decisions; zero execution authority
+R6  paired evaluation versus deterministic baseline and strong-model fallback
+R7  bounded production activation for low-risk decision dimensions
+R8  evidence-backed decision dataset + offline retraining pipeline
+R9  custom multi-head Maestri Reflex candidate, only when data proves benefit
+R10 staged promotion/rollback with continued drift/regression monitoring
+```
+
+**V1 does not require custom model training.** V1 establishes the contracts, deterministic baseline, local open-component path, calibration, abstention, evaluation and telemetry. A Nexus-trained Maestri Reflex becomes eligible only when the evidence dataset is large/clean enough and a candidate beats the baseline on the relevant acceptance metrics without weakening safety.
+
+### Acceptance gates
+
+Maestri Reflex is not production-ready until all are demonstrated:
+
+1. one authoritative `maestri.decide()` contract with no duplicate router authority;
+2. hard policy cannot be bypassed by embedding/classifier/model output;
+3. calibrated confidence and explicit abstention work on held-out data;
+4. low-confidence, conflict and unsupported classes reach the configured fallback;
+5. project/task isolation prevents cross-project decision-context leakage;
+6. shadow/canary comparison records decision, evidence and objective outcome;
+7. rollback to deterministic baseline is immediate and tested;
+8. risk/approval false negatives meet the project-defined safety gate;
+9. local inference resource/latency budgets are measured on supported hosts;
+10. no paid Jev dependency is required for normal Nexus operation.
+
 ## 4. Current verified baseline
 
 - GitHub repository was renamed to `trydavidqix/nexus-brain`; it is public, `main` remains default, and no repository currently named `trydavidqix/nexus-brain` existed before the rename.
@@ -1864,11 +2047,11 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent/tool/browser permissions/budgets; memory bank + code-index + research/source/provider-policy bindings; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
 | NB-07 | Workspace index, Code Intelligence and capability evidence | NB-01, NB-06, NB-06A | `CodeIntelligenceEngine` with initial validated CBM adapter; per-project files/symbols/calls/imports/routes/tests/dependencies/Git-change evidence; incremental re-index; impact/blast-radius queries; coverage/confidence + source/commit/index-version metadata; bounded cross-repo links; safe direct-source fallback; no namespace collision | TODO |
 | NB-08 | Hybrid retrieval, research and reuse coverage | NB-05, NB-07 | Hindsight + code-evidence + governed research-evidence retrieval; task-boundary-aware selection; Research planner/fanout normalization/dedupe/fusion/rerank/grounding with bounded source/query/budget limits; project bank first and global separately; conflicted/revoked excluded; raw web evidence remains untrusted; abstention/partial-result semantics; safe reusable cross-project lookup; explainable coverage | TODO |
-| NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | Existing memory lifecycle plus compact canonical Skill Registry with one-concern/one-owner, trigger/risk/dependency/conflict/context-cost metadata, precedence mapping and eval-gated promotion; full skill bodies lazy-loaded only after Resolver selection; generated/derived skills stay candidates until validated; provider adapters generated from one Nexus-owned source; contradictions/version drift explicit | TODO |
+| NB-09 | Memory/event compiler, Skills and Maestri decision tiers | NB-04, NB-05, NB-08 | Existing memory lifecycle plus compact canonical Skill Registry; one authoritative `maestri.decide()` typed contract; deterministic Policy baseline; benchmarkable local embedding/classifier adapter; calibrated confidence + explicit `abstain` + strong-model fallback; no paid Jev dependency or duplicate router authority; full skill bodies lazy-loaded only after Resolver selection; generated/derived skills stay candidates until validated; contradictions/version drift explicit | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
 | NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use generated Engineering Control adapters with permanent automatic activation for coding tasks; user never manually invokes mandatory skills; adapters receive only Resolver-selected task-specific SkillSets/tool profiles, never the full catalog; OpenAI portable plugin/Codex compatibility and other provider packages generated from one canonical source; native provider dirs untouched | TODO |
-| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity then automatically requires an `EngineeringPlan` for every coding task; Skill Resolver selects the minimum task-specific SkillSet/context budget without user prompting; parallel tasks/agents receive isolated SkillSets; dynamic skill escalation requires justified re-resolution; selects topology/provider/tool profile and bounded recovery; Maestri remains platform-wide | TODO |
+| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity then automatically requires an `EngineeringPlan` for every coding task; `maestri.decide()` is the single typed decision authority for route/risk/priority/retry/review/approval/escalation with hard Policy first, calibrated local decision path when justified, explicit abstention and bounded strong-model fallback; Skill Resolver selects the minimum task-specific SkillSet/context budget; parallel tasks/agents receive isolated SkillSets; Maestri remains platform-wide | TODO |
 | NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions plus mandatory Engineering Control policy; provider agents cannot bypass Skill Resolver; required/optional/forbidden skill policy and context budgets enforced per task+agent; browser R0–R4 effect classification, origin/redirect, credential/file/data-transmission and approval gates enforced before backend execution; risk/autonomy, scope/contract/dependency/verification gates, bounded loops, optional isolated-TDD contexts and evidence hooks; no runtime may self-declare DONE or bypass project/browser policy | TODO |
 | NB-15 | Local/cloud agent and BrowserMesh execution | NB-12, NB-13, NB-14 | Complete BrowserMesh B0 selective harvest from `trydavidqix/BrowserMesh`, Lumenva/Maestri Wave 4 and Playwright skill without duplicate control/state owners; isolated workspaces/branches and browser sessions; Playwright direct deterministic interaction core, Scrapling Web Retrieval/Crawl route, Stagehand/visual adapters only after eval-gated need, Direct CDP/Playwright Server remote path; host/session/lease/profile registry with Windows/VPS/Linux eligibility/capacity/expiry; resumable jobs, bounded error-aware recovery, quota-safe retries, independent tests and no direct main merge | TODO |
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, current-diff review distinct from repo-wide audit, adversarial/second review when risk requires it, mandatory structured verification report, owner approval and acceptance manifest | TODO |
@@ -1876,7 +2059,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent and BrowserMesh views for sessions/hosts/tasks/actions/live state/approvals/recipes/profiles/artifacts/failures/cost/tokens/browser-seconds; show EngineeringPlan, BrowserPlan, selected/loaded/completed skills, reasons for dynamic additions, context budget and verification/delivery state; parallel tasks remain isolated; no cross-task skill/browser-state leakage; reference fidelity/accessibility | IN_PROGRESS |
 | NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security plus provider-independent Engineering Delivery Gate: required project/risk checks, skill/adapter validation, duplicated-owner/routing regression checks and merge protection; least token permissions; audit current alert findings; local/plugin hooks remain supplementary to authoritative CI/rulesets | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
-| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic-load events, files/LOC, dependencies, TDD transitions, regressions, review/verification gates; BrowserMesh route/escalation, actions/task, LLM turns, tokens, browser seconds, host/session/lease state, recipe reuse/repair, recovery/takeover/approval, wrong-action and isolation/policy/secret metrics; orchestration retries, runtime/cost; no hidden reasoning storage; degradation runbooks | TODO |
+| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus Maestri decision source/confidence/reason, abstain/fallback rate, calibration error, routing accuracy, risk/approval false negatives, decision latency/cost and post-decision outcome; engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic-load events, regressions and verification gates; BrowserMesh route/escalation/actions/tokens/browser seconds/lease/recovery/approval/isolation/policy/secret metrics; no hidden reasoning storage; degradation/rollback runbooks | TODO |
 | NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules and BrowserMesh B20: automatic skill activation without full-catalog injection; 4+ parallel tasks with isolated task+agent SkillSets **and 4+ independent browser sessions/contexts/leases**; zero cross-task cookie/storage/profile/evidence leakage in acceptance corpus; justified dynamic load and completed-phase non-reinjection; Resolver/backend bypass attempts; hostile web/prompt-injection, wrong-origin redirect, secret transmission, upload/download, R3/R4 approval, lease expiry, recipe rollback, recovery/takeover and host-failover tests where supported; false-DONE prevention; paired evals for correctness, leakage, context size, regressions, scope drift, tokens/browser-seconds/latency/cost | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
@@ -1931,6 +2114,9 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 - Do not let generated orchestration skills self-grant autonomy, install dependencies, change public contracts, lower tests, merge to main or bypass approvals.
 - Do not adopt fixed universal coverage thresholds. Project policy, acceptance criteria and risk define the required evidence.
 - Do not hand-maintain divergent provider copies of Engineering Control; adapters/packages are generated from one canonical Nexus source.
+- Jev/System-One remains a reference only: normal Nexus operation must not require a paid Jev service. Maestri decision capability is Nexus-owned behind `maestri.decide()`.
+- Do not let an embedding/classifier/model bypass hard policy, approval, security or protected-branch rules. Low-confidence/conflicting decisions must abstain or escalate.
+- Do not train/promote a custom Maestri Reflex from agent narratives alone; training/evaluation rows require scoped traces, objective outcomes and evidence, with shadow/canary/rollback gates.
 - Keep models/providers replaceable. The product owns contracts, evidence, memory, task state and recovery.
 
 ## 9. Objective progress
