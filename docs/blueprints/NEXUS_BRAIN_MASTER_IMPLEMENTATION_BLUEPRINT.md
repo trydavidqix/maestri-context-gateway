@@ -2057,7 +2057,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, current-diff review distinct from repo-wide audit, adversarial/second review when risk requires it, mandatory structured verification report, owner approval and acceptance manifest | TODO |
 | NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory/code/research plus compact `EngineeringPlan` and only Resolver-selected skill bodies into bounded per-task/per-agent context; never inject the full skill catalog; enforce skill-context budget; compact phase results and stop reinjecting completed skill bodies when possible; dedupe tool schemas; prove parallel isolated SkillSets and lower token load with no correctness/policy loss | IN_PROGRESS |
 | NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent and BrowserMesh views for sessions/hosts/tasks/actions/live state/approvals/recipes/profiles/artifacts/failures/cost/tokens/browser-seconds; show EngineeringPlan, BrowserPlan, selected/loaded/completed skills, reasons for dynamic additions, context budget and verification/delivery state; parallel tasks remain isolated; no cross-task skill/browser-state leakage; reference fidelity/accessibility | IN_PROGRESS |
-| NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security plus provider-independent Engineering Delivery Gate: required project/risk checks, skill/adapter validation, duplicated-owner/routing regression checks and merge protection; least token permissions; audit current alert findings; local/plugin hooks remain supplementary to authoritative CI/rulesets | IN_PROGRESS |
+| NB-19 | GitHub Actions, security, commit discipline and Git hygiene | NB-01, NB-02 | Provider-independent Engineering Delivery Gate plus concrete GitHub baseline: protected `main`, PR-only delivery, squash merge, required CI/security/dependency/CodeQL/secret gates, least-privilege Actions, pinned third-party actions, Dependabot grouping, OIDC for cloud auth, CODEOWNERS for sensitive paths; repository commit/PR titles follow `<area>: <imperative action>` and reject vague subjects such as `chore`, `misc`, `update`, `changes`, `WIP` or `final`; Nexus Git Hygiene Guard enforces task↔branch↔worktree ownership, detects empty/merged/orphaned/duplicate/stale resources, and only permits cleanup after proof that work is clean, merged/redundant and preserved; dirty/unmerged/unknown resources are never auto-deleted and become `STALE_REVIEW_REQUIRED`; local/plugin hooks remain supplementary to authoritative CI/rulesets | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
 | NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus Maestri decision source/confidence/reason, abstain/fallback rate, calibration error, routing accuracy, risk/approval false negatives, decision latency/cost and post-decision outcome; engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic-load events, regressions and verification gates; BrowserMesh route/escalation/actions/tokens/browser seconds/lease/recovery/approval/isolation/policy/secret metrics; no hidden reasoning storage; degradation/rollback runbooks | TODO |
 | NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules and BrowserMesh B20: automatic skill activation without full-catalog injection; 4+ parallel tasks with isolated task+agent SkillSets **and 4+ independent browser sessions/contexts/leases**; zero cross-task cookie/storage/profile/evidence leakage in acceptance corpus; justified dynamic load and completed-phase non-reinjection; Resolver/backend bypass attempts; hostile web/prompt-injection, wrong-origin redirect, secret transmission, upload/download, R3/R4 approval, lease expiry, recipe rollback, recovery/takeover and host-failover tests where supported; false-DONE prevention; paired evals for correctness, leakage, context size, regressions, scope drift, tokens/browser-seconds/latency/cost | TODO |
@@ -2077,9 +2077,238 @@ Final:  NB-22 → NB-23
 
 No parallel worker/Jules session is part of the current authorization. When later authorized, every work package must have one owner, disjoint write scope, branch/worktree, TDD tests, acceptance contract and integration gate. Never start dependent tasks together or allow a worker to merge directly to `main`.
 
-## 7. GitHub, local protection and toolchain gates
+## 7. GitHub, commit discipline, Git hygiene and toolchain gates
 
-Before changing protections or installing tools, record current state and consult current official documentation. Verify public/private visibility, `main`, Actions, workflow permissions, required checks, rulesets, CodeQL/secret/dependency scanning, Dependabot and branch deletion/force-push policy. Do not treat a passing workflow as a required merge gate unless GitHub confirms it is enforced. Avoid broad settings changes and third-party actions without pinning/security review. Local hooks are supplementary; GitHub is authoritative.
+Before changing protections or installing tools, record current state and consult current official documentation. Verify repository visibility, default branch, Actions, workflow permissions, required checks, rulesets, CodeQL/secret/dependency scanning, Dependabot, merge methods, auto-delete-branch behavior, branch deletion/force-push policy and current worktree/branch ownership. Do not treat a passing workflow as a required merge gate unless GitHub confirms it is enforced. Avoid broad settings changes and third-party actions without pinning/security review. Local hooks are supplementary; GitHub is authoritative.
+
+### 7.1 Canonical GitHub delivery model
+
+The target operating model is intentionally boring:
+
+```text
+main = only permanent development branch
+task
+  ↓
+short-lived task branch
+  ↓
+bounded worktree when local isolated writes are needed
+  ↓
+PR
+  ↓
+required checks + Engineering Delivery Gate
+  ↓
+squash merge
+  ↓
+remote task branch deleted
+  ↓
+local branch/worktree retired only after preservation + clean/merged proof
+```
+
+No direct push to `main`, no force-push to `main`, no deletion of `main`, and no agent may merge around required gates. Merge queue stays disabled until concurrent PR volume justifies it; when enabled, required workflows must explicitly support the merge-queue event path.
+
+### 7.2 Main ruleset and required gates
+
+Target `main` ruleset:
+
+```text
+PR required
+force-push denied
+branch deletion denied
+required conversation resolution where supported
+required status checks
+squash merge as canonical merge method
+bypass restricted to explicitly documented break-glass actors
+```
+
+Required checks are created only when they are stable and actually report for every applicable PR. Planned baseline:
+
+```text
+typecheck
+unit-tests
+integration-tests
+build
+dependency-review
+codeql
+secret/security gate
+engineering-delivery-gate
+git-hygiene-gate
+```
+
+A check must not become required while it can remain permanently pending on valid changes. Path-filtered workflows need a non-pending design before becoming required.
+
+### 7.3 Actions and supply-chain hardening
+
+- default `GITHUB_TOKEN` permission is read-only; jobs receive only the permissions they need;
+- third-party Actions are pinned to immutable commit SHAs after security review;
+- cloud deployment/authentication prefers short-lived OIDC credentials instead of permanent cloud keys in GitHub Secrets;
+- CodeQL, secret scanning/push protection and dependency review are enabled where the repository/plan supports them;
+- Dependabot updates package and GitHub Actions dependencies on a bounded schedule and groups compatible updates to avoid PR spam;
+- `CODEOWNERS` covers security/governance, `.github/workflows/**`, infrastructure/deployment and other sensitive paths with verified owners;
+- workflow changes cannot silently lower the checks that protect the same workflow path.
+
+### 7.4 Commit and PR naming standard
+
+Repository history must say what changed. Nexus does **not** use vague Conventional-Commit buckets such as `chore:` as a default escape hatch.
+
+Canonical subject format:
+
+```text
+<area>: <imperative action>
+```
+
+Examples:
+
+```text
+maestri: Add calibrated decision fallback
+browsermesh: Isolate browser sessions by task
+memory: Prevent cross-project context leakage
+github: Enforce required checks on main
+```
+
+Rules:
+
+- use a concrete repository/domain area;
+- use an imperative action that describes the real effect;
+- keep the subject concise and specific;
+- PR title uses the same format because squash merge makes it the canonical history entry;
+- body/evidence may explain why, risks and validation without bloating the subject.
+
+Reject vague subjects such as:
+
+```text
+chore: ...
+misc
+update
+changes
+cleanup
+fix
+WIP
+final
+final-final
+stuff
+update files
+```
+
+A legitimate cleanup/refactor still names the affected area and concrete effect, for example `routing: Remove duplicate legacy resolver`.
+
+### 7.5 Branch and worktree naming/ownership
+
+For Nexus-governed coding work:
+
+```text
+1 active task
+→ 1 task_id
+→ 1 owner
+→ 1 short-lived branch
+→ 0 or 1 bounded local worktree for that owner/task
+```
+
+A second worktree/branch for the same task requires an explicit subtask/owner split recorded by Maestri. Parallel agents never silently share a writable worktree.
+
+Canonical branch shape:
+
+```text
+<kind>/<task-id>-<short-slug>
+```
+
+Allowed `kind` values are project-defined, small and explicit (for example `feature`, `fix`, `refactor`, `docs`, `security`, `recovery`). Branch naming is not used as a substitute for task ownership metadata.
+
+### 7.6 Git Hygiene Guard
+
+Nexus owns a read-first `Git Hygiene Guard` that continuously classifies branches/worktrees without deleting anything merely because it is old.
+
+Minimum classifications:
+
+```text
+ACTIVE
+EMPTY
+SAFE_MERGED_CLEAN
+DIRTY
+UNMERGED
+ORPHANED_METADATA
+DUPLICATE_CANDIDATE
+STALE_REVIEW_REQUIRED
+RECOVERY_PROTECTED
+UNKNOWN
+```
+
+It detects at minimum:
+
+- branch with no commits beyond its base;
+- worktree without an active task/owner;
+- task with multiple unintended writable worktrees;
+- merged branch still present after delivery;
+- orphaned Git worktree metadata;
+- duplicate branches/worktrees pointing to equivalent work;
+- stale resources with no active task or PR;
+- branch/worktree whose source task/PR cannot be resolved;
+- resources protected by recovery/migration activity.
+
+Age alone never proves safety. A stale threshold only triggers review.
+
+### 7.7 Cleanup proof and safety boundary
+
+Cleanup is a proof-driven lifecycle, not a timer:
+
+```text
+DISCOVER
+→ CLASSIFY
+→ PROVE OWNERSHIP
+→ PROVE PRESERVATION
+→ PROVE CLEAN / MERGED / REDUNDANT
+→ RETIRE
+→ VERIFY
+```
+
+Automatic retirement is allowed only for resources that Nexus itself can prove are safe under current project policy. Anything dirty, unmerged, unknown, recovery-related or carrying unique local content becomes `STALE_REVIEW_REQUIRED` or `RECOVERY_PROTECTED`.
+
+Hard rules:
+
+- never delete solely because a branch/worktree is old;
+- never clean unknown or dirty work automatically;
+- never overwrite unique local work;
+- never infer duplication from names alone; use Git/tree/content evidence;
+- never perform hygiene cleanup while a recovery/migration gate protects the resource;
+- preserve provenance linking task → branch → worktree → PR → merge commit → evidence.
+
+This safety boundary is mandatory because repository hygiene must not recreate the class of failure currently being investigated in Lumenva recovery.
+
+### 7.8 Implementation plan
+
+Implementation remains inside NB-19; these are internal milestones, not new top-level work packages:
+
+```text
+G0  Read-only GitHub/repository/worktree baseline inventory
+G1  Commit/PR/branch naming contracts + validators
+G2  CI/security/dependency workflows with least-privilege permissions
+G3  Engineering Delivery Gate + Git Hygiene Gate in report-only mode
+G4  main ruleset with stable required checks and squash-only delivery
+G5  CodeQL + secret/push protection + dependency review + Dependabot grouping
+G6  CODEOWNERS + sensitive-path protection + OIDC cloud-auth path
+G7  task↔branch↔worktree ownership registry and hygiene classifications
+G8  duplicate/orphan/stale detection with preservation evidence
+G9  safe retirement workflow for proven SAFE_MERGED_CLEAN/EMPTY resources
+G10 concurrency validation; enable merge queue only if real parallel PR load justifies it
+```
+
+**Migration gate:** configuration that can move/delete/retire branches or worktrees is not activated while Migration Readiness / NB-29 or Lumenva recovery remains incomplete. During that phase the Git Hygiene Guard is discovery/report-only for protected resources.
+
+### 7.9 NB-19 acceptance evidence
+
+NB-19 is not DONE until evidence shows:
+
+1. `main` protection/ruleset is active and cannot be bypassed by normal agents;
+2. every required check reports reliably on applicable PRs;
+3. Actions use least privilege and reviewed third-party actions are SHA-pinned;
+4. CodeQL/security/dependency/secret gates operate as intended;
+5. Dependabot is grouped/bounded rather than generating uncontrolled PR noise;
+6. squash merge produces the enforced concrete commit-title format;
+7. vague commit/PR titles are rejected;
+8. task↔branch↔worktree ownership is queryable and parallel writers are isolated;
+9. empty/merged/orphaned/duplicate/stale resources are detected;
+10. dirty/unmerged/unknown/recovery-protected resources cannot be auto-retired;
+11. safe-retirement evidence proves no unique local work was lost;
+12. a repository audit after retirement shows no unintended empty branches, orphan worktrees or duplicate active ownership.
 
 Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills, MCPs, runtimes, tests, security, observability, GitHub and cloud. Each item is `EXISTS`, `CONFIGURED`, `PARTIAL`, `MISSING`, `UNVERIFIED` or `UNNECESSARY`; never install duplicates before inventory. Jules readiness requires official docs plus a safe real-repository smoke test, scoped repository access, environment setup/secrets, session/branch/result review and quota-safe operation.
 
@@ -2106,6 +2335,7 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 - Task/Skill extraction must not convert a successful-looking agent narrative into reusable procedure without objective task outcome evidence.
 - Least privilege; no secrets in logs, context, execution records, reports or source archives. Edge receives only short-lived scoped identity, not cloud-admin or database credentials.
 - No direct-main worker writes, force-push, destructive cleanup, auto-merge, auto-commit backup, Docker install, paid provider calls, model training, irreversible bucket lock, or CRM/voice migration without the applicable explicit authorization and gates.
+- Repository hygiene is evidence-driven: commit/PR subjects must be concrete; branch/worktree cleanup requires ownership, preservation and clean/merged/redundant proof. Dirty, unmerged, unknown and recovery-protected resources are never auto-deleted.
 - Keep provider-native global directories and installations external to Nexus. Codex, Claude Code, Gemini/Antigravity and other provider runtimes retain their official install/config/state locations; Nexus must not require moving, forking, vendoring or patching those directories.
 - Project integration may add only supported project-level adapters/configuration (for example MCP, API, CLI, hooks or project instructions). A project instruction or skill does not prove a Windows-global config is active, and official provider updates must continue to work independently of Nexus.
 - Do not make every engineering module always-on. The Engineering Control framework is mandatory, but Router/Risk select the minimum relevant skill set to avoid duplicated work and token bloat.
