@@ -14,6 +14,8 @@ test('local runtime is pinned, local-only, and has no automatic paid fallback', 
   assert.match(start, /HINDSIGHT_API_DATABASE_URL = 'pg0:\/\/nexus-dev'/);
   assert.match(start, /HINDSIGHT_API_LLM_PROVIDER = 'gemini'/);
   assert.match(start, /HINDSIGHT_API_LLM_MODEL = 'gemini-3\.5-flash'/);
+  assert.match(start, /HINDSIGHT_API_LLM_MAX_RETRIES = '2'/);
+  assert.match(start, /HINDSIGHT_API_REFLECT_LLM_TIMEOUT = '120'/);
   assert.match(start, /HINDSIGHT_API_LLM_DEBUG_DUMP_4XX = 'false'/);
   assert.match(start, /HINDSIGHT_API_EMBEDDINGS_PROVIDER = 'local'/);
   assert.match(start, /HINDSIGHT_API_RERANKER_PROVIDER = 'local'/);
