@@ -15,3 +15,10 @@ config/wire.json
 *.bak-*
 node_modules/
 **/node_modules/
+.tools/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+*.auto.tfvars
