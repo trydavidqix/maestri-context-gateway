@@ -820,6 +820,121 @@ Conditionally loaded:
 
 This keeps context small while still making the engineering policy mandatory.
 
+### Permanent automatic activation
+
+The user never needs to say “use TDD”, “use debugging”, “use verification” or name any Engineering Control skill. For every Nexus-governed coding task, the permanent project/provider instruction layer automatically invokes the Engineering Router before mutation.
+
+```text
+user request
+  ↓
+permanent project/provider engineering rule
+  ↓
+Engineering Router
+  ↓
+EngineeringPlan
+  ↓
+Skill Resolver
+  ↓
+selected SkillSet
+  ↓
+agent execution
+  ↓
+Verification Gate
+  ↓
+Delivery Gate
+```
+
+Provider-specific permanent instructions are distribution mechanisms only. The canonical rule remains Nexus-owned. The user must not need to manually trigger mandatory skills.
+
+### Lazy skill loading, task isolation and context budget
+
+Core invariant:
+
+```text
+NEVER LOAD THE FULL SKILL CATALOG INTO AN AGENT CONTEXT
+SKILLS BELONG TO TASKS, NOT TO SESSIONS
+```
+
+Nexus maintains a compact **Skill Registry** containing metadata only:
+
+```text
+skill_id
+purpose
+trigger/task_types
+risk_levels
+dependencies
+conflicts
+precedence_owner
+estimated_context_cost
+version
+status
+```
+
+Before selection, the router sees only compact registry metadata. Full skill bodies are materialized into the active context only after `Skill Resolver` selects them for the current `task_id + agent_id`.
+
+```text
+Skill Registry
+  ↓ metadata only
+Skill Resolver
+  ↓ justified selection
+Skill Loader
+  ↓ minimum required bodies
+Context Compiler / Token Firewall
+  ↓ bounded SkillSet
+Agent Context
+```
+
+Per-task isolation means parallel agents may receive different SkillSets even inside the same project/session:
+
+```text
+Session
+├── Task A / Agent A → Debug + TDD + Verify
+├── Task B / Agent B → Lean + UI + Responsive + Verify
+├── Task C / Agent C → Branch Engineering + Contract + Review + Verify
+└── Task D / Agent D → Spec + Contract + Isolated-TDD + Review + Verify
+```
+
+No agent inherits another task's loaded skills merely because the agents share a session, project or provider.
+
+Dynamic loading is allowed only through the resolver:
+
+```text
+task starts with SkillSet A
+  ↓
+new evidenced condition appears
+  ↓
+agent requests capability / Router detects condition
+  ↓
+Skill Resolver re-evaluates
+  ├── unjustified → deny
+  └── justified   → load additional skill
+```
+
+Example: a normal feature starts with Lean + TDD; a public API impact is discovered; `contract-guard` is loaded only after the impact is evidenced.
+
+When a phase finishes, Nexus should compact and stop carrying the detailed skill body in subsequent bounded contexts when the provider/runtime permits it:
+
+```text
+LOAD → USE → RECORD RESULT/EVIDENCE → COMPACT → DROP FROM NEXT CONTEXT
+```
+
+This is context management, not deletion of the canonical skill. Providers that cannot literally evict already-sent context must still avoid reinjecting the full skill on later turns and rely on compaction/new task context boundaries.
+
+Mandatory Skill Loading Policy:
+
+1. Skills are lazy-loaded.
+2. Full skill bodies are never globally injected.
+3. The Router sees compact registry metadata before selection.
+4. SkillSets are scoped to `task_id + agent_id`.
+5. Parallel agents have independent SkillSets.
+6. Dynamic skill addition requires Router/Resolver justification.
+7. Finished-phase skills are compacted and not reinjected when possible.
+8. Duplicate concern owners cannot be loaded simultaneously.
+9. Conflicting skills are resolved by the precedence policy.
+10. Context Compiler enforces a per-task skill-context budget.
+11. No provider agent may bypass Skill Resolver for mandatory Engineering Control.
+12. The user never needs to manually invoke a mandatory engineering skill.
+
 ### Precedence and canonical owners
 
 ```text
@@ -855,6 +970,8 @@ A module may reference another owner but must not reimplement its rules.
 
 ```text
 EngineeringPlan
+├── task_id
+├── agent_id
 ├── task_type
 ├── risk_level
 ├── scope_size
@@ -864,8 +981,14 @@ EngineeringPlan
 ├── testability
 ├── execution_mode
 ├── autonomy_level
-├── required_modules[]
-├── forbidden_modules[]
+├── skill_policy
+│   ├── required[]
+│   ├── optional[]
+│   ├── forbidden[]
+│   ├── loaded[]
+│   └── completed[]
+├── context_budget
+├── tool_profile
 ├── verification_gates[]
 └── delivery_policy
 ```
@@ -986,7 +1109,7 @@ Ring 1 — ORCHESTRATION
 Maestri refuses to dispatch a coding task without EngineeringPlan.
 
 Ring 2 — PROVIDER ADAPTER
-Selected policy/skills/tool profile are injected using the provider-supported mechanism.
+A permanent generated project/provider rule auto-invokes Engineering Control; Skill Resolver injects only the task-specific SkillSet/tool profile using the provider-supported mechanism.
 
 Ring 3 — RUNTIME
 Trusted hooks or equivalent project controls check objective pre-edit/pre-completion rules where supported.
@@ -1018,6 +1141,10 @@ packages/control-plane/src/engineering/
 ├── router
 ├── execution-planner
 ├── autonomy
+├── skill-registry
+├── skill-resolver
+├── skill-loader
+├── context-budget
 └── orchestration
 
 packages/evidence/src/engineering/
@@ -1060,15 +1187,15 @@ These are internal milestones, not new top-level Nexus work packages:
 
 ```text
 E0 source/license/rule/conflict matrix + baseline evals
-E1 core + precedence + vocabulary
-E2 Engineering Router + Risk/Autonomy
-E3 Lean + TDD + Debug + Scope + Contract + Verify
-E4 Review + Audit + Branch Engineering + Specification + Anti-Slop
-E5 adapter generation + portable OpenAI plugin packaging
+E1 core + precedence + vocabulary + compact Skill Registry schema
+E2 Engineering Router + Risk/Autonomy + Skill Resolver + per-task context budget
+E3 Lean + TDD + Debug + Scope + Contract + Verify + lazy Skill Loader
+E4 Review + Audit + Branch Engineering + Specification + Anti-Slop + dynamic skill escalation/compaction
+E5 permanent provider/project auto-activation adapters + portable OpenAI plugin packaging
 E6 deterministic Engineering MCP only where evals prove it is needed
 E7 objective hooks/runtime enforcement
-E8 risk-gated multi-agent orchestration (MegaBrain patterns)
-E9 engineering metrics/intelligence
+E8 risk-gated multi-agent orchestration with isolated per-task SkillSets (MegaBrain patterns)
+E9 engineering metrics/intelligence including skill-load/context-cost telemetry
 E10 universal provider distribution + release gates
 ```
 
@@ -1116,7 +1243,7 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 |---|---|---|---|---|
 | NB-00 | Repository identity, exact source preservation, one canonical tracker | — | GitHub/local name aligned; all source files checksummed and indexed; prior tracker marked historical; no unrelated paths | DONE |
 | NB-01 | Nexus monorepo inventory, ownership map and canonical local path | NB-00 | Branch/path ownership audit; exact included/excluded Nexus-owned paths; dependency/import graph; safe folder rename; external projects remain independent | BLOCKED |
-| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral Brain/Research/Reach/Browser contracts plus `EngineeringPlan`, engineering risk/autonomy/module/delivery contracts; untrusted-content and engineering authority boundaries; conflicts recorded as unresolved | TODO |
+| NB-02 | Contracts and threat/scope model | NB-01 | Versioned request, identity, task, memory, evidence and permission schemas; provider-neutral Brain/Research/Reach/Browser contracts plus `EngineeringPlan`, `SkillRegistryEntry`, `TaskSkillSet`, skill-load/compaction events, engineering risk/autonomy/context-budget/delivery contracts; untrusted-content and engineering authority boundaries; conflicts recorded as unresolved | TODO |
 | NB-03 | Cloud baseline and least-privilege infrastructure | NB-02 | Officially validated Google project/services/IAM/secrets/logging; reproducible IaC; independently deployable/observable Hindsight API + worker service(s); shared Cloud SQL connectivity; no permanent GitHub cloud key | TODO |
 | NB-04 | Canonical database, temporal memory and provenance | NB-02, NB-03 | PostgreSQL/pgvector canonical store; Hindsight V1 behind Nexus ownership; global/project banks; session/task tags; append-only observations/events; research/evidence/sightings/run provenance; `OBSERVED/CANDIDATE/VERIFIED/CANONICAL/SUPERSEDED/CONFLICTED/REVOKED`; `RECALLED/SELECTED/INJECTED/USED/VALIDATED/CONTRIBUTED`; raw web evidence remains untrusted and separate from memory promotion; ACL/scope; restore test | TODO |
 | NB-05 | Brain API and one MCP contract | NB-02, NB-04 | Provider-neutral Nexus API/MCP fronts internal engines; external backends are never agent-facing authorities; authenticated context/search/remember/reuse/status plus bounded code/edit-context and research/web capability facade; `remember` stores observations/candidates unless policy passes; responses expose status/provenance/source/coverage/trust; contract tests; bounded context/tool surface | TODO |
@@ -1124,20 +1251,20 @@ Statuses: `TODO`, `IN_PROGRESS`, `BLOCKED`, `VALIDATING`, `DONE`. Current stage 
 | NB-06A | Project Registry and multi-project identity/scope | NB-02, NB-04, NB-06 | Stable project IDs; repo/workspace bindings; lifecycle/stack metadata; per-project policies/agent/tool/browser permissions/budgets; memory bank + code-index + research/source/provider-policy bindings; global/project/session/task namespaces; cross-project isolation tests; project registration without code relocation | TODO |
 | NB-07 | Workspace index, Code Intelligence and capability evidence | NB-01, NB-06, NB-06A | `CodeIntelligenceEngine` with initial validated CBM adapter; per-project files/symbols/calls/imports/routes/tests/dependencies/Git-change evidence; incremental re-index; impact/blast-radius queries; coverage/confidence + source/commit/index-version metadata; bounded cross-repo links; safe direct-source fallback; no namespace collision | TODO |
 | NB-08 | Hybrid retrieval, research and reuse coverage | NB-05, NB-07 | Hindsight + code-evidence + governed research-evidence retrieval; task-boundary-aware selection; Research planner/fanout normalization/dedupe/fusion/rerank/grounding with bounded source/query/budget limits; project bank first and global separately; conflicted/revoked excluded; raw web evidence remains untrusted; abstention/partial-result semantics; safe reusable cross-project lookup; explainable coverage | TODO |
-| NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | Existing memory lifecycle plus canonical engineering-skill registry with one-concern/one-owner, precedence/conflict mapping and eval-gated promotion; generated/derived skills stay candidates until validated; provider adapters are generated from Nexus-owned source rather than hand-maintained copies; contradictions/version drift remain explicit | TODO |
+| NB-09 | Memory/event compiler, Skills and decision tiers | NB-04, NB-05, NB-08 | Existing memory lifecycle plus compact canonical Skill Registry with one-concern/one-owner, triggers/risk/dependencies/conflicts/context-cost metadata, precedence mapping and eval-gated promotion; full skill bodies lazy-loaded only after Resolver selection; generated/derived skills stay candidates until validated; provider adapters generated from Nexus-owned source; contradictions/version drift explicit | TODO |
 | NB-10 | Windows Everything Edge + Git adapter | NB-01 | Journal cursor, root/ignore filters, Git branch/diff, burst grouping, offline fallback and health | TODO |
 | NB-11 | Uncommitted snapshot/restore path | NB-03, NB-10 | Encrypted unique create-only snapshots, ownership/scope checks, offline queue, verified restore; no auto-commit | TODO |
-| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use Nexus contracts and generated Engineering Control adapters; OpenAI portable plugin packaging + Codex compatibility overlay are generated from the canonical skill/policy source; other provider adapters preserve equivalent mandatory task/delivery gates where supported; minimal tool profiles; native provider dirs untouched; no duplicated control plane/policy/memory | TODO |
-| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity then requires an `EngineeringPlan` for every coding task; selects task/risk/scope/contracts/autonomy/modules, single-agent vs sequential/parallel/DAG/loop/hybrid topology, provider/tool profile and Research/Reach/BrowserMesh needs; bounded self-healing/recovery; project-scoped lifecycle/budgets; Maestri remains platform-wide | TODO |
-| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions plus mandatory Engineering Control policy; risk/autonomy gates, objective scope/contract/dependency/verification enforcement, revocable capabilities, bounded loops, optional isolated-TDD contexts, R0–R4 browser/action approvals and evidence hooks; no provider/runtime may self-declare DONE or bypass project policy | TODO |
+| NB-12 | Provider adapters and project integrations | NB-05, NB-09 | Claude/Codex/Gemini/Jules plus research/reach/browser providers use generated Engineering Control adapters with permanent auto-activation for coding tasks; user does not manually invoke mandatory skills; adapters receive only task-specific SkillSets/tool profiles from Resolver, never the full catalog; OpenAI portable plugin/Codex compatibility and other provider packages generated from one canonical source; native provider dirs untouched | TODO |
+| NB-13 | Maestri control plane as Nexus-native multi-project orchestrator | NB-02, NB-05, NB-06A | Resolves project identity then automatically requires an `EngineeringPlan` for every coding task; Skill Resolver selects minimum task-specific SkillSet/context budget without user prompting; parallel agents/tasks receive isolated SkillSets; dynamic skill escalation requires justified re-resolution; selects topology/provider/tool profile and bounded recovery; Maestri remains platform-wide | TODO |
+| NB-14 | Agent Factory, policy, approvals and bounded execution | NB-13 | Validated AgentDefinitions plus mandatory Engineering Control policy; provider agents cannot bypass Skill Resolver; required/optional/forbidden skill policy and context budgets enforced per task+agent; risk/autonomy, scope/contract/dependency/verification gates, bounded loops, optional isolated-TDD contexts and evidence hooks; no runtime may self-declare DONE or bypass project policy | TODO |
 | NB-15 | Local/cloud agent and BrowserMesh execution | NB-12, NB-13, NB-14 | Isolated workspaces/branches and browser sessions; BrowserMesh host/session registry with VPS/Linux/Mac eligibility, capacity and expiry; pinned Scrapling backend plus Playwright/remote-CDP fallback; resumable jobs, error-aware escalation, quota-safe retries, independent tests and no direct main merge | TODO |
 | NB-16 | Council/C4, evidence and review/report flow | NB-13, NB-14 | Identical snapshots, independent reviews, current-diff review distinct from repo-wide audit, adversarial/second review when risk requires it, mandatory structured verification report, owner approval and acceptance manifest | TODO |
-| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory/code/research plus the compact `EngineeringPlan` into bounded context; load only selected engineering modules rather than every skill; dedupe/compact tool schemas; quote/isolate untrusted source content; prove mandatory engineering policy can remain active with lower token/tool load and no correctness/policy loss | IN_PROGRESS |
-| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Portfolio + project drill-down; memory/task/code plus Research/Reach/BrowserMesh runs, provider routes/fallbacks, host/browser sessions, watchlists/briefings, evidence clusters/sightings, approvals, costs/quotas/incidents; clear project/source/scope/measurement/unavailable reports; no leakage; reference fidelity/accessibility | IN_PROGRESS |
+| NB-17 | MCG Context Gateway/Token Firewall integration | NB-05, NB-10, NB-13 | Merge governed memory/code/research plus compact `EngineeringPlan` and only Resolver-selected skill bodies into bounded per-task/per-agent context; never inject the full skill catalog; enforce skill-context budget; compact phase results and stop reinjecting completed skill bodies when possible; dedupe tool schemas; prove parallel isolated SkillSets and lower token load with no correctness/policy loss | IN_PROGRESS |
+| NB-18 | Multi-project Control Center/dashboard/reporting and design/accessibility | NB-17, NB-06A | Existing portfolio/project views plus Engineering Control visibility per task/agent: EngineeringPlan, selected/loaded/completed skills, reason for dynamic skill additions, context budget/estimated skill cost, verification/delivery status; parallel tasks remain isolated; no cross-task skill leakage; reference fidelity/accessibility | IN_PROGRESS |
 | NB-19 | GitHub Actions, security and branch governance | NB-01, NB-02 | CI/security plus provider-independent Engineering Delivery Gate: required project/risk checks, skill/adapter validation, duplicated-owner/routing regression checks and merge protection; least token permissions; audit current alert findings; local/plugin hooks remain supplementary to authoritative CI/rulesets | IN_PROGRESS |
 | NB-20 | Backup, PITR, immutable vault and disaster recovery | NB-03, NB-04 | Unique backups, retention/soft-delete, PITR and tested restore; immutable lock only after restore gate | TODO |
-| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus engineering task type/risk/mode/modules, files/LOC, dependencies, TDD transitions, regressions, review findings, verification gates, orchestration retries, runtime/tokens/cost; no hidden reasoning storage; degradation/scaling/runbook evidence | TODO |
-| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules adapters: router/risk/scope/contract/TDD/debug/verification behavior, false-DONE prevention, branch-chaos integration, provider bypass attempts, hook-unavailable fallback to CI, isolated-TDD and multi-agent recovery; paired evals against baseline/reference methods for correctness, regressions, scope drift, LOC/files/dependencies, tokens, latency and cost | TODO |
+| NB-21 | Observability, budgets and operational runbooks | NB-05, NB-09, NB-13 | Existing platform metrics plus engineering task type/risk/mode, selected/loaded/completed skills, skill-context bytes/tokens, dynamic load events, per-agent isolation violations, files/LOC, dependencies, TDD transitions, regressions, review/verification gates, orchestration retries, runtime/tokens/cost; no hidden reasoning storage; degradation runbooks | TODO |
+| NB-22 | Cross-provider, cross-project, offline, security and recovery E2E | NB-05–NB-21 | Existing platform E2E plus mandatory Engineering Control across Codex/Claude/Gemini/Jules: automatic activation without user naming skills; full-catalog injection prevention; 4+ parallel tasks with isolated task+agent SkillSets; justified dynamic load and completed-phase non-reinjection; Router bypass attempts; false-DONE prevention; hook-unavailable CI fallback; isolated-TDD/multi-agent recovery; paired evals for correctness, leakage, context size, regressions, scope drift, tokens/latency/cost | TODO |
 | NB-23 | Release, source-email cleanup and final synchronization | NB-00–NB-22 | All source/coverage checks pass; final docs committed/pushed; only authorized email messages trashed; local/remote synced | TODO |
 
 ### Dependency waves
@@ -1186,6 +1313,7 @@ Toolchain inventory covers Windows/global, repository-local, CLI, agents, skills
 - Keep provider-native global directories and installations external to Nexus. Codex, Claude Code, Gemini/Antigravity and other provider runtimes retain their official install/config/state locations; Nexus must not require moving, forking, vendoring or patching those directories.
 - Project integration may add only supported project-level adapters/configuration (for example MCP, API, CLI, hooks or project instructions). A project instruction or skill does not prove a Windows-global config is active, and official provider updates must continue to work independently of Nexus.
 - Do not make every engineering module always-on. The Engineering Control framework is mandatory, but Router/Risk select the minimum relevant skill set to avoid duplicated work and token bloat.
+- Do not inject the full engineering skill catalog into any provider/session/task. Only compact metadata is globally visible; full skill bodies are lazy-loaded per `task_id + agent_id` through Skill Resolver and bounded by Context Compiler.
 - Do not rely on a skill/plugin prompt as the sole enforcement mechanism. Objective completion/delivery rules must be backed by Nexus policy/evidence and provider-independent CI/rulesets.
 - Do not let generated orchestration skills self-grant autonomy, install dependencies, change public contracts, lower tests, merge to main or bypass approvals.
 - Do not adopt fixed universal coverage thresholds. Project policy, acceptance criteria and risk define the required evidence.
